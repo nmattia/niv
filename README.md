@@ -2,6 +2,17 @@
 
 A tool for dealing with third-party packages in [Nix].
 
+## Building
+
+Inside the provided nix shell:
+
+``` bash
+$ # GHCi:
+$ snack ghci -p package.yaml
+$ # actual build:
+$ snack build -p package.yaml
+```
+
 ## Usage
 
 ### Global options
@@ -39,11 +50,11 @@ in pkgs.hello
 
 #### show
 
-`[--branch] [--rev] [--owner] [--repo] <p1> <p2>`... if no attribute
-  (br, rev, own, repo) is given, all attributes are shown for `<packages>`.
-  Otherwise the specified attributes are shown. If no package is specified:
-  `<packages> = <all packages>`, otherwise `<packages>` is set to the specified
-  packages.
+`[--branch] [--rev] [--owner] [--repo] [--attribute <attribute>] <p1> <p2>`...
+  if no attribute (br, rev, ...) is given, all attributes are shown for
+  `<packages>`.  Otherwise the specified attributes are shown. If no package is
+  specified: `<packages> = <all packages>`, otherwise `<packages>` is set to
+  the specified packages.
 
 #### update
 
@@ -69,9 +80,10 @@ in pkgs.hello
 }
 ```
 
-* `--branch`: specifies `<branch>`
+* `--branch`: specifies `<branch>` (default: master)
 * `--username <username>`: then `let <repo> = <package>`
 * `--gitlab`: use gitlab instead of GitHub
+* `--attribute <attribute> <value>`: sets `<attribute>` to `<value>`
 
 **NOTE**: should the URLs be used instead? or more simply, how do we differentiate between Gitlab/GitHub?
 

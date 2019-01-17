@@ -1,0 +1,9 @@
+name: niv
+
+executable:
+    source-dirs: . # remove when https://github.com/nmattia/snack/pull/96 is merged
+    main: Main.hs
+    dependencies:
+        - directory
+        - filepath
+        - optparse-applicative
