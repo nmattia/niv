@@ -75,4 +75,4 @@ in pkgs.hello
 
 **NOTE**: should the URLs be used instead? or more simply, how do we differentiate between Gitlab/GitHub?
 
-[Nix]: https://www.nixos.org/nix/
+[Nix]: https://nixos.org/nix/
