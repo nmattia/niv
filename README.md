@@ -8,9 +8,9 @@ Inside the provided nix shell:
 
 ``` bash
 $ # GHCi:
-$ snack ghci -p package.yaml
+$ snack ghci
 $ # actual build:
-$ snack build -p package.yaml
+$ snack build
 ```
 
 ## Usage
@@ -48,24 +48,6 @@ let pkgs = import fetch.nixpkgs;
 in pkgs.hello
 ```
 
-#### show
-
-`[--branch] [--rev] [--owner] [--repo] [--attribute <attribute>] <p1> <p2>`...
-  if no attribute (br, rev, ...) is given, all attributes are shown for
-  `<packages>`.  Otherwise the specified attributes are shown. If no package is
-  specified: `<packages> = <all packages>`, otherwise `<packages>` is set to
-  the specified packages.
-
-#### update
-
-* `[p [--commit] [--branch]]`
- - `[]`: all packages are updated
- - `[p1 p2 ...]`: the specified packages are updated
-
-* `--commit <rev>`: `rev` is set to `<rev>` and the package is prefetched
-* `--branch <branch>`: `branch` is set to `<branch>`, `rev` is set to the
-  latest revision on that branch and the package is prefetched
-
 #### add
 
 * `<package>`: adds the following to the versions file where `let <username/repo> = <package>`
@@ -84,6 +66,24 @@ in pkgs.hello
 * `--username <username>`: then `let <repo> = <package>`
 * `--gitlab`: use gitlab instead of GitHub
 * `--attribute <attribute> <value>`: sets `<attribute>` to `<value>`
+
+#### update
+
+* `[p [--commit] [--branch]]`
+ - `[]`: all packages are updated
+ - `[p1 p2 ...]`: the specified packages are updated
+
+* `--commit <rev>`: `rev` is set to `<rev>` and the package is prefetched
+* `--branch <branch>`: `branch` is set to `<branch>`, `rev` is set to the
+  latest revision on that branch and the package is prefetched
+
+#### show
+
+`[--branch] [--rev] [--owner] [--repo] [--attribute <attribute>] <p1> <p2>`...
+  if no attribute (br, rev, ...) is given, all attributes are shown for
+  `<packages>`.  Otherwise the specified attributes are shown. If no package is
+  specified: `<packages> = <all packages>`, otherwise `<packages>` is set to
+  the specified packages.
 
 **NOTE**: should the URLs be used instead? or more simply, how do we differentiate between Gitlab/GitHub?
 
