@@ -2,6 +2,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- TODO: qualified imports
 -- TODO: format code
@@ -9,7 +11,7 @@
 import Control.Monad
 import Data.Aeson
 import Data.Bifunctor
-import Data.HashMap.Strict as HMap
+import Data.Char (toUpper)
 import Data.Hashable (Hashable)
 import Data.Semigroup ((<>))
 import Options.Applicative
@@ -17,6 +19,8 @@ import System.Directory
 import System.FilePath
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
+import qualified Data.HashMap.Strict as HMap
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T
 
 fileFetchNix :: FilePath
@@ -40,6 +44,10 @@ fileVersionsJsonContent = unlines
 
   ]
 
+newtype VersionsSpec = VersionsSpec
+  { unVersionsSpec :: HMap.HashMap PackageName PackageSpec }
+  deriving newtype (FromJSON, ToJSON)
+
 getVersionsSpec :: IO VersionsSpec
 getVersionsSpec = do
     putStrLn $ "Reading versions file"
@@ -56,17 +64,49 @@ getVersionsSpec = do
 
 
 newtype PackageName = PackageName { unPackageName :: String }
-  deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey)
-
-newtype PackageSpec = PackageSpec { unPackageSpec :: Object }
-  deriving newtype (FromJSON, ToJSON)
-
-newtype VersionsSpec = VersionsSpec
-  { unVersionsSpec :: HMap.HashMap PackageName PackageSpec }
-  deriving newtype (FromJSON, ToJSON)
+  deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)
 
 parsePackageName :: Parser PackageName
-parsePackageName = undefined
+parsePackageName = PackageName <$> argument str (metavar "PACKAGE")
+
+newtype PackageSpec = PackageSpec { unPackageSpec :: Object }
+  deriving newtype (FromJSON, ToJSON, Show)
+
+parsePackageSpec :: Parser PackageSpec
+parsePackageSpec =
+    (PackageSpec . HMap.fromList . fmap fixupAttributes) <$>
+      many parseAttribute
+  where
+    parseAttribute :: Parser (String, String)
+    parseAttribute = shortcutAttributes <|>
+      option (maybeReader parseKeyVal)
+        ( long "attribute" <>
+          short 'a' <>
+          metavar "KEY=VAL"
+        )
+
+    -- Parse "key=val" into ("key", "val")
+    parseKeyVal :: String -> Maybe (String, String)
+    parseKeyVal str = case span (/= '=') str of
+      (key, '=':val) -> Just (key, val)
+      _ -> Nothing
+
+    -- Shortcuts for common attributes
+    shortcutAttributes :: Parser (String, String)
+    shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
+      [ "branch", "name", "owner", "repo" ]
+
+    mkShortcutAttribute :: String -> Parser (String, String)
+    mkShortcutAttribute attr@(c:_) = (attr,) <$> strOption
+      ( long attr <> short c <> metavar (toUpper <$> attr) )
+
+    fixupAttributes :: (String, String) -> (T.Text, Value)
+    fixupAttributes (k, v) = (T.pack k, String (T.pack v))
+
+parsePackage :: Parser (PackageName, PackageSpec)
+parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
+
+-- FOOs
 
 preparePackageURL :: PackageSpec -> IO String
 preparePackageURL = const $ pure "foo"
@@ -109,10 +149,17 @@ cmdInit = do
 -- ADD
 -------------------------------------------------------------------------------
 
-cmdAdd :: PackageName -> IO ()
-cmdAdd packageName = do
+parseCmdAdd :: ParserInfo (IO ())
+parseCmdAdd = (info ((cmdAdd <$> parsePackages) <**> helper)) fullDesc
+  where
+    parsePackages :: Parser [(PackageName, PackageSpec)]
+    parsePackages = some parsePackage
+
+cmdAdd :: [(PackageName, PackageSpec)] -> IO ()
+cmdAdd (package@(packageName, _) : _) = do
     putStrLn $ "Adding " <> unPackageName packageName
 
+    print package
     VersionsSpec versionsSpec <- getVersionsSpec
 
     -- TODO: new package Spec
@@ -121,9 +168,20 @@ cmdAdd packageName = do
     putStrLn $ "Writing new versions file"
     encodeFile fileVersionsJson fileVersionsValue'
 
+addCompletePackageSpec
+  :: (PackageName, PackageSpec)
+  -> IO (PackageName, PackageSpec)
+addCompletePackageSpec x = do
+
+
+    pure x
+
 -------------------------------------------------------------------------------
 -- SHOW
 -------------------------------------------------------------------------------
+
+parseCmdShow :: ParserInfo (IO ())
+parseCmdShow = info (pure cmdShow <**> helper) fullDesc
 
 cmdShow :: IO ()
 cmdShow = do
@@ -142,6 +200,9 @@ cmdShow = do
 -------------------------------------------------------------------------------
 -- UPDATE
 -------------------------------------------------------------------------------
+
+parseCmdUpdate :: ParserInfo (IO ())
+parseCmdUpdate = info (pure cmdUpdate <**> helper) fullDesc
 
 cmdUpdate :: IO ()
 cmdUpdate = do
@@ -166,9 +227,9 @@ cmdUpdate = do
 parseCommand :: Parser (IO ())
 parseCommand = subparser (
     command "init" parseCmdInit <>
-    command "add"  (info (cmdAdd <$> parsePackageName) idm) <>
-    command "show"  (info (pure cmdShow) idm) <>
-    command "update"  (info (pure cmdUpdate) idm) )
+    command "add"  parseCmdAdd <>
+    command "show"  parseCmdShow <>
+    command "update"  parseCmdUpdate )
 
 main :: IO ()
 main = join $ execParser opts

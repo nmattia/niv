@@ -15,19 +15,32 @@ $ snack build
 
 ## Usage
 
-### Global options
-
-* `--versions`: path to the `vesions.json`
-
 **NOTES**
 
 * no support for non-json, to enforce convention
+* fixed path to nix/versions.json, to enforce convention
 
 ### Commands
 
+Abbreviations:
+
+### Attributes
+
+* `-b` -> `--branch`
+* `-n` -> `--name`
+* `-o` -> `--owner`
+* `-r` -> `--repo`
+* `-t` -> `--template`
+* `-a` -> `--attribute`
+
+### VCS
+
+* `-h` -> `--github`
+* `-l` -> `--gitlab`
+
 #### init
 
-[--fetch]
+* `[<p1> --branch foo <p2> ...]`
 
 Creates (if the file doesn't exist)
 
