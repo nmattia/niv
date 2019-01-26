@@ -7,5 +7,7 @@ executable:
         - aeson
         - directory
         - filepath
+        - github
+        - mtl
         - optparse-applicative
         - unordered-containers

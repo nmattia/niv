@@ -80,6 +80,8 @@ in pkgs.hello
 * `--gitlab`: use gitlab instead of GitHub
 * `--attribute <attribute> <value>`: sets `<attribute>` to `<value>`
 
+If the package already exists, merges with the package (prior to heuristics)
+
 #### update
 
 * `[p [--commit] [--branch]]`
@@ -92,11 +94,13 @@ in pkgs.hello
 
 #### show
 
-`[--branch] [--rev] [--owner] [--repo] [--attribute <attribute>] <p1> <p2>`...
-  if no attribute (br, rev, ...) is given, all attributes are shown for
-  `<packages>`.  Otherwise the specified attributes are shown. If no package is
-  specified: `<packages> = <all packages>`, otherwise `<packages>` is set to
-  the specified packages.
+* Shows all packages
+
+#### drop
+
+`<p1> <p2>`
+
+* Drops the specified packages
 
 **NOTE**: should the URLs be used instead? or more simply, how do we differentiate between Gitlab/GitHub?
 
