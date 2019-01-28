@@ -10,7 +10,6 @@
 
 module Main (main) where
 
--- TODO: proper errors
 -- TODO: document commands
 
 import Control.Applicative
@@ -23,6 +22,7 @@ import Data.Maybe (mapMaybe, fromMaybe)
 import Data.Semigroup ((<>))
 import Data.String.QQ (s)
 import GHC.Exts (toList)
+import System.Exit (exitFailure)
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
 import qualified Data.Aeson as Aeson
@@ -49,9 +49,9 @@ getVersionsSpec = do
             case v of
               Aeson.Object v' ->
                 pure $ HMap.singleton (PackageName (T.unpack k)) (PackageSpec v')
-              _ -> error "baaaaz"
-      Just _ -> error "foo"
-      Nothing -> error "Cannot decode versions"
+              _ -> abortAttributeIsntAMap
+      Just _ -> abortVersionsIsntAMap
+      Nothing -> abortVersionsIsntJSON
 
 setVersionsSpec :: VersionsSpec -> IO ()
 setVersionsSpec versionsSpec = encodeFile pathNixVersionsJson versionsSpec
@@ -94,7 +94,7 @@ parsePackageSpec =
     mkShortcutAttribute = \case
       attr@(c:_) -> (attr,) <$> Opts.strOption
         ( Opts.long attr <> Opts.short c <> Opts.metavar (toUpper <$> attr) )
-      _ -> error "The attribute name should not be an empty string"
+      _ -> empty
 
     fixupAttributes :: (String, String) -> (T.Text, Aeson.Value)
     fixupAttributes (k, v) = (T.pack k, Aeson.String (T.pack v))
@@ -292,11 +292,8 @@ cmdAdd (PackageName str, spec) mPackageName = do
 
     let packageName' = fromMaybe packageName mPackageName
 
-    when (HMap.member packageName' versionsSpec) $ do
-      error $ unlines
-        [ "Use niv drop <package> and then niv add"
-        , "Or use nix update --attr foo bar to update"
-        ]
+    when (HMap.member packageName' versionsSpec) $
+      abortCannotAddPackageExists packageName'
 
     spec'' <- updatePackageSpec =<< completePackageSpec spec'
 
@@ -346,7 +343,7 @@ cmdUpdate = \case
           updatePackageSpec $ PackageSpec $ HMap.union
               (unPackageSpec packageSpec)
               (unPackageSpec packageSpec')
-        Nothing -> error $ "Package not found: " <> unPackageName packageName
+        Nothing -> abortCannotUpdateNoSuchPackage packageName
 
       setVersionsSpec $ VersionsSpec $
         HMap.insert packageName packageSpec' versionsSpec
@@ -377,7 +374,7 @@ cmdDrop packageName = do
       versionsSpec <- unVersionsSpec <$> getVersionsSpec
 
       when (not $ HMap.member packageName versionsSpec) $
-        error $ "No such package: " <> unPackageName packageName
+        abortCannotDropNoSuchPackage packageName
 
       setVersionsSpec $ VersionsSpec $
         HMap.delete packageName versionsSpec
@@ -402,7 +399,7 @@ nixPrefetchURL url =
     lines <$> readProcess "nix-prefetch-url" ["--unpack", url] "" >>=
       \case
         (l:_) -> pure l
-        _ -> error "Expected at least one line from nix-prefetch-url"
+        _ -> abortNixPrefetchExpectedOutput
 
 -------------------------------------------------------------------------------
 -- Aux
@@ -474,6 +471,11 @@ renderTemplate vals = \case
         _ -> Nothing
     c:str -> (c:) <$> renderTemplate vals str
     [] -> Just []
+
+abort :: String -> IO a
+abort msg = do
+    putStrLn msg
+    exitFailure
 
 -------------------------------------------------------------------------------
 -- Files and their content
@@ -560,3 +562,67 @@ pathNixVersionsJson = "nix" </> "versions.json"
 -- | Empty JSON map
 initNixVersionsJsonContent :: String
 initNixVersionsJsonContent = "{}"
+
+-------------------------------------------------------------------------------
+-- Abort
+-------------------------------------------------------------------------------
+
+abortVersionsIsntAMap :: IO a
+abortVersionsIsntAMap = abort $ unlines [ line1, line2 ]
+  where
+    line1 = "Cannot use " <> pathNixVersionsJson
+    line2 = [s|
+The versions file should be a JSON map from package name to package
+specification, e.g.:
+  { ... }
+|]
+
+abortAttributeIsntAMap :: IO a
+abortAttributeIsntAMap = abort $ unlines [ line1, line2 ]
+  where
+    line1 = "Cannot use " <> pathNixVersionsJson
+    line2 = [s|
+The package specifications in the versions file should be JSON maps from
+attribute name to attribute value, e.g.:
+  { "nixpkgs": { "foo": "bar" } }
+|]
+
+abortVersionsIsntJSON :: IO a
+abortVersionsIsntJSON = abort $ unlines [ line1, line2 ]
+  where
+    line1 = "Cannot use " <> pathNixVersionsJson
+    line2 = "The versions file should be JSON."
+
+abortCannotAddPackageExists :: PackageName -> IO a
+abortCannotAddPackageExists (PackageName n) = abort $ unlines
+    [ "Cannot add package " <> n <> "."
+    , "The package already exists. Use"
+    , "  nix drop " <> n
+    , "and then re-add the package. Alternatively use"
+    , "  nix update " <> n <> " --attr foo=bar"
+    , "to update the package's attributes."
+    ]
+
+abortCannotUpdateNoSuchPackage :: PackageName -> IO a
+abortCannotUpdateNoSuchPackage (PackageName n) = abort $ unlines
+    [ "Cannot update package " <> n <> "."
+    , "The package doesn't exist. Use"
+    , "  nix add " <> n
+    , "to add the package."
+    ]
+
+abortCannotDropNoSuchPackage :: PackageName -> IO a
+abortCannotDropNoSuchPackage (PackageName n) = abort $ unlines
+    [ "Cannot drop package " <> n <> "."
+    , "The package doesn't exist."
+    ]
+
+abortNixPrefetchExpectedOutput :: IO a
+abortNixPrefetchExpectedOutput = abort [s|
+Could not read the output of 'nix-prefetch-url'. This is a bug. Please create a
+ticket:
+
+  https://github.com/nmattia/niv/issues/new
+
+Thanks! I'll buy you a beer.
+|]
