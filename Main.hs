@@ -2,11 +2,17 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
+{-# OPTIONS_GHC "-Wall" #-}
+
+module Main (main) where
+
 -- TODO: qualified imports
 -- TODO: format code
+-- TODO: document commands
 
 import Control.Monad
 import Control.Monad.State
@@ -20,6 +26,7 @@ import GHC.Exts (toList)
 import System.Directory
 import System.FilePath
 import System.Process (readProcess)
+import Data.String.QQ (s)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.HashMap.Strict as HMap
@@ -28,26 +35,6 @@ import qualified GitHub as GH
 import qualified GitHub.Data.Name as GH
 import qualified Options.Applicative as Opts
 
-fileFetchNix :: FilePath
-fileFetchNix = "nix" </> "fetch.nix"
-
--- TODO: file "nix/default.nix"
-
-fileFetchNixContent :: String
-fileFetchNixContent = unlines
-  [
-
-  ]
-
-fileVersionsJson :: FilePath
-fileVersionsJson = "nix" </> "versions.json"
-
-fileVersionsJsonContent :: String
-fileVersionsJsonContent = unlines
-  [
-
-  ]
-
 newtype VersionsSpec = VersionsSpec
   { unVersionsSpec :: HMap.HashMap PackageName PackageSpec }
   deriving newtype (FromJSON, ToJSON)
@@ -55,7 +42,7 @@ newtype VersionsSpec = VersionsSpec
 getVersionsSpec :: IO VersionsSpec
 getVersionsSpec = do
     putStrLn $ "Reading versions file"
-    decodeFileStrict fileVersionsJson >>= \case
+    decodeFileStrict pathNixVersionsJson >>= \case
       Just (Object obj) ->
         fmap (VersionsSpec . mconcat) $
           forM (HMap.toList obj) $ \(k, v) ->
@@ -67,7 +54,7 @@ getVersionsSpec = do
       Nothing -> error "Cannot decode versions"
 
 setVersionsSpec :: VersionsSpec -> IO ()
-setVersionsSpec versionsSpec = encodeFile fileVersionsJson versionsSpec
+setVersionsSpec versionsSpec = encodeFile pathNixVersionsJson versionsSpec
 
 newtype PackageName = PackageName { unPackageName :: String }
   deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)
@@ -222,13 +209,6 @@ setPackageSpecAttr attrName attrValue = do
   let obj' = HMap.insert attrName attrValue obj
   put (PackageSpec obj')
 
-hasPackageSpecAttrs
-  :: [String]
-  -> StateT PackageSpec IO Bool
-hasPackageSpecAttrs attrNames = do
-  PackageSpec obj <- get
-  pure $ all (\k -> HMap.member (T.pack k) obj) attrNames
-
 packageSpecStringValues :: PackageSpec -> [(String, String)]
 packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMap.toList m)
   where
@@ -246,30 +226,34 @@ parseCmdInit = (Opts.info (pure cmdInit <**> Opts.helper)) Opts.fullDesc
 
 cmdInit :: IO ()
 cmdInit = do
-    putStrLn "Creating directory nix (if it doesn't exist)"
-    createDirectoryIfMissing True "nix"
 
-    putStrLn $ "Creating file " <> fileFetchNix <> " (if it doesn't exist)"
-    fileFetchNixExists <- doesFileExist fileFetchNix
+    -- Writes all the default files
+    forM_
+      [ (pathNixVersionsJson, initNixVersionsJsonContent)
+      , (pathNixFetchNix, initNixFetchNixContent)
+      , (pathNixDefaultNix, initNixDefaultNixContent)
+      , (pathDefaultNix, initDefaultNixContent)
+      , (pathShellNix, initShellNixContent)
+      ] $ \(path, content) -> do
+        putStrLn $ "Creating file " <> path <> " (if it doesn't exist)"
+        let dir = takeDirectory path
+        createDirectoryIfMissing True dir
+        exists <- doesFileExist path
+        if exists
+        then do
+          putStrLn $ "Not creating " <> path <> " (already exists)"
+        else do
+          putStrLn $ "Creating " <> path <> " (doesn't exist)"
+          writeFile path content
 
-    if fileFetchNixExists
-    then do
-      putStrLn $ "Not writing " <> fileFetchNix
-      putStrLn "(file exists)"
-    else do
-      putStrLn $ "Writing " <> fileFetchNix
-      writeFile fileFetchNix fileFetchNixContent
-
-    putStrLn $ "Creating file " <> fileVersionsJson <> " (if it doesn't exist)"
-    fileVersionsJsonExists <- doesFileExist fileVersionsJson
-
-    if fileVersionsJsonExists
-    then do
-      putStrLn $ "Not writing " <> fileVersionsJson
-      putStrLn "(file exists)"
-    else do
-      putStrLn $ "Writing " <> fileVersionsJson
-      writeFile fileVersionsJson fileVersionsJsonContent
+    -- Imports @niv@ and @nixpkgs@ (18.09)
+    putStrLn "Importing 'niv' ..."
+    cmdAdd (PackageName "nmattia/niv", PackageSpec HMap.empty) Nothing
+    putStrLn "Importing 'nixpkgs' ..."
+    cmdAdd
+      ( PackageName "NixOS/nixpkgs-channels"
+      , PackageSpec (HMap.singleton "branch" "nixos-18.09"))
+      (Just (PackageName "nixpkgs"))
 
 -------------------------------------------------------------------------------
 -- ADD
@@ -300,7 +284,7 @@ cmdAdd (PackageName str, spec) mPackageName = do
             pure (PackageName repo)
           _ -> pure (PackageName str)
 
-    VersionsSpec versionsSpec <- getVersionsSpec
+    versionsSpec <- unVersionsSpec <$> getVersionsSpec
 
     let packageName' = fromMaybe packageName mPackageName
 
@@ -327,7 +311,7 @@ cmdShow :: IO ()
 cmdShow = do
     putStrLn $ "Showing versions file"
 
-    VersionsSpec fileVersionsValue <- getVersionsSpec
+    fileVersionsValue <- unVersionsSpec <$> getVersionsSpec
 
     forWithKeyM_ fileVersionsValue $ \key (PackageSpec spec) -> do
       putStrLn $ "Package: " <> unPackageName key
@@ -351,7 +335,7 @@ cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
     Just (packageName, packageSpec) -> do
       putStrLn $ "Updating single package: " <> unPackageName packageName
-      VersionsSpec versionsSpec <- getVersionsSpec
+      versionsSpec <- unVersionsSpec <$> getVersionsSpec
 
       packageSpec' <- case HMap.lookup packageName versionsSpec of
         Just packageSpec' -> do
@@ -364,7 +348,7 @@ cmdUpdate = \case
         HMap.insert packageName packageSpec' versionsSpec
 
     Nothing -> do
-      VersionsSpec versionsSpec <- getVersionsSpec
+      versionsSpec <- unVersionsSpec <$> getVersionsSpec
 
       versionsSpec' <- forWithKeyM versionsSpec $
         \packageName packageSpec -> do
@@ -386,7 +370,7 @@ parseCmdDrop =
 cmdDrop :: PackageName -> IO ()
 cmdDrop packageName = do
       putStrLn $ "Dropping package: " <> unPackageName packageName
-      VersionsSpec versionsSpec <- getVersionsSpec
+      versionsSpec <- unVersionsSpec <$> getVersionsSpec
 
       when (not $ HMap.member packageName versionsSpec) $
         error $ "No such package: " <> unPackageName packageName
@@ -486,3 +470,89 @@ renderTemplate vals = \case
         _ -> Nothing
     c:str -> (c:) <$> renderTemplate vals str
     [] -> Just []
+
+-------------------------------------------------------------------------------
+-- Files and their content
+-------------------------------------------------------------------------------
+
+-- | @nix/fetch.nix@
+pathNixFetchNix :: FilePath
+pathNixFetchNix = "nix" </> "fetch.nix"
+
+-- | Glue code between nix and versions.json
+initNixFetchNixContent :: String
+initNixFetchNixContent = [s|
+# A record, from name to path, of the third-party packages
+let
+  versions = builtins.fromJSON (builtins.readFile ./versions.json);
+  fetchTarball =
+    # fetchTarball version that is compatible between all the versions of
+    # Nix
+    { url, sha256 }@attrs:
+    let
+      inherit (builtins) lessThan nixVersion fetchTarball;
+    in
+      if lessThan nixVersion "1.12" then
+        fetchTarball { inherit url; }
+      else
+        fetchTarball attrs;
+in
+  builtins.mapAttrs (_: spec:
+      fetchTarball {
+        url =
+          with spec;
+          "https://github.com/${owner}/${repo}/archive/${rev}.tar.gz";
+        sha256 = spec.sha256;
+      }
+    ) versions
+|]
+
+-- | @nix/default.nix@
+pathNixDefaultNix :: FilePath
+pathNixDefaultNix = "nix" </> "default.nix"
+
+-- | File importing @nixpkgs@, setting up overlays, etc
+initNixDefaultNixContent :: String
+initNixDefaultNixContent = [s|
+with { fetch = import ./fetch.nix; };
+import fetch.nixpkgs
+  { overlays =
+      [ (self: super:
+          { niv = import fetch.niv {};
+          }
+        )
+      ] ;
+    config = { } ;
+  }
+|]
+
+-- | @default.nix@
+pathDefaultNix :: FilePath
+pathDefaultNix = "default.nix"
+
+-- | Top level @default.nix@
+initDefaultNixContent :: String
+initDefaultNixContent = [s|
+let pkgs = import ./nix; in pkgs.hello
+|]
+
+-- | @shell.nix@
+pathShellNix :: FilePath
+pathShellNix = "shell.nix"
+
+-- | Simple shell that loads @niv@
+initShellNixContent :: String
+initShellNixContent = [s|
+let pkgs = import ./nix;
+in pkgs.mkShell
+  { buildInputs = [ pkgs.niv ];
+  }
+|]
+
+-- | @nix/versions.json"
+pathNixVersionsJson :: FilePath
+pathNixVersionsJson = "nix" </> "versions.json"
+
+-- | Empty JSON map
+initNixVersionsJsonContent :: String
+initNixVersionsJsonContent = "{}"

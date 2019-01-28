@@ -6,6 +6,7 @@ executable:
     dependencies:
         - aeson
         - directory
+        - string-qq
         - filepath
         - github
         - mtl
