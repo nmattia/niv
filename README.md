@@ -9,99 +9,86 @@ Inside the provided nix shell:
 ``` bash
 $ # GHCi:
 $ snack ghci
-$ # actual build:
-$ snack build
+$ # run:
+$ snack run -- <args>
 ```
 
 ## Usage
 
-**NOTES**
+* [Add](#add)
+* [Update](#update)
+* [Drop](#drop)
 
-* no support for non-json, to enforce convention
-* fixed path to nix/versions.json, to enforce convention
+```
+NIV - Version manager for Nix projects
 
-### Commands
+Usage: niv COMMAND
 
-Abbreviations:
+Available options:
+  -h,--help                Show this help text
 
-### Attributes
-
-* `-b` -> `--branch`
-* `-n` -> `--name`
-* `-o` -> `--owner`
-* `-r` -> `--repo`
-* `-t` -> `--template`
-* `-a` -> `--attribute`
-
-### VCS
-
-* `-h` -> `--github`
-* `-l` -> `--gitlab`
-
-#### init
-
-* `[<p1> --branch foo <p2> ...]`
-
-Creates (if the file doesn't exist)
-
-* `nix/versions.json`:
-``` json
-{"nixpkgs": { ... }}
+Available commands:
+  init                     Initialize a Nix project. Existing files won't be
+                           modified.
+  add                      Add dependency
+  show
+  update                   Update dependencies
+  drop                     Drop dependency
 ```
 
-*`nix/fetch.nix`:
-``` nix
-...
+
+### Add
+
+```
+Examples:
+
+  niv add stedolan/jq
+  niv add NixOS/nixpkgs-channel -n nixpkgs -b nixos-18.09
+  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
+
+Usage: niv add PACKAGE ([-b|--branch BRANCH] | [-o|--owner OWNER] |
+                         [-r|--repo REPO] | [-v|--version VERSION] |
+                         [-a|--attribute KEY=VAL] | [-t|--template URL])
+                         [-n|--name NAME]
+  Add dependency
+
+Available options:
+  -t,--template URL        foo
+  -h,--help                Show this help text
 ```
 
-*`default.nix`:
-``` nix
-with { fetch = import <fetch>; };
-let pkgs = import fetch.nixpkgs;
-in pkgs.hello
+
+### Update
+
+```
+Examples:
+
+  niv update
+  niv update nixpkgs
+  niv update my-package -v beta-0.2
+
+Usage: niv update [PACKAGE] ([-b|--branch BRANCH] | [-o|--owner OWNER]
+                            | [-r|--repo REPO] | [-v|--version VERSION] |
+                            [-a|--attribute KEY=VAL] | [-t|--template URL])
+  Update dependencies
+
+Available options:
+  -t,--template URL        foo
+  -h,--help                Show this help text
 ```
 
-#### add
+### Drop
 
-* `<package>`: adds the following to the versions file where `let <username/repo> = <package>`
-``` json
-{ "<repo>":
-  { "owner":  "<username>",
-    "repo":   "<repo>",
-    "rev":    "<latest commit on <branch>>",
-    "sha256": "<sha256>",
-    "branch": "<branch>"
-  }
-}
 ```
+Examples:
 
-* `--branch`: specifies `<branch>` (default: master)
-* `--username <username>`: then `let <repo> = <package>`
-* `--gitlab`: use gitlab instead of GitHub
-* `--attribute <attribute> <value>`: sets `<attribute>` to `<value>`
+  niv drop jq
 
-If the package already exists, merges with the package (prior to heuristics)
+Usage: niv drop PACKAGE
+  Drop dependency
 
-#### update
-
-* `[p [--commit] [--branch]]`
- - `[]`: all packages are updated
- - `[p1 p2 ...]`: the specified packages are updated
-
-* `--commit <rev>`: `rev` is set to `<rev>` and the package is prefetched
-* `--branch <branch>`: `branch` is set to `<branch>`, `rev` is set to the
-  latest revision on that branch and the package is prefetched
-
-#### show
-
-* Shows all packages
-
-#### drop
-
-`<p1> <p2>`
-
-* Drops the specified packages
-
-**NOTE**: should the URLs be used instead? or more simply, how do we differentiate between Gitlab/GitHub?
+Available options:
+  -h,--help                Show this help text
+```
 
 [Nix]: https://nixos.org/nix/
