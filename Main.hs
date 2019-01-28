@@ -10,23 +10,22 @@
 
 module Main (main) where
 
--- TODO: qualified imports
--- TODO: format code
+-- TODO: proper errors
 -- TODO: document commands
 
+import Control.Applicative
 import Control.Monad
 import Control.Monad.State
-import Control.Applicative
-import Data.Aeson
+import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
 import Data.Char (toUpper)
 import Data.Hashable (Hashable)
 import Data.Maybe (mapMaybe, fromMaybe)
 import Data.Semigroup ((<>))
-import GHC.Exts (toList)
-import System.Directory
-import System.FilePath
-import System.Process (readProcess)
 import Data.String.QQ (s)
+import GHC.Exts (toList)
+import System.FilePath ((</>), takeDirectory)
+import System.Process (readProcess)
+import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.HashMap.Strict as HMap
@@ -34,6 +33,7 @@ import qualified Data.Text as T
 import qualified GitHub as GH
 import qualified GitHub.Data.Name as GH
 import qualified Options.Applicative as Opts
+import qualified System.Directory as Dir
 
 newtype VersionsSpec = VersionsSpec
   { unVersionsSpec :: HMap.HashMap PackageName PackageSpec }
@@ -43,11 +43,11 @@ getVersionsSpec :: IO VersionsSpec
 getVersionsSpec = do
     putStrLn $ "Reading versions file"
     decodeFileStrict pathNixVersionsJson >>= \case
-      Just (Object obj) ->
+      Just (Aeson.Object obj) ->
         fmap (VersionsSpec . mconcat) $
           forM (HMap.toList obj) $ \(k, v) ->
             case v of
-              Object v' ->
+              Aeson.Object v' ->
                 pure $ HMap.singleton (PackageName (T.unpack k)) (PackageSpec v')
               _ -> error "baaaaz"
       Just _ -> error "foo"
@@ -63,7 +63,7 @@ parsePackageName :: Opts.Parser PackageName
 parsePackageName = PackageName <$>
     Opts.argument Opts.str (Opts.metavar "PACKAGE")
 
-newtype PackageSpec = PackageSpec { unPackageSpec :: Object }
+newtype PackageSpec = PackageSpec { unPackageSpec :: Aeson.Object }
   deriving newtype (FromJSON, ToJSON, Show)
 
 parsePackageSpec :: Opts.Parser PackageSpec
@@ -96,8 +96,8 @@ parsePackageSpec =
         ( Opts.long attr <> Opts.short c <> Opts.metavar (toUpper <$> attr) )
       _ -> error "The attribute name should not be an empty string"
 
-    fixupAttributes :: (String, String) -> (T.Text, Value)
-    fixupAttributes (k, v) = (T.pack k, String (T.pack v))
+    fixupAttributes :: (String, String) -> (T.Text, Aeson.Value)
+    fixupAttributes (k, v) = (T.pack k, Aeson.String (T.pack v))
 
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
 parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
@@ -110,21 +110,21 @@ updatePackageSpec :: PackageSpec -> IO PackageSpec
 updatePackageSpec = execStateT $ do
     -- Figures out the URL from the template
     withPackageSpecAttr "url_template" (\case
-      String (T.unpack -> template) -> do
+      Aeson.String (T.unpack -> template) -> do
         packageSpec <- get
         let stringValues = packageSpecStringValues packageSpec
         case renderTemplate stringValues template of
           Just renderedURL ->
-            setPackageSpecAttr "url" (String $ T.pack renderedURL)
+            setPackageSpecAttr "url" (Aeson.String $ T.pack renderedURL)
           Nothing -> pure ()
       _ -> pure ()
       )
 
     -- Updates the sha256 based on the URL contents
     withPackageSpecAttr "url" (\case
-      String (T.unpack -> url) -> do
+      Aeson.String (T.unpack -> url) -> do
         sha256 <- liftIO $ nixPrefetchURL url
-        setPackageSpecAttr "sha256" (String $ T.pack sha256)
+        setPackageSpecAttr "sha256" (Aeson.String $ T.pack sha256)
       _ -> pure ()
       )
 
@@ -135,7 +135,7 @@ completePackageSpec = execStateT $ do
 
     -- In case we have @owner@ and @repo@, pull some data from GitHub
     (,) <$> getPackageSpecAttr "owner" <*> getPackageSpecAttr "repo" >>= \case
-      (Just (String owner), Just (String repo)) -> do
+      (Just (Aeson.String owner), Just (Aeson.String repo)) -> do
           liftIO (GH.executeRequest' $ GH.repositoryR (GH.N owner) (GH.N repo))
             >>= \case
               Left _ -> pure ()
@@ -143,23 +143,25 @@ completePackageSpec = execStateT $ do
 
                 -- Description
                 whenNotSet "description" $ case GH.repoDescription ghRepo of
-                  Just descr -> setPackageSpecAttr "description" (String descr)
+                  Just descr ->
+                    setPackageSpecAttr "description" (Aeson.String descr)
                   Nothing -> pure ()
 
                 -- Branch and rev
                 whenNotSet "branch" $ case GH.repoDefaultBranch ghRepo of
-                  Just branch -> setPackageSpecAttr "branch" (String branch)
+                  Just branch ->
+                    setPackageSpecAttr "branch" (Aeson.String branch)
                   Nothing -> pure ()
 
                 withPackageSpecAttr "branch" (\case
-                  String branch -> do
+                  Aeson.String branch -> do
                     liftIO (GH.executeRequest' $
                       GH.commitsWithOptionsForR
                       (GH.N owner) (GH.N repo) (GH.FetchAtLeast 1)
                       [GH.CommitQuerySha branch]) >>= \case
                         Right (toList -> (commit:_)) -> do
                           let GH.N rev = GH.commitSha commit
-                          setPackageSpecAttr "rev" (String rev)
+                          setPackageSpecAttr "rev" (Aeson.String rev)
                         _ -> pure ()
                   _ -> pure ()
                   )
@@ -167,7 +169,9 @@ completePackageSpec = execStateT $ do
 
     -- Figures out the URL template
     whenNotSet "url_template" $
-      setPackageSpecAttr "url_template" (String $ T.pack githubURLTemplate)
+      setPackageSpecAttr
+        "url_template"
+        (Aeson.String $ T.pack githubURLTemplate)
 
   where
     githubURLTemplate :: String
@@ -188,7 +192,7 @@ whenNotSet attrName act = getPackageSpecAttr attrName >>= \case
 
 withPackageSpecAttr
   :: T.Text
-  -> (Value -> StateT PackageSpec IO ())
+  -> (Aeson.Value -> StateT PackageSpec IO ())
   -> StateT PackageSpec IO ()
 withPackageSpecAttr attrName act = getPackageSpecAttr attrName >>= \case
   Just v -> act v
@@ -196,13 +200,13 @@ withPackageSpecAttr attrName act = getPackageSpecAttr attrName >>= \case
 
 getPackageSpecAttr
   :: T.Text
-  -> StateT PackageSpec IO (Maybe Value)
+  -> StateT PackageSpec IO (Maybe Aeson.Value)
 getPackageSpecAttr attrName = do
   PackageSpec obj <- get
   pure $ HMap.lookup attrName obj
 
 setPackageSpecAttr
-  :: T.Text -> Value
+  :: T.Text -> Aeson.Value
   -> StateT PackageSpec IO ()
 setPackageSpecAttr attrName attrValue = do
   PackageSpec obj <- get
@@ -212,9 +216,9 @@ setPackageSpecAttr attrName attrValue = do
 packageSpecStringValues :: PackageSpec -> [(String, String)]
 packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMap.toList m)
   where
-    toVal :: (T.Text, Value) -> Maybe (String, String)
+    toVal :: (T.Text, Aeson.Value) -> Maybe (String, String)
     toVal = \case
-      (key, String val) -> Just (T.unpack key, T.unpack val)
+      (key, Aeson.String val) -> Just (T.unpack key, T.unpack val)
       _ -> Nothing
 
 -------------------------------------------------------------------------------
@@ -237,8 +241,8 @@ cmdInit = do
       ] $ \(path, content) -> do
         putStrLn $ "Creating file " <> path <> " (if it doesn't exist)"
         let dir = takeDirectory path
-        createDirectoryIfMissing True dir
-        exists <- doesFileExist path
+        Dir.createDirectoryIfMissing True dir
+        exists <- Dir.doesFileExist path
         if exists
         then do
           putStrLn $ "Not creating " <> path <> " (already exists)"
@@ -278,9 +282,9 @@ cmdAdd (PackageName str, spec) mPackageName = do
     (packageName, spec') <- flip runStateT spec $ case span (/= '/') str of
           (owner@(_:_), '/':repo@(_:_)) -> do
             whenNotSet "owner" $
-              setPackageSpecAttr "owner" (String $ T.pack owner)
+              setPackageSpecAttr "owner" (Aeson.String $ T.pack owner)
             whenNotSet "repo" $ do
-                setPackageSpecAttr "repo" (String $ T.pack repo)
+                setPackageSpecAttr "repo" (Aeson.String $ T.pack repo)
             pure (PackageName repo)
           _ -> pure (PackageName str)
 
@@ -317,7 +321,7 @@ cmdShow = do
       putStrLn $ "Package: " <> unPackageName key
       forM_ (HMap.toList spec) $ \(attrName, attrValValue) -> do
         let attrValue = case attrValValue of
-              String str -> str
+              Aeson.String str -> str
               _ -> "<barabajagal>"
         putStrLn $ "  " <> T.unpack attrName <> ": " <> T.unpack attrValue
 
@@ -416,11 +420,11 @@ nixPrefetchURL url =
 -- This function parses immediately, but defers conversion.  See
 -- 'json' for details.
 decodeFileStrict :: (FromJSON a) => FilePath -> IO (Maybe a)
-decodeFileStrict = fmap decodeStrict . B.readFile
+decodeFileStrict = fmap Aeson.decodeStrict . B.readFile
 
 -- | Efficiently serialize a JSON value as a lazy 'L.ByteString' and write it to a file.
 encodeFile :: (ToJSON a) => FilePath -> a -> IO ()
-encodeFile fp = L.writeFile fp . encode
+encodeFile fp = L.writeFile fp . Aeson.encode
 
 --- HashMap
 
