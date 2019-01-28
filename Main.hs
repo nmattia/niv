@@ -98,7 +98,7 @@ parsePackageSpec =
         ( Opts.long "template" <>
           Opts.short 't' <>
           Opts.metavar "URL" <>
-          Opts.help "foo"
+          Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
         ))
 
     -- Parse "key=val" into ("key", "val")
