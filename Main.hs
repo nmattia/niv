@@ -10,8 +10,6 @@
 
 module Main (main) where
 
--- TODO: document commands
-
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
@@ -33,7 +31,25 @@ import qualified Data.Text as T
 import qualified GitHub as GH
 import qualified GitHub.Data.Name as GH
 import qualified Options.Applicative as Opts
+import qualified Options.Applicative.Help.Pretty as Opts
 import qualified System.Directory as Dir
+
+main :: IO ()
+main = join $ Opts.execParser opts
+  where
+    opts = Opts.info (parseCommand <**> Opts.helper) $ mconcat desc
+    desc =
+      [ Opts.fullDesc
+      , Opts.header "NIV - Version manager for Nix projects"
+      ]
+
+parseCommand :: Opts.Parser (IO ())
+parseCommand = Opts.subparser (
+    Opts.command "init" parseCmdInit <>
+    Opts.command "add"  parseCmdAdd <>
+    Opts.command "show"  parseCmdShow <>
+    Opts.command "update"  parseCmdUpdate <>
+    Opts.command "drop"  parseCmdDrop )
 
 newtype VersionsSpec = VersionsSpec
   { unVersionsSpec :: HMap.HashMap PackageName PackageSpec }
@@ -77,7 +93,13 @@ parsePackageSpec =
         ( Opts.long "attribute" <>
           Opts.short 'a' <>
           Opts.metavar "KEY=VAL"
-        )
+        ) <|>
+      (("url_template",) <$> Opts.strOption
+        ( Opts.long "template" <>
+          Opts.short 't' <>
+          Opts.metavar "URL" <>
+          Opts.help "foo"
+        ))
 
     -- Parse "key=val" into ("key", "val")
     parseKeyVal :: String -> Maybe (String, String)
@@ -88,7 +110,7 @@ parsePackageSpec =
     -- Shortcuts for common attributes
     shortcutAttributes :: Opts.Parser (String, String)
     shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
-      [ "branch", "owner", "repo" ]
+      [ "branch", "owner", "repo", "version" ]
 
     mkShortcutAttribute :: String -> Opts.Parser (String, String)
     mkShortcutAttribute = \case
@@ -226,7 +248,13 @@ packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMap.toList m)
 -------------------------------------------------------------------------------
 
 parseCmdInit :: Opts.ParserInfo (IO ())
-parseCmdInit = (Opts.info (pure cmdInit <**> Opts.helper)) Opts.fullDesc
+parseCmdInit = Opts.info (pure cmdInit <**> Opts.helper) $ mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc
+      , Opts.progDesc
+          "Initialize a Nix project. Existing files won't be modified."
+      ]
 
 cmdInit :: IO ()
 cmdInit = do
@@ -265,8 +293,8 @@ cmdInit = do
 
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd =
-    Opts.info ((cmdAdd <$> parsePackage <*> optName) <**> Opts.helper)
-      Opts.fullDesc
+    Opts.info ((cmdAdd <$> parsePackage <*> optName) <**> Opts.helper) $
+      mconcat desc
   where
     optName :: Opts.Parser (Maybe PackageName)
     optName = Opts.optional $ PackageName <$>  Opts.strOption
@@ -274,6 +302,16 @@ parseCmdAdd =
         Opts.short 'n' <>
         Opts.metavar "NAME"
       )
+    desc =
+      [ Opts.fullDesc
+      , Opts.progDesc "Add dependency"
+      , Opts.headerDoc $ Just $
+          "Examples:" Opts.<$$>
+          "" Opts.<$$>
+          "  niv add stedolan/jq" Opts.<$$>
+          "  niv add NixOS/nixpkgs-channel -n nixpkgs -b nixos-18.09" Opts.<$$>
+          "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
+      ]
 
 cmdAdd :: (PackageName, PackageSpec) -> Maybe PackageName -> IO ()
 cmdAdd (PackageName str, spec) mPackageName = do
@@ -329,8 +367,19 @@ cmdShow = do
 parseCmdUpdate :: Opts.ParserInfo (IO ())
 parseCmdUpdate =
     Opts.info
-      ((cmdUpdate <$> Opts.optional parsePackage) <**> Opts.helper)
-      Opts.fullDesc
+      ((cmdUpdate <$> Opts.optional parsePackage) <**> Opts.helper) $
+      mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc
+      , Opts.progDesc "Update dependencies"
+      , Opts.headerDoc $ Just $
+          "Examples:" Opts.<$$>
+          "" Opts.<$$>
+          "  niv update" Opts.<$$>
+          "  niv update nixpkgs" Opts.<$$>
+          "  niv update my-package -v beta-0.2"
+      ]
 
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
@@ -365,8 +414,17 @@ cmdUpdate = \case
 parseCmdDrop :: Opts.ParserInfo (IO ())
 parseCmdDrop =
     Opts.info
-      ((cmdDrop <$> parsePackageName) <**> Opts.helper)
-      Opts.fullDesc
+      ((cmdDrop <$> parsePackageName) <**> Opts.helper) $
+      mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc
+      , Opts.progDesc "Drop dependency"
+      , Opts.headerDoc $ Just $
+          "Examples:" Opts.<$$>
+          "" Opts.<$$>
+          "  niv drop jq"
+      ]
 
 cmdDrop :: PackageName -> IO ()
 cmdDrop packageName = do
@@ -378,28 +436,6 @@ cmdDrop packageName = do
 
       setVersionsSpec $ VersionsSpec $
         HMap.delete packageName versionsSpec
-
-parseCommand :: Opts.Parser (IO ())
-parseCommand = Opts.subparser (
-    Opts.command "init" parseCmdInit <>
-    Opts.command "add"  parseCmdAdd <>
-    Opts.command "show"  parseCmdShow <>
-    Opts.command "update"  parseCmdUpdate <>
-    Opts.command "drop"  parseCmdDrop )
-
-main :: IO ()
-main = join $ Opts.execParser opts
-  where
-    opts = Opts.info (parseCommand <**> Opts.helper)
-      ( Opts.fullDesc
-     <> Opts.header "NIV - Nix Version manager" )
-
-nixPrefetchURL :: String -> IO String
-nixPrefetchURL url =
-    lines <$> readProcess "nix-prefetch-url" ["--unpack", url] "" >>=
-      \case
-        (l:_) -> pure l
-        _ -> abortNixPrefetchExpectedOutput
 
 -------------------------------------------------------------------------------
 -- Aux
@@ -476,6 +512,13 @@ abort :: String -> IO a
 abort msg = do
     putStrLn msg
     exitFailure
+
+nixPrefetchURL :: String -> IO String
+nixPrefetchURL url =
+    lines <$> readProcess "nix-prefetch-url" ["--unpack", url] "" >>=
+      \case
+        (l:_) -> pure l
+        _ -> abortNixPrefetchExpectedOutput
 
 -------------------------------------------------------------------------------
 -- Files and their content
