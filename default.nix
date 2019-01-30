@@ -1,2 +1,2 @@
 with { pkgs = import ./nix; };
-pkgs.niv
+{ inherit (pkgs) niv readme ; }

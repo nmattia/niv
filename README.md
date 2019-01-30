@@ -31,9 +31,10 @@ Available commands:
   init                     Initialize a Nix project. Existing files won't be
                            modified.
   add                      Add dependency
-  show
+  show                     
   update                   Update dependencies
   drop                     Drop dependency
+
 ```
 
 
@@ -47,14 +48,15 @@ Examples:
   niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
 
 Usage: niv add PACKAGE ([-b|--branch BRANCH] | [-o|--owner OWNER] |
-                         [-r|--repo REPO] | [-v|--version VERSION] |
-                         [-a|--attribute KEY=VAL] | [-t|--template URL])
-                         [-n|--name NAME]
+               [-r|--repo REPO] | [-v|--version VERSION] |
+               [-a|--attribute KEY=VAL] | [-t|--template URL]) [-n|--name NAME]
   Add dependency
 
 Available options:
-  -t,--template URL        foo
+  -t,--template URL        Used during 'update' when building URL. Occurrences
+                           of <foo> are replaced with attribute 'foo'.
   -h,--help                Show this help text
+
 ```
 
 
@@ -67,14 +69,16 @@ Examples:
   niv update nixpkgs
   niv update my-package -v beta-0.2
 
-Usage: niv update [PACKAGE] ([-b|--branch BRANCH] | [-o|--owner OWNER]
-                            | [-r|--repo REPO] | [-v|--version VERSION] |
-                            [-a|--attribute KEY=VAL] | [-t|--template URL])
+Usage: niv update [PACKAGE] ([-b|--branch BRANCH] | [-o|--owner OWNER] |
+                  [-r|--repo REPO] | [-v|--version VERSION] |
+                  [-a|--attribute KEY=VAL] | [-t|--template URL])
   Update dependencies
 
 Available options:
-  -t,--template URL        foo
+  -t,--template URL        Used during 'update' when building URL. Occurrences
+                           of <foo> are replaced with attribute 'foo'.
   -h,--help                Show this help text
+
 ```
 
 ### Drop
@@ -89,6 +93,7 @@ Usage: niv drop PACKAGE
 
 Available options:
   -h,--help                Show this help text
+
 ```
 
 [Nix]: https://nixos.org/nix/

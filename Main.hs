@@ -70,6 +70,7 @@ getVersionsSpec = do
       Just _ -> abortVersionsIsntAMap
       Nothing -> abortVersionsIsntJSON
 
+-- TODO: pretty
 setVersionsSpec :: VersionsSpec -> IO ()
 setVersionsSpec versionsSpec = encodeFile pathNixVersionsJson versionsSpec
 
