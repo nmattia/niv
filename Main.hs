@@ -170,6 +170,11 @@ completePackageSpec = execStateT $ do
                     setPackageSpecAttr "description" (Aeson.String descr)
                   Nothing -> pure ()
 
+                whenNotSet "homepage" $ case GH.repoHomepage ghRepo of
+                  Just descr ->
+                    setPackageSpecAttr "homepage" (Aeson.String descr)
+                  Nothing -> pure ()
+
                 -- Branch and rev
                 whenNotSet "branch" $ case GH.repoDefaultBranch ghRepo of
                   Just branch ->
