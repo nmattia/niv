@@ -57,6 +57,7 @@ newtype VersionsSpec = VersionsSpec
 
 getVersionsSpec :: IO VersionsSpec
 getVersionsSpec = do
+    -- TODO: if doesn't exist: run niv init
     putStrLn $ "Reading versions file"
     decodeFileStrict pathNixVersionsJson >>= \case
       Just (Aeson.Object obj) ->
