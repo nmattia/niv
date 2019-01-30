@@ -17,7 +17,7 @@ import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
 import Data.Char (toUpper)
 import Data.Hashable (Hashable)
 import Data.Maybe (mapMaybe, fromMaybe)
-import Data.Semigroup ((<>))
+import Data.Semigroup
 import Data.String.QQ (s)
 import GHC.Exts (toList)
 import System.Exit (exitFailure)
@@ -81,7 +81,7 @@ parsePackageName = PackageName <$>
     Opts.argument Opts.str (Opts.metavar "PACKAGE")
 
 newtype PackageSpec = PackageSpec { unPackageSpec :: Aeson.Object }
-  deriving newtype (FromJSON, ToJSON, Show)
+  deriving newtype (FromJSON, ToJSON, Show, Semigroup, Monoid)
 
 parsePackageSpec :: Opts.Parser PackageSpec
 parsePackageSpec =
@@ -390,9 +390,11 @@ cmdUpdate = \case
 
       packageSpec' <- case HMap.lookup packageName versionsSpec of
         Just packageSpec' -> do
-          updatePackageSpec $ PackageSpec $ HMap.union
-              (unPackageSpec packageSpec)
-              (unPackageSpec packageSpec')
+
+          -- TODO: something fishy happening here
+          pkgSpec <- completePackageSpec $ packageSpec <> packageSpec'
+          updatePackageSpec $ pkgSpec
+
         Nothing -> abortCannotUpdateNoSuchPackage packageName
 
       setVersionsSpec $ VersionsSpec $

@@ -8,6 +8,6 @@
   )
 
   (self: super:
-    { niv = super.snack-lib.inferHPackBuild ../package.yaml ; }
+    { niv = super.snack-lib.executable ../package.yaml ; }
   )
 ]
