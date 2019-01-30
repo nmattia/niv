@@ -90,12 +90,13 @@ parsePackageSpec =
       many parseAttribute
   where
     parseAttribute :: Opts.Parser (String, String)
-    parseAttribute = shortcutAttributes <|>
+    parseAttribute =
       Opts.option (Opts.maybeReader parseKeyVal)
         ( Opts.long "attribute" <>
           Opts.short 'a' <>
-          Opts.metavar "KEY=VAL"
-        ) <|>
+          Opts.metavar "KEY=VAL" <>
+          Opts.help "Set the package spec attribute <KEY> to <VAL>"
+        ) <|> shortcutAttributes <|>
       (("url_template",) <$> Opts.strOption
         ( Opts.long "template" <>
           Opts.short 't' <>
@@ -117,7 +118,15 @@ parsePackageSpec =
     mkShortcutAttribute :: String -> Opts.Parser (String, String)
     mkShortcutAttribute = \case
       attr@(c:_) -> (attr,) <$> Opts.strOption
-        ( Opts.long attr <> Opts.short c <> Opts.metavar (toUpper <$> attr) )
+        ( Opts.long attr <>
+          Opts.short c <>
+          Opts.metavar (toUpper <$> attr) <>
+          Opts.help
+            (
+              "Equivalent to --attribute " <>
+              attr <> "=<" <> (toUpper <$> attr) <> ">"
+            )
+        )
       _ -> empty
 
     fixupAttributes :: (String, String) -> (T.Text, Aeson.Value)
@@ -287,12 +296,12 @@ cmdInit = do
 
     -- Imports @niv@ and @nixpkgs@ (18.09)
     putStrLn "Importing 'niv' ..."
-    cmdAdd (PackageName "nmattia/niv", PackageSpec HMap.empty) Nothing
+    cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMap.empty)
     putStrLn "Importing 'nixpkgs' ..."
     cmdAdd
+      (Just (PackageName "nixpkgs"))
       ( PackageName "NixOS/nixpkgs-channels"
       , PackageSpec (HMap.singleton "branch" "nixos-18.09"))
-      (Just (PackageName "nixpkgs"))
 
 -------------------------------------------------------------------------------
 -- ADD
@@ -300,14 +309,15 @@ cmdInit = do
 
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd =
-    Opts.info ((cmdAdd <$> parsePackage <*> optName) <**> Opts.helper) $
+    Opts.info ((cmdAdd <$> optName <*> parsePackage) <**> Opts.helper) $
       mconcat desc
   where
     optName :: Opts.Parser (Maybe PackageName)
     optName = Opts.optional $ PackageName <$>  Opts.strOption
       ( Opts.long "name" <>
         Opts.short 'n' <>
-        Opts.metavar "NAME"
+        Opts.metavar "NAME" <>
+        Opts.help "Set the package name to <NAME>"
       )
     desc =
       [ Opts.fullDesc
@@ -320,8 +330,8 @@ parseCmdAdd =
           "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
       ]
 
-cmdAdd :: (PackageName, PackageSpec) -> Maybe PackageName -> IO ()
-cmdAdd (PackageName str, spec) mPackageName = do
+cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
+cmdAdd mPackageName (PackageName str, spec) = do
 
     -- Figures out the owner and repo
     (packageName, spec') <- flip runStateT spec $ case span (/= '/') str of
