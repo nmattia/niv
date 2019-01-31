@@ -23,9 +23,9 @@ jobs:
           name: Warm up cache
           command: |
               cache_path=~/.nix-build-cache-export.gz
-              echo "Cache size:"
-              du -h $cache_path
               if [ -f "$cache_path" ]; then
+                echo "Cache size:"
+                du -h $cache_path
                 echo "Loading cache..."
                 zcat $cache_path | nix-store --import
                 echo "done"
