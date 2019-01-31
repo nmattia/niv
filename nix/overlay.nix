@@ -1,5 +1,7 @@
-{ sources ? import ./fetch.nix }:
+{ sources ? import ./sources.nix }:
 [
+
+  # Snack
   (self: super:
     {
       snack-exe = (import sources.snack).snack-exe;
@@ -7,10 +9,12 @@
     }
   )
 
+  # Built niv
   (self: super:
     { niv = super.snack-lib.executable ../package.yaml ; }
   )
 
+  # README generation
   (self: super:
     { readme = self.writeText "README.md"
         (with
@@ -44,5 +48,4 @@
         );
     }
   )
-
 ]

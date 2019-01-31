@@ -1,3 +1,3 @@
-with { fetch = import ./fetch.nix; };
-import fetch.nixpkgs
-  { overlays = import ./overlay.nix { sources = fetch; } ; config = {}; }
+with { sources = import ./sources.nix; };
+import sources.nixpkgs
+  { overlays = import ./overlay.nix { inherit sources; } ; config = {}; }
