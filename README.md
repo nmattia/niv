@@ -1,5 +1,7 @@
 # niv
 
+[![CircleCI](https://circleci.com/gh/nmattia/niv.svg?style=svg)](https://circleci.com/gh/nmattia/niv)
+
 A tool for dealing with third-party packages in [Nix].
 
 ## Building
