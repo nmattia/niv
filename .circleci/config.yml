@@ -1,0 +1,68 @@
+version: 2
+
+jobs:
+  build-nix:
+    machine:
+        enabled: true
+    steps:
+      - run:
+          name: Install Nix
+          command: |
+            sudo mkdir -p /nix
+            sudo chown circleci /nix
+            bash <(curl https://nixos.org/nix/install)
+            echo '. /home/circleci/.nix-profile/etc/profile.d/nix.sh' >> $BASH_ENV
+      - checkout
+      - restore_cache:
+            # Match on the latest cache for this branch
+          keys:
+              - v1-niv-{{ .Branch }}-
+              - v1-niv-master-
+
+      - run:
+          name: Warm up cache
+          command: |
+              cache_path=~/.nix-build-cache-export.gz
+              echo "Cache size:"
+              du -h $cache_path
+              if [ -f "$cache_path" ]; then
+                echo "Loading cache..."
+                zcat $cache_path | nix-store --import
+                echo "done"
+              else
+                echo "Cache does not exist yet"
+              fi
+
+      - run:
+          name: Nix build
+          command: |
+            nix-build --no-out-link --option sandbox true
+
+      - run:
+          name: Create cache
+          command: |
+            cache_path=~/.nix-build-cache-export.gz
+            store_list=~/.store-list
+            echo "Listing paths"
+            nix-instantiate \
+                | xargs nix-store -qR --include-outputs \
+                > $store_list
+            echo "Generating cache file"
+            cat $store_list \
+                | nix-store --export `xargs` \
+                | gzip -c \
+                > $cache_path
+            echo "Cache size:"
+            du -h $cache_path
+            echo "done"
+
+      - save_cache:
+          key: v1-niv-{{ .Branch }}-{{ .BuildNum }}
+          paths:
+              - ~/.nix-build-cache-export.gz
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build-nix

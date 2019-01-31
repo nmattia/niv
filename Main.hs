@@ -81,7 +81,7 @@ parsePackageName :: Opts.Parser PackageName
 parsePackageName = PackageName <$>
     Opts.argument Opts.str (Opts.metavar "PACKAGE")
 
-newtype PackageSpec = PackageSpec { unPackageSpec :: Aeson.Object }
+newtype PackageSpec = PackageSpec { _unPackageSpec :: Aeson.Object }
   deriving newtype (FromJSON, ToJSON, Show, Semigroup, Monoid)
 
 parsePackageSpec :: Opts.Parser PackageSpec
@@ -422,7 +422,7 @@ cmdUpdate = \case
       versionsSpec' <- forWithKeyM versionsSpec $
         \packageName packageSpec -> do
           putStrLn $ "Package: " <> unPackageName packageName
-          updatePackageSpec packageSpec
+          updatePackageSpec =<< completePackageSpec packageSpec
 
       setVersionsSpec $ VersionsSpec versionsSpec'
 
