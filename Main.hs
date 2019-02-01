@@ -278,8 +278,9 @@ cmdInit = do
     -- Writes all the default files
     forM_
       [ (pathNixVersionsJson, initNixVersionsJsonContent)
-      , (pathNixFetchNix, initNixFetchNixContent)
+      , (pathNixSourcesNix, initNixSourcesNixContent)
       , (pathNixDefaultNix, initNixDefaultNixContent)
+      , (pathNixOverlayNix, initNixOverlayNixContent)
       , (pathDefaultNix, initDefaultNixContent)
       , (pathShellNix, initShellNixContent)
       ] $ \(path, content) -> do
@@ -543,36 +544,39 @@ nixPrefetchURL url =
 -- Files and their content
 -------------------------------------------------------------------------------
 
--- | @nix/fetch.nix@
-pathNixFetchNix :: FilePath
-pathNixFetchNix = "nix" </> "fetch.nix"
+-- | @nix/sources.nix@
+pathNixSourcesNix :: FilePath
+pathNixSourcesNix = "nix" </> "sources.nix"
 
 -- | Glue code between nix and versions.json
-initNixFetchNixContent :: String
-initNixFetchNixContent = [s|
+initNixSourcesNixContent :: String
+initNixSourcesNixContent = [s|
 # A record, from name to path, of the third-party packages
-let
+with
+{
   versions = builtins.fromJSON (builtins.readFile ./versions.json);
+
+  # fetchTarball version that is compatible between all the versions of Nix
   fetchTarball =
-    # fetchTarball version that is compatible between all the versions of
-    # Nix
-    { url, sha256 }@attrs:
-    let
-      inherit (builtins) lessThan nixVersion fetchTarball;
-    in
-      if lessThan nixVersion "1.12" then
-        fetchTarball { inherit url; }
+    { url, sha256 }:
+      if builtins.lessThan builtins.nixVersion "1.12" then
+        builtins.fetchTarball { inherit url; }
       else
-        fetchTarball attrs;
-in
-  builtins.mapAttrs (_: spec:
-      fetchTarball {
-        url =
-          with spec;
-          "https://github.com/${owner}/${repo}/archive/${rev}.tar.gz";
-        sha256 = spec.sha256;
-      }
-    ) versions
+        builtins.fetchTarball { inherit url sha256; };
+};
+
+# NOTE: spec must _not_ have an "outPath" attribute
+builtins.mapAttrs (_: spec:
+  if builtins.hasAttr "outPath" spec
+  then abort
+    "The values in versions.json should not have an 'outPath' attribute"
+  else
+    if builtins.hasAttr "url" spec && builtins.hasAttr "sha256" spec
+    then
+      spec //
+    { outPath = fetchTarball { inherit (spec) url sha256; } ; }
+    else spec
+  ) versions
 |]
 
 -- | @nix/default.nix@
@@ -582,16 +586,24 @@ pathNixDefaultNix = "nix" </> "default.nix"
 -- | File importing @nixpkgs@, setting up overlays, etc
 initNixDefaultNixContent :: String
 initNixDefaultNixContent = [s|
-with { fetch = import ./fetch.nix; };
-import fetch.nixpkgs
-  { overlays =
-      [ (self: super:
-          { niv = import fetch.niv {};
-          }
-        )
-      ] ;
-    config = { } ;
-  }
+with { sources = import ./sources.nix; };
+import sources.nixpkgs
+  { overlays = import ./overlay.nix { inherit sources; } ; config = {}; }
+|]
+
+-- | @nix/overlay.nix@
+pathNixOverlayNix :: FilePath
+pathNixOverlayNix = "nix" </> "overlay.nix"
+
+-- | File with overlays
+initNixOverlayNixContent :: String
+initNixOverlayNixContent = [s|
+{ sources ? import ./sources.nix }:
+[
+  (self: super:
+    { niv = (import sources.niv).niv; }
+  )
+]
 |]
 
 -- | @default.nix@
