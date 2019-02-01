@@ -12,6 +12,7 @@ jobs:
             sudo chown circleci /nix
             bash <(curl https://nixos.org/nix/install)
             echo '. /home/circleci/.nix-profile/etc/profile.d/nix.sh' >> $BASH_ENV
+            sudo mkdir -p /etc/nix && echo "sandbox = true" | sudo tee -a /etc/nix/nix.conf
       - checkout
       - restore_cache:
             # Match on the latest cache for this branch
@@ -35,8 +36,7 @@ jobs:
 
       - run:
           name: Nix build
-          command: |
-            nix-build --no-out-link --option sandbox true
+          command: ./script/test
 
       - run:
           name: Create cache

@@ -16,7 +16,7 @@
 
   # README generation
   (self: super:
-    { readme = self.writeText "README.md"
+    rec { readme = self.writeText "README.md"
         (with
           { template = builtins.readFile ../README.tpl.md;
             niv_help = builtins.readFile
@@ -46,6 +46,8 @@
           [ niv_help niv_add_help niv_update_help niv_drop_help ]
           template
         );
+      readme-test = self.runCommand "README-test" {}
+        "diff ${../README.md} ${readme} && echo dummy > $out";
     }
   )
 ]
