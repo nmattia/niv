@@ -4,8 +4,16 @@
 #!nix-shell -p nix
 #!nix-shell --pure
 
+set -euo pipefail
+
+export NIX_PATH="nixpkgs=./nix"
+
 echo "Building"
 
 nix build --no-link
+
+echo "Testing shell"
+
+nix-shell --run "echo -n"
 
 echo "all good"

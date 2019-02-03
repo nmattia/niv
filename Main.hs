@@ -623,8 +623,8 @@ pathShellNix = "shell.nix"
 -- | Simple shell that loads @niv@
 initShellNixContent :: String
 initShellNixContent = [s|
-let pkgs = import ./nix;
-in pkgs.mkShell
+with { pkgs = import ./nix {}; };
+pkgs.mkShell
   { buildInputs = [ pkgs.niv ];
   }
 |]
