@@ -1,2 +1,2 @@
-with { pkgs = import ./nix {}; };
-{ inherit (pkgs) niv readme readme-test ; }
+{ pkgs ? import ./nix {} }:
+pkgs.callPackage ./nix/packages.nix {}
