@@ -25,7 +25,11 @@ jobs:
 
       - restore_cache:
           keys:
-              - v2-niv-cache
+              - v2-niv-cache-master-
+
+      - restore_cache:
+          keys:
+              - v2-niv-cache-branch-{{ .Branch }}-
 
       - run:
           name: Warm up cache
@@ -43,8 +47,27 @@ jobs:
               fi
 
       - run:
+          name: Warm up branch cache
+          command: |
+              if [ -f ~/.niv-cache-branch.gz ]; then
+                echo "Cache size:"
+                du -h ~/.niv-cache-branch.gz
+                echo "Loading cache..."
+                zcat ~/.niv-cache-branch.gz | nix-store --import
+                echo "Deleting cache file..."
+                rm ~/.niv-cache-branch.gz
+                echo "done"
+              else
+                echo "Cache does not exist yet"
+              fi
+
+      - run:
           name: Nix build
           command: ./script/test
+
+      - restore_cache:
+          keys:
+              - v2-niv-cache-list
 
       - run:
           name: Create cache
@@ -69,13 +92,38 @@ jobs:
                 cat ~/.niv-cache-list | wc -l
                 echo "done"
             else
-                echo "NOT creating cache"
+                echo "creating branch cache"
+                nix-store --gc
+                echo "Listing paths"
+                find /nix/store \
+                    -maxdepth 1 -mindepth 1 \
+                    -not -name '\.links' -print \
+                    | sort \
+                    > ~/.niv-cache-list-tmp
+                comm -13 \
+                    ~/.niv-cache-list ~/.niv-cache-list-tmp \
+                    > ~/.niv-cache-list-branch
+                echo "Generating branch cache file"
+                cat ~/.niv-cache-list-branch \
+                    | nix-store --export `xargs` \
+                    | gzip -c \
+                    > ~/.niv-cache-branch.gz
+                echo "Cache size:"
+                du -h ~/.niv-cache-branch.gz
+                echo "Number of cached artifacts:"
+                cat ~/.niv-cache-list-branch | wc -l
+                echo "done"
             fi
 
       - save_cache:
-          key: v2-niv-cache-{{ .BuildNum }}
+          key: v2-niv-cache-master-{{ .BuildNum }}
           paths:
               - ~/.niv-cache.gz
+
+      - save_cache:
+          key: v2-niv-cache-branch-{{ .BuildBranch }}-{{ .BuildNum }}
+          paths:
+              - ~/.niv-cache-branch.gz
 
       - save_cache:
           key: v2-niv-cache-list-{{ .BuildNum }}
