@@ -1,0 +1,9 @@
+#!/usr/bin/env nix-shell
+#!nix-shell -i bash
+#!nix-shell -I nixpkgs=./nix
+#!nix-shell -p nix
+#!nix-shell --pure
+
+set -euo pipefail
+
+cat $(nix-build -A readme) > README.md
