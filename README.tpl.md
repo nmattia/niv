@@ -4,7 +4,13 @@
 
 A tool for dealing with third-party packages in [Nix].
 
-## Building
+## Install
+
+``` bash
+$ nix-env -iA niv -f https://github.com/nmattia/niv/tarball/master
+```
+
+## Build
 
 Inside the provided nix shell:
 
