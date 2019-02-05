@@ -4,12 +4,24 @@ workflows:
   version: 2
   build:
     jobs:
-      - build-nix
+      - build-linux
+      - build-darwin
 
 jobs:
-  build-nix:
+  build-linux:
     machine:
       enabled: true
+    steps:
+      - install_nix
+      - checkout
+      - restore_niv_cache
+      - run:
+          name: Nix build
+          command: ./script/test
+      - create_niv_cache
+  build-darwin:
+    macos:
+      xcode: "0.9"
     steps:
       - install_nix
       - checkout
@@ -42,7 +54,7 @@ commands:
     steps:
       - restore_cache:
           keys:
-              - v2-niv-cache-list-master
+              - v2-niv-cache-list-master-{{ arch }}
 
       - run:
           name: Create cache
@@ -95,17 +107,17 @@ commands:
 
 
       - save_cache:
-          key: v2-niv-cache-master-{{ .BuildNum }}
+          key: v2-niv-cache-master-{{ arch }}-{{ .BuildNum }}
           paths:
               - ~/.niv-cache.gz
 
       - save_cache:
-          key: v2-niv-cache-branch-{{ .Branch }}-{{ .BuildNum }}
+          key: v2-niv-cache-branch-{{ .Branch }}-{{ arch }}-{{ .BuildNum }}
           paths:
               - ~/.niv-cache-branch.gz
 
       - save_cache:
-          key: v2-niv-cache-list-{{ .Branch }}-{{ .BuildNum }}
+          key: v2-niv-cache-list-{{ .Branch }}-{{ arch }}-{{ .BuildNum }}
           paths:
               - ~/.niv-cache-list
 
@@ -113,10 +125,10 @@ commands:
     steps:
       - restore_cache:
           keys:
-              - v2-niv-cache-master-
+              - v2-niv-cache-master-{{ arch }}
       - restore_cache:
           keys:
-              - v2-niv-cache-branch-{{ .Branch }}-
+              - v2-niv-cache-branch-{{ .Branch }}-{{ arch }}
       - run:
           name: Warm up cache
           command: |
