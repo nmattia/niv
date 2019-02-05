@@ -10,10 +10,7 @@ export NIX_PATH="nixpkgs=./nix"
 
 echo "Building"
 
-nix build --no-link
-
-echo "Testing shell"
-
-nix-shell --run "echo -n"
+# Build and create a root
+nix build
 
 echo "all good"

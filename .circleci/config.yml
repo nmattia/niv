@@ -12,8 +12,17 @@ jobs:
             sudo chown circleci /nix
             bash <(curl https://nixos.org/nix/install)
             echo '. /home/circleci/.nix-profile/etc/profile.d/nix.sh' >> $BASH_ENV
-            sudo mkdir -p /etc/nix && echo "sandbox = true" | sudo tee -a /etc/nix/nix.conf
+            sudo mkdir -p /etc/nix &&
+
+            # Enable sandbox
+            echo "sandbox = true" | sudo tee -a /etc/nix/nix.conf
+
+            # Keep derivations and their outputs for better caching
+            echo "keep-outputs = true" | sudo tee -a /etc/nix/nix.conf
+            echo "keep-derivations = true" | sudo tee -a /etc/nix/nix.conf
+
       - checkout
+
       - restore_cache:
             # Match on the latest cache for this branch
           keys:
@@ -41,11 +50,14 @@ jobs:
       - run:
           name: Create cache
           command: |
+            nix-store --gc
             cache_path=~/.nix-build-cache-export.gz
             store_list=~/.store-list
             echo "Listing paths"
-            nix-instantiate \
-                | xargs nix-store -qR --include-outputs \
+            find /nix/store \
+                -maxdepth 1 -mindepth 1 \
+                -not -name '\.links' -print \
+                | sort \
                 > $store_list
             echo "Generating cache file"
             cat $store_list \
