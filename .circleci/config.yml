@@ -12,7 +12,7 @@ jobs:
             sudo chown circleci /nix
             bash <(curl https://nixos.org/nix/install)
             echo '. /home/circleci/.nix-profile/etc/profile.d/nix.sh' >> $BASH_ENV
-            sudo mkdir -p /etc/nix &&
+            sudo mkdir -p /etc/nix
 
             # Enable sandbox
             echo "sandbox = true" | sudo tee -a /etc/nix/nix.conf
@@ -67,7 +67,7 @@ jobs:
 
       - restore_cache:
           keys:
-              - v2-niv-cache-list
+              - v2-niv-cache-list-master
 
       - run:
           name: Create cache
@@ -115,18 +115,22 @@ jobs:
                 echo "done"
             fi
 
+            echo "Existing cache files:"
+            ls -lh ~/.niv-cache*
+
+
       - save_cache:
           key: v2-niv-cache-master-{{ .BuildNum }}
           paths:
               - ~/.niv-cache.gz
 
       - save_cache:
-          key: v2-niv-cache-branch-{{ .BuildBranch }}-{{ .BuildNum }}
+          key: v2-niv-cache-branch-{{ .Branch }}-{{ .BuildNum }}
           paths:
               - ~/.niv-cache-branch.gz
 
       - save_cache:
-          key: v2-niv-cache-list-{{ .BuildNum }}
+          key: v2-niv-cache-list-{{ .Branch }}-{{ .BuildNum }}
           paths:
               - ~/.niv-cache-list
 
