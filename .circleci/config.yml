@@ -1,9 +1,26 @@
-version: 2
+version: 2.1
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build-nix
 
 jobs:
   build-nix:
     machine:
-        enabled: true
+      enabled: true
+    steps:
+      - install_nix
+      - checkout
+      - restore_niv_cache
+      - run:
+          name: Nix build
+          command: ./script/test
+      - create_niv_cache
+
+commands:
+  install_nix:
     steps:
       - run:
           name: Install Nix
@@ -21,50 +38,8 @@ jobs:
             echo "keep-outputs = true" | sudo tee -a /etc/nix/nix.conf
             echo "keep-derivations = true" | sudo tee -a /etc/nix/nix.conf
 
-      - checkout
-
-      - restore_cache:
-          keys:
-              - v2-niv-cache-master-
-
-      - restore_cache:
-          keys:
-              - v2-niv-cache-branch-{{ .Branch }}-
-
-      - run:
-          name: Warm up cache
-          command: |
-              if [ -f ~/.niv-cache.gz ]; then
-                echo "Cache size:"
-                du -h ~/.niv-cache.gz
-                echo "Loading cache..."
-                zcat ~/.niv-cache.gz | nix-store --import
-                echo "Deleting cache file..."
-                rm ~/.niv-cache.gz
-                echo "done"
-              else
-                echo "Cache does not exist yet"
-              fi
-
-      - run:
-          name: Warm up branch cache
-          command: |
-              if [ -f ~/.niv-cache-branch.gz ]; then
-                echo "Cache size:"
-                du -h ~/.niv-cache-branch.gz
-                echo "Loading cache..."
-                zcat ~/.niv-cache-branch.gz | nix-store --import
-                echo "Deleting cache file..."
-                rm ~/.niv-cache-branch.gz
-                echo "done"
-              else
-                echo "Cache does not exist yet"
-              fi
-
-      - run:
-          name: Nix build
-          command: ./script/test
-
+  create_niv_cache:
+    steps:
       - restore_cache:
           keys:
               - v2-niv-cache-list-master
@@ -134,8 +109,40 @@ jobs:
           paths:
               - ~/.niv-cache-list
 
-workflows:
-  version: 2
-  build:
-    jobs:
-      - build-nix
+  restore_niv_cache:
+    steps:
+      - restore_cache:
+          keys:
+              - v2-niv-cache-master-
+      - restore_cache:
+          keys:
+              - v2-niv-cache-branch-{{ .Branch }}-
+      - run:
+          name: Warm up cache
+          command: |
+              if [ -f ~/.niv-cache.gz ]; then
+                echo "Cache size:"
+                du -h ~/.niv-cache.gz
+                echo "Loading cache..."
+                zcat ~/.niv-cache.gz | nix-store --import
+                echo "Deleting cache file..."
+                rm ~/.niv-cache.gz
+                echo "done"
+              else
+                echo "Cache does not exist yet"
+              fi
+
+      - run:
+          name: Warm up branch cache
+          command: |
+              if [ -f ~/.niv-cache-branch.gz ]; then
+                echo "Cache size:"
+                du -h ~/.niv-cache-branch.gz
+                echo "Loading cache..."
+                zcat ~/.niv-cache-branch.gz | nix-store --import
+                echo "Deleting cache file..."
+                rm ~/.niv-cache-branch.gz
+                echo "done"
+              else
+                echo "Cache does not exist yet"
+              fi
