@@ -51,28 +51,28 @@ parseCommand = Opts.subparser (
     Opts.command "update"  parseCmdUpdate <>
     Opts.command "drop"  parseCmdDrop )
 
-newtype VersionsSpec = VersionsSpec
-  { unVersionsSpec :: HMap.HashMap PackageName PackageSpec }
+newtype Specs = Specs
+  { unSpecs :: HMap.HashMap PackageName PackageSpec }
   deriving newtype (FromJSON, ToJSON)
 
-getVersionsSpec :: IO VersionsSpec
-getVersionsSpec = do
+getSpecs :: IO Specs
+getSpecs = do
     -- TODO: if doesn't exist: run niv init
-    putStrLn $ "Reading versions file"
-    decodeFileStrict pathNixVersionsJson >>= \case
+    putStrLn $ "Reading specs file"
+    decodeFileStrict pathNixSpecsJson >>= \case
       Just (Aeson.Object obj) ->
-        fmap (VersionsSpec . mconcat) $
+        fmap (Specs . mconcat) $
           forM (HMap.toList obj) $ \(k, v) ->
             case v of
               Aeson.Object v' ->
                 pure $ HMap.singleton (PackageName (T.unpack k)) (PackageSpec v')
               _ -> abortAttributeIsntAMap
-      Just _ -> abortVersionsIsntAMap
-      Nothing -> abortVersionsIsntJSON
+      Just _ -> abortSpecsIsntAMap
+      Nothing -> abortSpecsIsntJSON
 
 -- TODO: pretty
-setVersionsSpec :: VersionsSpec -> IO ()
-setVersionsSpec versionsSpec = encodeFile pathNixVersionsJson versionsSpec
+setSpecs :: Specs -> IO ()
+setSpecs specs = encodeFile pathNixSpecsJson specs
 
 newtype PackageName = PackageName { unPackageName :: String }
   deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)
@@ -277,7 +277,7 @@ cmdInit = do
 
     -- Writes all the default files
     forM_
-      [ (pathNixVersionsJson, initNixVersionsJsonContent)
+      [ (pathNixSpecsJson, initNixSpecsJsonContent)
       , (pathNixSourcesNix, initNixSourcesNixContent)
       , (pathNixDefaultNix, initNixDefaultNixContent)
       , (pathNixOverlayNix, initNixOverlayNixContent)
@@ -344,18 +344,18 @@ cmdAdd mPackageName (PackageName str, spec) = do
             pure (PackageName repo)
           _ -> pure (PackageName str)
 
-    versionsSpec <- unVersionsSpec <$> getVersionsSpec
+    specs <- unSpecs <$> getSpecs
 
     let packageName' = fromMaybe packageName mPackageName
 
-    when (HMap.member packageName' versionsSpec) $
+    when (HMap.member packageName' specs) $
       abortCannotAddPackageExists packageName'
 
     spec'' <- updatePackageSpec =<< completePackageSpec spec'
 
-    putStrLn $ "Writing new versions file"
-    setVersionsSpec $ VersionsSpec $
-      HMap.insert packageName' spec'' versionsSpec
+    putStrLn $ "Writing new specs file"
+    setSpecs $ Specs $
+      HMap.insert packageName' spec'' specs
 
 -------------------------------------------------------------------------------
 -- SHOW
@@ -366,11 +366,11 @@ parseCmdShow = Opts.info (pure cmdShow <**> Opts.helper) Opts.fullDesc
 
 cmdShow :: IO ()
 cmdShow = do
-    putStrLn $ "Showing versions file"
+    putStrLn $ "Showing specs file"
 
-    fileVersionsValue <- unVersionsSpec <$> getVersionsSpec
+    specs <- unSpecs <$> getSpecs
 
-    forWithKeyM_ fileVersionsValue $ \key (PackageSpec spec) -> do
+    forWithKeyM_ specs $ \key (PackageSpec spec) -> do
       putStrLn $ "Package: " <> unPackageName key
       forM_ (HMap.toList spec) $ \(attrName, attrValValue) -> do
         let attrValue = case attrValValue of
@@ -403,9 +403,9 @@ cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
     Just (packageName, packageSpec) -> do
       putStrLn $ "Updating single package: " <> unPackageName packageName
-      versionsSpec <- unVersionsSpec <$> getVersionsSpec
+      specs <- unSpecs <$> getSpecs
 
-      packageSpec' <- case HMap.lookup packageName versionsSpec of
+      packageSpec' <- case HMap.lookup packageName specs of
         Just packageSpec' -> do
 
           -- TODO: something fishy happening here
@@ -414,18 +414,18 @@ cmdUpdate = \case
 
         Nothing -> abortCannotUpdateNoSuchPackage packageName
 
-      setVersionsSpec $ VersionsSpec $
-        HMap.insert packageName packageSpec' versionsSpec
+      setSpecs $ Specs $
+        HMap.insert packageName packageSpec' specs
 
     Nothing -> do
-      versionsSpec <- unVersionsSpec <$> getVersionsSpec
+      specs <- unSpecs <$> getSpecs
 
-      versionsSpec' <- forWithKeyM versionsSpec $
+      specs' <- forWithKeyM specs $
         \packageName packageSpec -> do
           putStrLn $ "Package: " <> unPackageName packageName
           updatePackageSpec =<< completePackageSpec packageSpec
 
-      setVersionsSpec $ VersionsSpec versionsSpec'
+      setSpecs $ Specs specs'
 
 -------------------------------------------------------------------------------
 -- DROP
@@ -449,13 +449,13 @@ parseCmdDrop =
 cmdDrop :: PackageName -> IO ()
 cmdDrop packageName = do
       putStrLn $ "Dropping package: " <> unPackageName packageName
-      versionsSpec <- unVersionsSpec <$> getVersionsSpec
+      specs <- unSpecs <$> getSpecs
 
-      when (not $ HMap.member packageName versionsSpec) $
+      when (not $ HMap.member packageName specs) $
         abortCannotDropNoSuchPackage packageName
 
-      setVersionsSpec $ VersionsSpec $
-        HMap.delete packageName versionsSpec
+      setSpecs $ Specs $
+        HMap.delete packageName specs
 
 -------------------------------------------------------------------------------
 -- Aux
@@ -548,13 +548,14 @@ nixPrefetchURL url =
 pathNixSourcesNix :: FilePath
 pathNixSourcesNix = "nix" </> "sources.nix"
 
--- | Glue code between nix and versions.json
+-- | Glue code between nix and specs.json
+-- TODO: update this
 initNixSourcesNixContent :: String
 initNixSourcesNixContent = [s|
 # A record, from name to path, of the third-party packages
 with
 {
-  versions = builtins.fromJSON (builtins.readFile ./versions.json);
+  versions = builtins.fromJSON (builtins.readFile ./specs.json);
 
   # fetchTarball version that is compatible between all the versions of Nix
   fetchTarball =
@@ -629,24 +630,24 @@ pkgs.mkShell
   }
 |]
 
--- | @nix/versions.json"
-pathNixVersionsJson :: FilePath
-pathNixVersionsJson = "nix" </> "versions.json"
+-- | @nix/specs.json"
+pathNixSpecsJson :: FilePath
+pathNixSpecsJson = "nix" </> "specs.json"
 
 -- | Empty JSON map
-initNixVersionsJsonContent :: String
-initNixVersionsJsonContent = "{}"
+initNixSpecsJsonContent :: String
+initNixSpecsJsonContent = "{}"
 
 -------------------------------------------------------------------------------
 -- Abort
 -------------------------------------------------------------------------------
 
-abortVersionsIsntAMap :: IO a
-abortVersionsIsntAMap = abort $ unlines [ line1, line2 ]
+abortSpecsIsntAMap :: IO a
+abortSpecsIsntAMap = abort $ unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> pathNixVersionsJson
+    line1 = "Cannot use " <> pathNixSpecsJson
     line2 = [s|
-The versions file should be a JSON map from package name to package
+The specs file should be a JSON map from package name to package
 specification, e.g.:
   { ... }
 |]
@@ -654,18 +655,18 @@ specification, e.g.:
 abortAttributeIsntAMap :: IO a
 abortAttributeIsntAMap = abort $ unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> pathNixVersionsJson
+    line1 = "Cannot use " <> pathNixSpecsJson
     line2 = [s|
-The package specifications in the versions file should be JSON maps from
+The package specifications in the specs file should be JSON maps from
 attribute name to attribute value, e.g.:
   { "nixpkgs": { "foo": "bar" } }
 |]
 
-abortVersionsIsntJSON :: IO a
-abortVersionsIsntJSON = abort $ unlines [ line1, line2 ]
+abortSpecsIsntJSON :: IO a
+abortSpecsIsntJSON = abort $ unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> pathNixVersionsJson
-    line2 = "The versions file should be JSON."
+    line1 = "Cannot use " <> pathNixSpecsJson
+    line2 = "The specs file should be JSON."
 
 abortCannotAddPackageExists :: PackageName -> IO a
 abortCannotAddPackageExists (PackageName n) = abort $ unlines
