@@ -24,6 +24,7 @@ import System.Exit (exitFailure)
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.HashMap.Strict as HMap
@@ -477,7 +478,7 @@ decodeFileStrict = fmap Aeson.decodeStrict . B.readFile
 
 -- | Efficiently serialize a JSON value as a lazy 'L.ByteString' and write it to a file.
 encodeFile :: (ToJSON a) => FilePath -> a -> IO ()
-encodeFile fp = L.writeFile fp . Aeson.encode
+encodeFile fp = L.writeFile fp . AesonPretty.encodePretty
 
 --- HashMap
 
