@@ -279,7 +279,7 @@ cmdInit = do
       [ (pathNixSourcesJson, initNixSourcesJsonContent)
       , (pathNixSourcesNix, initNixSourcesNixContent)
       , (pathNixDefaultNix, initNixDefaultNixContent)
-      , (pathNixOverlayNix, initNixOverlayNixContent)
+      , (pathNixPackagesNix, initNixPackagesNixContent)
       , (pathDefaultNix, initDefaultNixContent)
       , (pathShellNix, initShellNixContent)
       ] $ \(path, content) -> do
@@ -586,24 +586,27 @@ pathNixDefaultNix = "nix" </> "default.nix"
 -- | File importing @nixpkgs@, setting up overlays, etc
 initNixDefaultNixContent :: String
 initNixDefaultNixContent = [s|
-with { sources = import ./sources.nix; };
+{ sources ? import ./sources.nix }:
+with
+  { overlay = _: pkgs:
+      { inherit (import sources.niv {}) niv;
+        packages = pkgs.callPackages ./packages.nix {};
+      };
+  };
 import sources.nixpkgs
-  { overlays = import ./overlay.nix { inherit sources; } ; config = {}; }
+  { overlays = [ overlay ] ; config = {}; }
 |]
 
--- | @nix/overlay.nix@
-pathNixOverlayNix :: FilePath
-pathNixOverlayNix = "nix" </> "overlay.nix"
+-- | @nix/packages.nix@
+pathNixPackagesNix :: FilePath
+pathNixPackagesNix = "nix" </> "packages.nix"
 
--- | File with overlays
-initNixOverlayNixContent :: String
-initNixOverlayNixContent = [s|
-{ sources ? import ./sources.nix }:
-[
-  (self: super:
-    { niv = (import sources.niv).niv; }
-  )
-]
+-- | File with packages
+initNixPackagesNixContent :: String
+initNixPackagesNixContent = [s|
+{ writeScriptBin
+}:
+{ foo = writeScriptBin "foo" "echo foo" ; }
 |]
 
 -- | @default.nix@
@@ -613,7 +616,7 @@ pathDefaultNix = "default.nix"
 -- | Top level @default.nix@
 initDefaultNixContent :: String
 initDefaultNixContent = [s|
-let pkgs = import ./nix; in pkgs.hello
+let pkgs = import ./nix {}; in pkgs.packages
 |]
 
 -- | @shell.nix@
