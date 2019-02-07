@@ -6,8 +6,6 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
-{-# OPTIONS_GHC "-Wall" #-}
-
 module Main (main) where
 
 import Control.Applicative
