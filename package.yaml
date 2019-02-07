@@ -9,6 +9,7 @@ executable:
     main: Main.hs
     dependencies:
         - aeson
+        - aeson-pretty
         - directory
         - string-qq
         - filepath
