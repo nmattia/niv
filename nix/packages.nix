@@ -12,27 +12,15 @@ rec
           (runCommand "niv_help" { buildInputs = [ niv ]; }
             "niv --help > $out"
           );
-        niv_add_help = builtins.readFile
-          (runCommand "niv_add_help" { buildInputs = [ niv ]; }
-            "niv add --help > $out"
+        niv_cmd_help = cmd: builtins.readFile
+          (runCommand "niv_${cmd}_help" { buildInputs = [ niv ]; }
+            "niv ${cmd} --help > $out"
           );
-        niv_update_help = builtins.readFile
-          (runCommand "niv_update_help" { buildInputs = [ niv ]; }
-            "niv update --help > $out"
-          );
-        niv_drop_help = builtins.readFile
-          (runCommand "niv_drop_help" { buildInputs = [ niv ]; }
-            "niv drop --help > $out"
-          );
+        cmds = [ "add" "update" "drop" "init" "show" ];
       };
     lib.replaceStrings
-      [
-        "replace_niv_help"
-        "replace_niv_add_help"
-        "replace_niv_update_help"
-        "replace_niv_drop_help"
-      ]
-      [ niv_help niv_add_help niv_update_help niv_drop_help ]
+      ([ "replace_niv_help" ] ++ (map (cmd: "replace_niv_${cmd}_help") cmds))
+      ([ niv_help ] ++ (map niv_cmd_help cmds))
       template
     );
   readme-test = runCommand "README-test" {}
