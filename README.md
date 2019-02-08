@@ -104,8 +104,9 @@ Available options:
 Examples:
 
   niv drop jq
+  niv drop my-package version
 
-Usage: niv drop PACKAGE
+Usage: niv drop PACKAGE [ATTRIBUTE]
   Drop dependency
 
 Available options:
