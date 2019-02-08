@@ -433,7 +433,8 @@ cmdUpdate = \case
 parseCmdDrop :: Opts.ParserInfo (IO ())
 parseCmdDrop =
     Opts.info
-      ((cmdDrop <$> parsePackageName) <**> Opts.helper) $
+      ((cmdDrop <$> parsePackageName <*> parseDropAttributes) <**>
+        Opts.helper) $
       mconcat desc
   where
     desc =
@@ -442,11 +443,16 @@ parseCmdDrop =
       , Opts.headerDoc $ Just $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
-          "  niv drop jq"
+          "  niv drop jq" Opts.<$$>
+          "  niv drop my-package version"
       ]
+    parseDropAttributes :: Opts.Parser [T.Text]
+    parseDropAttributes = many $
+      Opts.argument Opts.str (Opts.metavar "ATTRIBUTE")
 
-cmdDrop :: PackageName -> IO ()
-cmdDrop packageName = do
+cmdDrop :: PackageName -> [T.Text] -> IO ()
+cmdDrop packageName = \case
+    [] -> do
       putStrLn $ "Dropping package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
@@ -455,6 +461,21 @@ cmdDrop packageName = do
 
       setSources $ Sources $
         HMap.delete packageName sources
+    attrs -> do
+      putStrLn $ "Dropping attributes :" <>
+        (T.unpack (T.intercalate " " attrs))
+      putStrLn $ "In package: " <> unPackageName packageName
+      sources <- unSources <$> getSources
+
+      packageSpec <- case HMap.lookup packageName sources of
+        Nothing ->
+          abortCannotAttributesDropNoSuchPackage packageName
+        Just (PackageSpec packageSpec) -> pure $ PackageSpec $
+          HMap.mapMaybeWithKey
+            (\k v -> if k `elem` attrs then Nothing else Just v) packageSpec
+
+      setSources $ Sources $
+        HMap.insert packageName packageSpec sources
 
 -------------------------------------------------------------------------------
 -- Aux
@@ -691,6 +712,12 @@ abortCannotUpdateNoSuchPackage (PackageName n) = abort $ unlines
 abortCannotDropNoSuchPackage :: PackageName -> IO a
 abortCannotDropNoSuchPackage (PackageName n) = abort $ unlines
     [ "Cannot drop package " <> n <> "."
+    , "The package doesn't exist."
+    ]
+
+abortCannotAttributesDropNoSuchPackage :: PackageName -> IO a
+abortCannotAttributesDropNoSuchPackage (PackageName n) = abort $ unlines
+    [ "Cannot drop attributes of package " <> n <> "."
     , "The package doesn't exist."
     ]
 
