@@ -132,7 +132,7 @@ $ niv update nixpkgs
 To change the branch being tracked run this command:
 
 ``` shell
-$ niv update -b nixos-19.03             # equivalent to --branch nixos-19.03
+$ niv update nixpkgs -b nixos-19.03     # equivalent to --branch nixos-19.03
 ```
 
 #### Importing packages from GitHub
