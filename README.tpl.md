@@ -88,7 +88,7 @@ niv to store versions and is initialized with niv and nixpkgs:
         "rev": "..."
     },
     "niv": {
-        "homepage": "",
+        "homepage": "https://github.com/nmattia/niv",
         "url": "https://github.com/nmattia/niv/archive/....tar.gz",
         "owner": "nmattia",
         "branch": "master",
