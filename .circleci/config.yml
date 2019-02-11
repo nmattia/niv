@@ -38,7 +38,7 @@ jobs:
                 echo "Cache size:"
                 du -h ~/.niv-cache.gz
                 echo "Loading cache..."
-                zcat ~/.niv-cache.gz | nix-store --import
+                zcat ~/.niv-cache.gz | nix-store --import || true
                 echo "Deleting cache file..."
                 rm ~/.niv-cache.gz
                 echo "done"
@@ -53,7 +53,7 @@ jobs:
                 echo "Cache size:"
                 du -h ~/.niv-cache-branch.gz
                 echo "Loading cache..."
-                zcat ~/.niv-cache-branch.gz | nix-store --import
+                zcat ~/.niv-cache-branch.gz | nix-store --import || true
                 echo "Deleting cache file..."
                 rm ~/.niv-cache-branch.gz
                 echo "done"
