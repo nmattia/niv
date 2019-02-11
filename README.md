@@ -2,8 +2,8 @@
 
 [![CircleCI](https://circleci.com/gh/nmattia/niv.svg?style=svg)](https://circleci.com/gh/nmattia/niv)
 
-A tool for dealing with third-party packages in [Nix]. Read more about it in
-the [usage](#usage) section.
+Painless dependencies for [Nix] projects. Read more in the [use case
+section](#use-cases) section below.
 
 ## Install
 
@@ -44,10 +44,11 @@ description](#commands).
 
 ### Use cases
 
-This covers three use cases:
+This section covers common use cases:
 
 * [Bootstrapping a Nix project](#bootstrapping-a-nix-project).
 * [Tracking a different a different nixpkgs branch](#tracking-a-nixpkgs-branch).
+* [Importing packages from GitHub](#importing-packages-from-github).
 * [Fetching packages from custom URLs](#using-custom-urls).
 
 #### Bootstrapping a Nix project
@@ -71,9 +72,8 @@ $ tree
 1 directory, 6 files
 ```
 
-The files `default.nix`, `nix/default.nix` and `nix/packages.nix` are useful
-defaults for any Nix project. The file `nix/sources.json` is the file used by
-niv to store versions and is initialized with niv and nixpkgs:
+The file `nix/sources.json` is the file used by niv to store versions and is
+initialized with niv and nixpkgs:
 
 ``` json
 {
