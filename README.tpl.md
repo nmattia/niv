@@ -47,7 +47,7 @@ description](#commands).
 This section covers common use cases:
 
 * [Bootstrapping a Nix project](#bootstrapping-a-nix-project).
-* [Tracking a different a different nixpkgs branch](#tracking-a-nixpkgs-branch).
+* [Tracking a different nixpkgs branch](#tracking-a-nixpkgs-branch).
 * [Importing packages from GitHub](#importing-packages-from-github).
 * [Fetching packages from custom URLs](#using-custom-urls).
 
@@ -78,25 +78,25 @@ initialized with niv and nixpkgs:
 ``` json
 {
     "nixpkgs": {
-        "url": "https://github.com/NixOS/nixpkgs-channels/archive/....tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs-channels/archive/109a28ab954a0ad129f7621d468f829981b8b96c.tar.gz",
         "owner": "NixOS",
         "branch": "nixos-18.09",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
         "repo": "nixpkgs-channels",
-        "sha256": "...",
+        "sha256": "12wnxla7ld4cgpdndaipdh3j4zdalifk287ihxhnmrzrghjahs3q",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
-        "rev": "..."
+        "rev": "109a28ab954a0ad129f7621d468f829981b8b96c"
     },
     "niv": {
         "homepage": "https://github.com/nmattia/niv",
-        "url": "https://github.com/nmattia/niv/archive/....tar.gz",
+        "url": "https://github.com/nmattia/niv/archive/72e77204544527279e8f1e2d982d29503482b8f4.tar.gz",
         "owner": "nmattia",
         "branch": "master",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
         "repo": "niv",
-        "sha256": "...",
-        "description": "Manager for third-party packages in Nix",
-        "rev": "..."
+        "sha256": "1zjcyzxhq9iwxh58j5d7sx1vz5s3r1f6gpmnfgj2a3rxmclwvn3c",
+        "description": "Easy dependency management for Nix projects",
+        "rev": "72e77204544527279e8f1e2d982d29503482b8f4"
     }
 }
 ```
@@ -151,14 +151,14 @@ The following data was added in `nix/sources.json` for `jq`:
 ``` json
 {
   "homepage": "http://stedolan.github.io/jq/",
-  "url": "https://github.com/stedolan/jq/archive/....tar.gz",
+  "url": "https://github.com/stedolan/jq/archive/9fa2e51099c55af56e3e541dc4b399f11de74abe.tar.gz",
   "owner": "stedolan",
   "branch": "master",
   "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
   "repo": "jq",
-  "sha256": "...",
+  "sha256": "0819rvk8057qgcqvgn7fpldvly2pfdw9fxcjrlqa8gr59p8a1cic",
   "description": "Command-line JSON processor",
-  "rev": "..."
+  "rev": "9fa2e51099c55af56e3e541dc4b399f11de74abe"
 }
 ```
 
