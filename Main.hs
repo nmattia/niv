@@ -140,6 +140,8 @@ parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
 
 updatePackageSpec :: PackageSpec -> IO PackageSpec
 updatePackageSpec = execStateT $ do
+    originalUrl <- getPackageSpecAttr "url"
+
     -- Figures out the URL from the template
     withPackageSpecAttr "url_template" (\case
       Aeson.String (T.unpack -> template) -> do
@@ -153,12 +155,22 @@ updatePackageSpec = execStateT $ do
       )
 
     -- Updates the sha256 based on the URL contents
-    withPackageSpecAttr "url" (\case
+    (,) <$> getPackageSpecAttr "url" <*> getPackageSpecAttr "sha256" >>= \case
+      -- If no URL is set, we simply can't prefetch
+      (Nothing, _) -> pure ()
+
+      -- If an URL is set and no sha is set, /do/ update
+      (Just url, Nothing) -> prefetch url
+
+      -- If both the URL and sha are set, update only if the url has changed
+      (Just url, Just{}) -> when (Just url /= originalUrl) (prefetch url)
+  where
+    prefetch :: Aeson.Value -> StateT PackageSpec IO ()
+    prefetch = \case
       Aeson.String (T.unpack -> url) -> do
         sha256 <- liftIO $ nixPrefetchURL url
         setPackageSpecAttr "sha256" (Aeson.String $ T.pack sha256)
       _ -> pure ()
-      )
 
 completePackageSpec
   :: PackageSpec
