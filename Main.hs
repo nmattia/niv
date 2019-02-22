@@ -8,12 +8,16 @@
 
 module Main (main) where
 
+import Prelude hiding (putStrLn, print)
+import qualified Prelude
 import Control.Applicative
+import Control.Concurrent (forkIO)
 import Control.Monad
 import Control.Monad.State
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
 import Data.Char (toUpper)
 import Data.Hashable (Hashable)
+import System.IO.Unsafe
 import Data.Maybe (mapMaybe, fromMaybe)
 import Data.Semigroup
 import Data.String.QQ (s)
@@ -21,6 +25,7 @@ import GHC.Exts (toList)
 import System.Exit (exitFailure)
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
+import UnliftIO
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
@@ -419,7 +424,7 @@ cmdUpdate = \case
     Nothing -> do
       sources <- unSources <$> getSources
 
-      sources' <- forWithKeyM sources $
+      sources' <- forWithKeyConcurrently sources $
         \packageName packageSpec -> do
           putStrLn $ "Package: " <> unPackageName packageName
           updatePackageSpec =<< completePackageSpec packageSpec
@@ -501,12 +506,20 @@ encodeFile fp = L.writeFile fp . AesonPretty.encodePretty
 
 --- HashMap
 
-forWithKeyM
-  :: (Eq k, Hashable k, Monad m)
+forWithKeyConcurrently
+  :: (Eq k, Hashable k, MonadUnliftIO m)
   => HMap.HashMap k v1
   -> (k -> v1 -> m v2)
   -> m (HMap.HashMap k v2)
-forWithKeyM = flip mapWithKeyM
+forWithKeyConcurrently = flip mapWithKeyConcurrently
+
+mapWithKeyConcurrently
+  :: (Eq k, Hashable k, MonadUnliftIO m)
+  => (k -> v1 -> m v2)
+  -> HMap.HashMap k v1
+  -> m (HMap.HashMap k v2)
+mapWithKeyConcurrently f hm = fmap HMap.fromList $
+    mapConcurrently (\(k, v) -> (k,) <$> f k v) (HMap.toList hm)
 
 forWithKeyM_
   :: (Eq k, Hashable k, Monad m)
@@ -514,15 +527,6 @@ forWithKeyM_
   -> (k -> v1 -> m ())
   -> m ()
 forWithKeyM_ = flip mapWithKeyM_
-
-mapWithKeyM
-  :: (Eq k, Hashable k, Monad m)
-  => (k -> v1 -> m v2)
-  -> HMap.HashMap k v1
-  -> m (HMap.HashMap k v2)
-mapWithKeyM f m = do
-    fmap mconcat $ forM (HMap.toList m) $ \(k, v) ->
-      HMap.singleton k <$> f k v
 
 mapWithKeyM_
   :: (Eq k, Hashable k, Monad m)
@@ -559,6 +563,30 @@ nixPrefetchURL url =
       \case
         (l:_) -> pure l
         _ -> abortNixPrefetchExpectedOutput
+
+-------------------------------------------------------------------------------
+-- The hackiest logger in history
+-------------------------------------------------------------------------------
+
+logger :: TChan String
+logger = unsafePerformIO $ do
+    ch <- newTChanIO
+    _ <- forkIO $ runLogger ch
+    pure ch
+{-# NOINLINE logger #-}
+
+runLogger :: TChan (String) -> IO ()
+runLogger ch = forever $ runSTM $ do
+    msg <- readTChan ch
+    pure $ Prelude.putStrLn msg
+
+-- | Run STM transaction and apply result after that.
+runSTM :: MonadIO m => STM (m a) -> m a
+runSTM = join . liftIO . atomically
+{-# SPECIALIZE runSTM :: STM (IO a) -> IO a #-}
+
+putStrLn :: String -> IO ()
+putStrLn = atomically . writeTChan logger
 
 -------------------------------------------------------------------------------
 -- Files and their content

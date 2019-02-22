@@ -17,3 +17,4 @@ executable:
         - mtl
         - optparse-applicative
         - unordered-containers
+        - unliftio
