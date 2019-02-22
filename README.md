@@ -209,7 +209,7 @@ Available commands:
 Examples:
 
   niv add stedolan/jq
-  niv add NixOS/nixpkgs-channel -n nixpkgs -b nixos-18.09
+  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09
   niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
 
 Usage: niv add [-n|--name NAME] PACKAGE ([-a|--attribute KEY=VAL] |

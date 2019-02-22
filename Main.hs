@@ -326,7 +326,7 @@ parseCmdAdd =
           "Examples:" Opts.<$$>
           "" Opts.<$$>
           "  niv add stedolan/jq" Opts.<$$>
-          "  niv add NixOS/nixpkgs-channel -n nixpkgs -b nixos-18.09" Opts.<$$>
+          "  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09" Opts.<$$>
           "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
       ]
 
