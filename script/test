@@ -11,6 +11,6 @@ export NIX_PATH="nixpkgs=./nix"
 echo "Building"
 
 # Build and create a root
-nix build
+nix-build
 
 echo "all good"

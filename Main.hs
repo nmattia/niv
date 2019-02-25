@@ -15,7 +15,6 @@ import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
 import Data.Char (toUpper)
 import Data.Hashable (Hashable)
 import Data.Maybe (mapMaybe, fromMaybe)
-import Data.Semigroup
 import Data.String.QQ (s)
 import GHC.Exts (toList)
 import System.Exit (exitFailure)
