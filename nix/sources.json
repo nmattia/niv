@@ -1,23 +1,23 @@
 {
     "snack": {
         "homepage": "",
-        "url": "https://github.com/nmattia/snack/archive/a4b7401cd3f7468cc3a8af1067466a96ef259d8b.tar.gz",
+        "url": "https://github.com/nmattia/snack/archive/7b90144a01fff7e5eeb520a6b774377f75e44205.tar.gz",
         "owner": "nmattia",
         "branch": "master",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
         "repo": "snack",
-        "sha256": "1sywnk19pdj8acq9gb3sy959s55gn66x4s8z038ifimvk6xpyl50",
+        "sha256": "0p0bldlr83i4bigsv0ygnn7q0lv25hkjd5n4nm1vlvwm9cp8n5dn",
         "description": "Nix-based incremental build tool for Haskell projects",
-        "rev": "a4b7401cd3f7468cc3a8af1067466a96ef259d8b"
+        "rev": "7b90144a01fff7e5eeb520a6b774377f75e44205"
     },
     "nixpkgs": {
-        "url": "https://github.com/NixOS/nixpkgs-channels/archive/138f2cc707d7ee13d93c86db3285460e244c402c.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs-channels/archive/8e70d4bd7d5e1c137006fe483d8d116311694bc2.tar.gz",
         "owner": "NixOS",
-        "branch": "nixos-18.03",
+        "branch": "nixos-18.09",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
         "repo": "nixpkgs-channels",
-        "sha256": "0h49j1cbnccqx996x80z7na9p7slnj9liz646s73s55am8wc9q8q",
+        "sha256": "14vl7qlb48v9fdwdlz0cj6h83kj6zlc7qg3n6sbiabr52y2bhmkh",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
-        "rev": "138f2cc707d7ee13d93c86db3285460e244c402c"
+        "rev": "8e70d4bd7d5e1c137006fe483d8d116311694bc2"
     }
 }

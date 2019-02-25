@@ -3,11 +3,10 @@ import sources.nixpkgs
   { overlays =
     [
       # Snack
-      (self: super:
-        {
-          snack-exe = (import sources.snack).snack-exe;
-          snack-lib = (import sources.snack).snack-lib;
-        }
+      (_: pkgs:
+        with
+        { snack = pkgs.callPackage "${sources.snack}/nix/packages.nix" {}; };
+        { inherit (snack) snack-exe snack-lib; }
       )
     ];
     config = {};
