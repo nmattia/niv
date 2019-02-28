@@ -13,6 +13,7 @@ import Control.Monad
 import Control.Monad.State
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
 import Data.Char (toUpper)
+import Data.Functor ((<&>))
 import Data.Hashable (Hashable)
 import Data.Maybe (mapMaybe, fromMaybe)
 import Data.String.QQ (s)
@@ -100,6 +101,12 @@ parsePackageSpec =
           Opts.short 't' <>
           Opts.metavar "URL" <>
           Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
+        )) <|>
+      (("type",) <$> Opts.strOption
+        ( Opts.long "type" <>
+          Opts.short 'T' <>
+          Opts.metavar "TYPE" <>
+          Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
         ))
 
     -- Parse "key=val" into ("key", "val")
@@ -153,6 +160,20 @@ updatePackageSpec = execStateT $ do
       _ -> pure ()
       )
 
+    -- If the type attribute is not set, we try to infer its value based on the url suffix
+    (,) <$> getPackageSpecAttr "type" <*> getPackageSpecAttr "url" >>= \case
+      -- If an url type is set, we'll use it
+      (Just _, _) -> pure ()
+      -- We need an url to infer a url type
+      (_, Nothing) -> pure ()
+      (Nothing, Just (Aeson.String url)) -> do
+         let urlType = if "tar.gz" `T.isSuffixOf` url
+                       then "tarball"
+                       else "file"
+         setPackageSpecAttr "type" (Aeson.String $ T.pack urlType)
+      -- If the JSON value is not a string, we ignore it
+      (_, _) -> pure ()
+
     -- Updates the sha256 based on the URL contents
     (,) <$> getPackageSpecAttr "url" <*> getPackageSpecAttr "sha256" >>= \case
       -- If no URL is set, we simply can't prefetch
@@ -167,7 +188,11 @@ updatePackageSpec = execStateT $ do
     prefetch :: Aeson.Value -> StateT PackageSpec IO ()
     prefetch = \case
       Aeson.String (T.unpack -> url) -> do
-        sha256 <- liftIO $ nixPrefetchURL url
+        unpack <- getPackageSpecAttr "type" <&> \case
+          -- Do not unpack if the url type is 'file'
+          Just (Aeson.String urlType) -> not $ T.unpack urlType == "file"
+          _ -> True
+        sha256 <- liftIO $ nixPrefetchURL unpack url
         setPackageSpecAttr "sha256" (Aeson.String $ T.pack sha256)
       _ -> pure ()
 
@@ -564,12 +589,13 @@ abort msg = do
     putStrLn msg
     exitFailure
 
-nixPrefetchURL :: String -> IO String
-nixPrefetchURL url =
-    lines <$> readProcess "nix-prefetch-url" ["--unpack", url] "" >>=
+nixPrefetchURL :: Bool -> String -> IO String
+nixPrefetchURL unpack url =
+    lines <$> readProcess "nix-prefetch-url" args "" >>=
       \case
         (l:_) -> pure l
         _ -> abortNixPrefetchExpectedOutput
+  where args = if unpack then ["--unpack", url] else [url]
 
 -------------------------------------------------------------------------------
 -- Files and their content
@@ -583,7 +609,7 @@ pathNixSourcesNix = "nix" </> "sources.nix"
 initNixSourcesNixContent :: String
 initNixSourcesNixContent = [s|
 # A record, from name to path, of the third-party packages
-with
+with rec
 {
   sources = builtins.fromJSON (builtins.readFile ./sources.json);
 
@@ -597,8 +623,17 @@ with
   mapAttrs = builtins.mapAttrs or
     (f: set: with builtins;
       listToAttrs (map (attr: { name = attr; value = f attr set.${attr}; }) (attrNames set)));
-};
 
+  getFetcher = spec:
+    let fetcherName =
+      if builtins.hasAttr "type" spec
+      then builtins.getAttr "type" spec
+      else "tarball";
+    in builtins.getAttr fetcherName {
+      "tarball" = builtins.fetchTarball;
+      "file" = builtins.fetchurl;
+    };
+};
 # NOTE: spec must _not_ have an "outPath" attribute
 mapAttrs (_: spec:
   if builtins.hasAttr "outPath" spec
@@ -608,7 +643,7 @@ mapAttrs (_: spec:
     if builtins.hasAttr "url" spec && builtins.hasAttr "sha256" spec
     then
       spec //
-    { outPath = fetchTarball { inherit (spec) url sha256; } ; }
+      { outPath = getFetcher spec { inherit (spec) url sha256; } ; }
     else spec
   ) sources
 |]

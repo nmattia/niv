@@ -214,7 +214,7 @@ Examples:
 
 Usage: niv add [-n|--name NAME] PACKAGE ([-a|--attribute KEY=VAL] |
                [-b|--branch BRANCH] | [-o|--owner OWNER] | [-r|--repo REPO] |
-               [-v|--version VERSION] | [-t|--template URL])
+               [-v|--version VERSION] | [-t|--template URL] | [-T|--type TYPE])
   Add dependency
 
 Available options:
@@ -226,6 +226,9 @@ Available options:
   -v,--version VERSION     Equivalent to --attribute version=<VERSION>
   -t,--template URL        Used during 'update' when building URL. Occurrences
                            of <foo> are replaced with attribute 'foo'.
+  -T,--type TYPE           The type of the URL target. The value can be either
+                           'file' or 'tarball'. If not set, the value is
+                           inferred from the suffix of the URL.
   -h,--help                Show this help text
 
 ```
@@ -241,7 +244,7 @@ Examples:
 
 Usage: niv update [PACKAGE] ([-a|--attribute KEY=VAL] | [-b|--branch BRANCH] |
                   [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION]
-                  | [-t|--template URL])
+                  | [-t|--template URL] | [-T|--type TYPE])
   Update dependencies
 
 Available options:
@@ -252,6 +255,9 @@ Available options:
   -v,--version VERSION     Equivalent to --attribute version=<VERSION>
   -t,--template URL        Used during 'update' when building URL. Occurrences
                            of <foo> are replaced with attribute 'foo'.
+  -T,--type TYPE           The type of the URL target. The value can be either
+                           'file' or 'tarball'. If not set, the value is
+                           inferred from the suffix of the URL.
   -h,--help                Show this help text
 
 ```
