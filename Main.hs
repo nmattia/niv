@@ -611,6 +611,8 @@ initNixSourcesNixContent = [s|
 # A record, from name to path, of the third-party packages
 with rec
 {
+  pkgs = import <nixpkgs> {};
+
   sources = builtins.fromJSON (builtins.readFile ./sources.json);
 
   # fetchTarball version that is compatible between all the sources of Nix
@@ -630,8 +632,8 @@ with rec
       then builtins.getAttr "type" spec
       else "tarball";
     in builtins.getAttr fetcherName {
-      "tarball" = builtins.fetchTarball;
-      "file" = builtins.fetchurl;
+      "tarball" = pkgs.fetchzip;
+      "file" = pkgs.fetchurl;
     };
 };
 # NOTE: spec must _not_ have an "outPath" attribute
