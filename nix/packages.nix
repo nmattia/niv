@@ -24,5 +24,15 @@ rec
       template
     );
   readme-test = runCommand "README-test" {}
-    "diff ${../README.md} ${readme} && echo dummy > $out";
+    ''
+      err() {
+        echo
+        echo -e "\e[31mERR\e[0m: README.md out of date"
+        echo -e "please run \e[1m./script/gen\e[0m"
+        echo
+        exit 1
+      }
+
+      diff ${../README.md} ${readme} && echo dummy > $out || err ;
+    '';
 }

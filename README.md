@@ -22,6 +22,12 @@ $ # run:
 $ snack run -- <args>
 ```
 
+Run the test suite with this command:
+
+``` bash
+$ ./script/test
+```
+
 ## Usage
 
 `niv` simplifies [adding](#add) and [updating](#update) dependencies in Nix
