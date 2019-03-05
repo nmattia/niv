@@ -16,4 +16,5 @@ executable:
         - github
         - mtl
         - optparse-applicative
+        - unliftio
         - unordered-containers
