@@ -631,18 +631,9 @@ with rec
       "file" = pkgs.fetchurl;
     };
 };
-# NOTE: spec must _not_ have an "outPath" attribute
-mapAttrs (_: spec:
-  if builtins.hasAttr "outPath" spec
-  then abort
-    "The values in sources.json should not have an 'outPath' attribute"
-  else
-    if builtins.hasAttr "url" spec && builtins.hasAttr "sha256" spec
-    then
-      spec //
-      { outPath = getFetcher spec { inherit (spec) url sha256; } ; }
-    else spec
-  ) sources
+mapAttrs
+  (_: spec: getFetcher spec { inherit (spec) url sha256; })
+  sources
 |]
 
 -- | @nix/default.nix@
