@@ -632,7 +632,7 @@ with rec
     };
 };
 mapAttrs
-  (_: spec: getFetcher spec { inherit (spec) url sha256; })
+  (_: spec: getFetcher spec { inherit (spec) url sha256; } // { niv = spec; })
   sources
 |]
 
