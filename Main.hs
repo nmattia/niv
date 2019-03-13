@@ -12,8 +12,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
-import Data.Char (isSpace)
-import Data.Char (toUpper)
+import Data.Char (isSpace, toUpper)
 import Data.Functor ((<&>))
 import Data.Hashable (Hashable)
 import Data.Maybe (mapMaybe, fromMaybe)
@@ -316,7 +315,16 @@ cmdInit = do
     -- Writes all the default files
     -- a path, a "create" function and an update function for each file.
     forM_
-      [ ( pathNixSourcesJson
+      [ ( pathNixSourcesNix
+        , (`createFile` initNixSourcesNixContent)
+        , \path content -> do
+            if shouldUpdateNixSourcesNix content
+            then do
+              putStrLn "Updating sources.nix"
+              writeFile path initNixSourcesNixContent
+            else putStrLn "Not updating sources.nix"
+        )
+      , ( pathNixSourcesJson
         , \path -> do
             createFile path initNixSourcesJsonContent
             -- Imports @niv@ and @nixpkgs@ (18.09)
@@ -328,15 +336,6 @@ cmdInit = do
               ( PackageName "NixOS/nixpkgs-channels"
               , PackageSpec (HMap.singleton "branch" "nixos-18.09"))
         , \path _content -> dontCreateFile path)
-      , ( pathNixSourcesNix
-        , (`createFile` initNixSourcesNixContent)
-        , \path content -> do
-            if shouldUpdateNixSourcesNix content
-            then do
-              putStrLn "Updating sources.nix"
-              writeFile path initNixSourcesNixContent
-            else putStrLn "Not updating sources.nix"
-        )
       , ( pathNixDefaultNix
         , (`createFile` initNixDefaultNixContent)
         , \path _content -> dontCreateFile path)
