@@ -659,7 +659,7 @@ warnIfOutdated = do
             [ "WARNING: " <> pathNixSourcesNix <> " is out of date."
             , "Please run"
             , "  niv init"
-            , "or add the following line in your file:"
+            , "or add the following line in the " <> pathNixSourcesNix <> "  file:"
             , "  # niv: no_update"
             ]
         else pure ()
