@@ -11,9 +11,8 @@ module Main (main) where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
-import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
+import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.:))
 import Data.Char (toUpper)
-import Data.Functor ((<&>))
 import Data.Hashable (Hashable)
 import Data.Maybe (mapMaybe, fromMaybe)
 import Data.String.QQ (s)
@@ -21,12 +20,15 @@ import GHC.Exts (toList)
 import System.Exit (exitFailure)
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
+import System.IO.Temp (withSystemTempDirectory)
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.HashMap.Strict as HMap
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TL
 import qualified GitHub as GH
 import qualified GitHub.Data.Name as GH
 import qualified Options.Applicative as Opts
@@ -184,17 +186,25 @@ updatePackageSpec = execStateT $ do
 
       -- If both the URL and sha are set, update only if the url has changed
       (Just url, Just{}) -> when (Just url /= originalUrl) (prefetch url)
+
   where
+    dockerPrefetch :: StateT PackageSpec IO String
+    dockerPrefetch = do
+      (,,) <$> getPackageSpecAttr "name" <*> getPackageSpecAttr "tag" <*> getPackageSpecAttr "digest" >>= \case
+        (Just (Aeson.String n), Just (Aeson.String t), Just (Aeson.String d)) ->
+          liftIO $ (nixPrefetchDockerImage (T.unpack n) (T.unpack t) (T.unpack d))
+        _ -> liftIO $ abort "Missing attribute: 'name', 'tag', and 'digest' must be set"
+
     prefetch :: Aeson.Value -> StateT PackageSpec IO ()
     prefetch = \case
-      Aeson.String (T.unpack -> url) -> do
-        unpack <- getPackageSpecAttr "type" <&> \case
-          -- Do not unpack if the url type is 'file'
-          Just (Aeson.String urlType) -> not $ T.unpack urlType == "file"
-          _ -> True
-        sha256 <- liftIO $ nixPrefetchURL unpack url
+      Aeson.String url -> do
+        sha256 <- getPackageSpecAttr "type" >>= \case
+          Just (Aeson.String "tarball") -> liftIO $ nixPrefetchURL True (T.unpack url)
+          Just (Aeson.String "file")    -> liftIO $ nixPrefetchURL False (T.unpack url)
+          Just (Aeson.String "docker")  -> dockerPrefetch
+          _ -> liftIO $ abort "Type should be 'tarball', 'file' or 'docker'"
         setPackageSpecAttr "sha256" (Aeson.String $ T.pack sha256)
-      _ -> pure ()
+      _ -> liftIO $ abort "Url must be a string"
 
 completePackageSpec
   :: PackageSpec
@@ -240,16 +250,40 @@ completePackageSpec = execStateT $ do
                   )
       (_,_) -> pure ()
 
+    -- If the type is docker, we need to complete the tag and the
+    -- digest if they are not specified.
+    (,) <$> getPackageSpecAttr "type" <*> getPackageSpecAttr "name" >>= \case
+      (Just (Aeson.String "docker"), Just (Aeson.String name)) -> do
+         -- If no tag is specified, we consider latest
+         whenNotSet "tag" $ setPackageSpecAttr "tag" (Aeson.String (T.pack "latest"))
+         whenNotSet "digest" . withPackageSpecAttr "tag" $ \case
+           Aeson.String tag -> do
+             liftIO (getImageDigest (T.unpack name) (T.unpack tag)) >>= \d -> do
+               setPackageSpecAttr "digest" (Aeson.String (T.pack d))
+           _ -> pure ()
+      (_,_) -> pure ()
+
     -- Figures out the URL template
-    whenNotSet "url_template" $
-      setPackageSpecAttr
-        "url_template"
-        (Aeson.String $ T.pack githubURLTemplate)
+    whenNotSet "url_template" $ do
+      getPackageSpecAttr "type" >>= \case
+        -- The URL template is also used to know if the sha256 needs to be
+        -- updated. This is the only reason to create one for the docker fetcher!
+        -- Instead of relying on the template_url, it would be better to introduce a function such as
+        -- updateNeeded :: PackageSpec -> PackageSpec -> Bool
+        -- which takes the old package set, the new one and returns if an update is needed or not
+        Just (Aeson.String "docker") -> setPackageSpecAttr
+          "url_template"
+          (Aeson.String $ T.pack dockerURLTemplate)
+        _ -> setPackageSpecAttr
+          "url_template"
+          (Aeson.String $ T.pack githubURLTemplate)
 
   where
     githubURLTemplate :: String
     githubURLTemplate =
       "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    dockerURLTemplate :: String
+    dockerURLTemplate = "<name>@<digest>"
 
 -------------------------------------------------------------------------------
 -- PackageSpec State helpers
@@ -598,6 +632,43 @@ nixPrefetchURL unpack url =
   where args = if unpack then ["--unpack", url] else [url]
 
 -------------------------------------------------------------------------------
+-- Docker image helpers
+-------------------------------------------------------------------------------
+
+type ImageName = String
+type ImageTag = String
+type ImageDigest = String
+
+data SkopeoInspectOutput = SkopeoInspectOutput ImageDigest
+instance FromJSON SkopeoInspectOutput where
+    parseJSON = Aeson.withObject "SkopeoInspect" $ \v -> SkopeoInspectOutput
+        <$> v .: "Digest"
+
+getImageDigest :: ImageName -> ImageTag -> IO ImageDigest
+getImageDigest name tag =
+    Aeson.decode . TL.encodeUtf8 . TL.pack <$> readProcess "skopeo" [ "inspect", "docker://" ++ name ++ ":" ++ tag ] "" >>=
+      \case
+        Nothing -> abortSkopeoInspectExpectedOutput
+        Just (SkopeoInspectOutput d) -> pure d
+
+-- We use skopeo copy to download the image into a temporary directory
+-- from which the image archive is prefetched with nixPrefetchURL
+nixPrefetchDockerImage :: ImageName -> ImageTag -> ImageDigest -> IO String
+nixPrefetchDockerImage n t d =
+    withSystemTempDirectory "niv-skopeo" $ \f -> do
+      let src = "docker://" ++ n ++ "@" ++ d
+          dstFile =  f ++ "/" ++ (sanitize n)
+          dst = "docker-archive://" ++ dstFile ++ ":" ++ n ++ ":" ++ t
+      putStrLn $ "Running skopeo copy " ++ src ++ " " ++ dst
+      _ <- readProcess "skopeo" [ "copy", src, dst ] ""
+      nixPrefetchURL False $ "file://" ++ dstFile
+  where
+    sanitize = map replace
+    replace '/' = '-'
+    replace ':' = '-'
+    replace c = c
+
+-------------------------------------------------------------------------------
 -- Files and their content
 -------------------------------------------------------------------------------
 
@@ -621,14 +692,20 @@ with rec
     (f: set: with builtins;
       listToAttrs (map (attr: { name = attr; value = f attr set.${attr}; }) (attrNames set)));
 
-  getFetcher = spec:
+  callFetcher = spec:
     let fetcherName =
       if builtins.hasAttr "type" spec
       then builtins.getAttr "type" spec
       else "tarball";
     in builtins.getAttr fetcherName {
-      "tarball" = pkgs.fetchzip;
-      "file" = pkgs.fetchurl;
+      "tarball" = pkgs.fetchzip { inherit (spec) url sha256; };
+      "file" = pkgs.fetchurl { inherit (spec) url sha256; };
+      "docker" = pkgs.dockerTools.pullImage {
+        inherit (spec) sha256;
+        imageName = spec.name;
+        imageDigest = spec.digest;
+        finalImageTag = spec.tag;
+      };
     };
 };
 # NOTE: spec must _not_ have an "outPath" attribute
@@ -640,7 +717,7 @@ mapAttrs (_: spec:
     if builtins.hasAttr "url" spec && builtins.hasAttr "sha256" spec
     then
       spec //
-      { outPath = getFetcher spec { inherit (spec) url sha256; } ; }
+      { outPath = callFetcher spec; }
     else spec
   ) sources
 |]
@@ -769,6 +846,16 @@ abortCannotAttributesDropNoSuchPackage (PackageName n) = abort $ unlines
 abortNixPrefetchExpectedOutput :: IO a
 abortNixPrefetchExpectedOutput = abort [s|
 Could not read the output of 'nix-prefetch-url'. This is a bug. Please create a
+ticket:
+
+  https://github.com/nmattia/niv/issues/new
+
+Thanks! I'll buy you a beer.
+|]
+
+abortSkopeoInspectExpectedOutput :: IO a
+abortSkopeoInspectExpectedOutput = abort [s|
+Could not read the output of 'skopeo inspect'. This is a bug. Please create a
 ticket:
 
   https://github.com/nmattia/niv/issues/new
