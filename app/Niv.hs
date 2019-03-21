@@ -79,45 +79,20 @@ setSources sources = encodeFile pathNixSourcesJson sources
 newtype PackageName = PackageName { unPackageName :: String }
   deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)
 
-parsePackageName :: Opts.Parser PackageName
-parsePackageName = PackageName <$>
-    Opts.argument Opts.str (Opts.metavar "PACKAGE")
-
 newtype PackageSpec = PackageSpec { _unPackageSpec :: Aeson.Object }
   deriving newtype (FromJSON, ToJSON, Show, Semigroup, Monoid)
 
-parsePackageSpec :: Opts.Parser PackageSpec
-parsePackageSpec =
+attributesToPackageSpec :: Opts.Parser (String, String) -> Opts.Parser PackageSpec
+attributesToPackageSpec attributes =
     (PackageSpec . HMap.fromList . fmap fixupAttributes) <$>
-      many parseAttribute
+      many attributes
   where
-    parseAttribute :: Opts.Parser (String, String)
-    parseAttribute =
-      Opts.option (Opts.maybeReader parseKeyVal)
-        ( Opts.long "attribute" <>
-          Opts.short 'a' <>
-          Opts.metavar "KEY=VAL" <>
-          Opts.help "Set the package spec attribute <KEY> to <VAL>"
-        ) <|> shortcutAttributes <|>
-      (("url_template",) <$> Opts.strOption
-        ( Opts.long "template" <>
-          Opts.short 't' <>
-          Opts.metavar "URL" <>
-          Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
-        )) <|>
-      (("type",) <$> Opts.strOption
-        ( Opts.long "type" <>
-          Opts.short 'T' <>
-          Opts.metavar "TYPE" <>
-          Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
-        ))
+    fixupAttributes :: (String, String) -> (T.Text, Aeson.Value)
+    fixupAttributes (k, v) = (T.pack k, Aeson.String (T.pack v))
 
-    -- Parse "key=val" into ("key", "val")
-    parseKeyVal :: String -> Maybe (String, String)
-    parseKeyVal str = case span (/= '=') str of
-      (key, '=':val) -> Just (key, val)
-      _ -> Nothing
-
+parseGithubPackageSpec :: Opts.Parser PackageSpec
+parseGithubPackageSpec = attributesToPackageSpec shortcutAttributes
+  where
     -- Shortcuts for common attributes
     shortcutAttributes :: Opts.Parser (String, String)
     shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
@@ -137,11 +112,60 @@ parsePackageSpec =
         )
       _ -> empty
 
-    fixupAttributes :: (String, String) -> (T.Text, Aeson.Value)
-    fixupAttributes (k, v) = (T.pack k, Aeson.String (T.pack v))
+parseFilePackageSpec :: Opts.Parser PackageSpec
+parseFilePackageSpec = attributesToPackageSpec
+  (("type",) <$> Opts.strOption
+    ( Opts.long "type" <>
+      Opts.short 'T' <>
+      Opts.metavar "TYPE" <>
+      Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
+    ))
+
+parsePackageSpec :: Opts.Parser PackageSpec
+parsePackageSpec = attributesToPackageSpec parseAttribute
+  where
+    parseAttribute :: Opts.Parser (String, String)
+    parseAttribute =
+      Opts.option (Opts.maybeReader parseKeyVal)
+        ( Opts.long "attribute" <>
+          Opts.short 'a' <>
+          Opts.metavar "KEY=VAL" <>
+          Opts.help "Set the package spec attribute <KEY> to <VAL>"
+        ) <|>
+      (("url_template",) <$> Opts.strOption
+        ( Opts.long "template" <>
+          Opts.short 't' <>
+          Opts.metavar "URL" <>
+          Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
+        ))
+
+    -- Parse "key=val" into ("key", "val")
+    parseKeyVal :: String -> Maybe (String, String)
+    parseKeyVal str = case span (/= '=') str of
+      (key, '=':val) -> Just (key, val)
+      _ -> Nothing
 
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
 parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
+
+parseGithubPackage :: Opts.Parser (PackageName, PackageSpec)
+parseGithubPackage = (,) <$> parsePackageName <*> (mappend <$> parsePackageSpec <*> parseGithubPackageSpec)
+
+parseFilePackage :: Opts.Parser (PackageName, PackageSpec)
+parseFilePackage = (,) <$> parsePackageName <*> (mappend <$> parsePackageSpec <*> parseFilePackageSpec)
+
+parsePackageName :: Opts.Parser PackageName
+parsePackageName = PackageName <$>
+    Opts.argument Opts.str (Opts.metavar "PACKAGE")
+
+parseNameAttribute :: Opts.Parser (Maybe PackageName)
+parseNameAttribute = Opts.optional $ PackageName <$>  Opts.strOption
+  ( Opts.long "name" <>
+    Opts.short 'n' <>
+    Opts.metavar "NAME" <>
+    Opts.help "Set the package name to <NAME>"
+  )
+
 
 -------------------------------------------------------------------------------
 -- PACKAGE SPEC OPS
@@ -331,9 +355,9 @@ cmdInit = do
             createFile path initNixSourcesJsonContent
             -- Imports @niv@ and @nixpkgs@ (18.09)
             putStrLn "Importing 'niv' ..."
-            cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMap.empty)
+            cmdAddGitHub Nothing (PackageName "nmattia/niv", PackageSpec HMap.empty)
             putStrLn "Importing 'nixpkgs' ..."
-            cmdAdd
+            cmdAddGitHub
               (Just (PackageName "nixpkgs"))
               ( PackageName "NixOS/nixpkgs-channels"
               , PackageSpec (HMap.singleton "branch" "nixos-18.09"))
@@ -356,41 +380,58 @@ cmdInit = do
 -------------------------------------------------------------------------------
 
 parseCmdAdd :: Opts.ParserInfo (IO ())
-parseCmdAdd =
-    Opts.info ((cmdAdd <$> optName <*> parsePackage) <**> Opts.helper) $
+parseCmdAdd = Opts.info (subparser <**> Opts.helper) $ Opts.progDesc "Add dependency"
+    where
+      subparser = Opts.subparser
+        ( Opts.command "github" parseCmdAddGithub <>
+          Opts.command "file" parseCmdAddFile
+        )
+
+parseCmdAddGithub :: Opts.ParserInfo (IO ())
+parseCmdAddGithub =
+    Opts.info ((cmdAdd' <$> parseNameAttribute <*> parseGithubPackage) <**> Opts.helper) $
       mconcat desc
   where
-    optName :: Opts.Parser (Maybe PackageName)
-    optName = Opts.optional $ PackageName <$>  Opts.strOption
-      ( Opts.long "name" <>
-        Opts.short 'n' <>
-        Opts.metavar "NAME" <>
-        Opts.help "Set the package name to <NAME>"
-      )
+    cmdAdd' a b = inferOwnerAndRepo b >>= cmdAdd a
     desc =
       [ Opts.fullDesc
-      , Opts.progDesc "Add dependency"
+      , Opts.progDesc "Add Github dependency"
       , Opts.headerDoc $ Just $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
-          "  niv add stedolan/jq" Opts.<$$>
-          "  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09" Opts.<$$>
-          "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
+          "  niv add github stedolan/jq" Opts.<$$>
+          "  niv add github NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09"
       ]
 
+-- Figures out the owner and repo
+inferOwnerAndRepo :: (PackageName, PackageSpec) -> IO (PackageName, PackageSpec)
+inferOwnerAndRepo (PackageName str, spec) =
+  flip runStateT spec $ case span (/= '/') str of
+    (owner@(_:_), '/':repo@(_:_)) -> do
+      whenNotSet "owner" $
+        setPackageSpecAttr "owner" (Aeson.String $ T.pack owner)
+      whenNotSet "repo" $ do
+          setPackageSpecAttr "repo" (Aeson.String $ T.pack repo)
+      pure (PackageName repo)
+    _ -> pure (PackageName str)
+
+parseCmdAddFile :: Opts.ParserInfo (IO ())
+parseCmdAddFile =
+    Opts.info ((cmdAdd <$> parseNameAttribute <*> parseFilePackage) <**> Opts.helper) $
+      mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc
+      , Opts.progDesc "Add file dependency"
+      , Opts.headerDoc $ Just $
+          "Examples:" Opts.<$$>
+          "" Opts.<$$>
+          "  niv add file my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
+      ]
+
+
 cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
-cmdAdd mPackageName (PackageName str, spec) = do
-
-    -- Figures out the owner and repo
-    (packageName, spec') <- flip runStateT spec $ case span (/= '/') str of
-          (owner@(_:_), '/':repo@(_:_)) -> do
-            whenNotSet "owner" $
-              setPackageSpecAttr "owner" (Aeson.String $ T.pack owner)
-            whenNotSet "repo" $ do
-                setPackageSpecAttr "repo" (Aeson.String $ T.pack repo)
-            pure (PackageName repo)
-          _ -> pure (PackageName str)
-
+cmdAdd mPackageName (packageName, spec) = do
     sources <- unSources <$> getSources
 
     let packageName' = fromMaybe packageName mPackageName
@@ -398,11 +439,11 @@ cmdAdd mPackageName (PackageName str, spec) = do
     when (HMap.member packageName' sources) $
       abortCannotAddPackageExists packageName'
 
-    spec'' <- updatePackageSpec =<< completePackageSpec spec'
+    spec' <- updatePackageSpec =<< completePackageSpec spec
 
     putStrLn $ "Writing new sources file"
     setSources $ Sources $
-      HMap.insert packageName' spec'' sources
+      HMap.insert packageName' spec' sources
 
 -------------------------------------------------------------------------------
 -- SHOW
