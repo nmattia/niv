@@ -12,7 +12,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
-import Data.Char (toUpper)
+import Data.Char (isSpace, toUpper)
 import Data.Functor ((<&>))
 import Data.Hashable (Hashable)
 import Data.Maybe (mapMaybe, fromMaybe)
@@ -21,6 +21,7 @@ import GHC.Exts (toList)
 import System.Exit (exitFailure)
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
+import UnliftIO
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
@@ -56,6 +57,7 @@ newtype Sources = Sources
 
 getSources :: IO Sources
 getSources = do
+    warnIfOutdated
     -- TODO: if doesn't exist: run niv init
     putStrLn $ "Reading sources file"
     decodeFileStrict pathNixSourcesJson >>= \case
@@ -311,33 +313,53 @@ cmdInit :: IO ()
 cmdInit = do
 
     -- Writes all the default files
+    -- a path, a "create" function and an update function for each file.
     forM_
-      [ (pathNixSourcesJson, initNixSourcesJsonContent)
-      , (pathNixSourcesNix, initNixSourcesNixContent)
-      , (pathNixDefaultNix, initNixDefaultNixContent)
-      , (pathNixPackagesNix, initNixPackagesNixContent)
-      , (pathDefaultNix, initDefaultNixContent)
-      , (pathShellNix, initShellNixContent)
-      ] $ \(path, content) -> do
-        putStrLn $ "Creating file " <> path <> " (if it doesn't exist)"
-        let dir = takeDirectory path
-        Dir.createDirectoryIfMissing True dir
-        exists <- Dir.doesFileExist path
-        if exists
-        then do
-          putStrLn $ "Not creating " <> path <> " (already exists)"
-        else do
-          putStrLn $ "Creating " <> path <> " (doesn't exist)"
-          writeFile path content
-
-    -- Imports @niv@ and @nixpkgs@ (18.09)
-    putStrLn "Importing 'niv' ..."
-    cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMap.empty)
-    putStrLn "Importing 'nixpkgs' ..."
-    cmdAdd
-      (Just (PackageName "nixpkgs"))
-      ( PackageName "NixOS/nixpkgs-channels"
-      , PackageSpec (HMap.singleton "branch" "nixos-18.09"))
+      [ ( pathNixSourcesNix
+        , (`createFile` initNixSourcesNixContent)
+        , \path content -> do
+            if shouldUpdateNixSourcesNix content
+            then do
+              putStrLn "Updating sources.nix"
+              writeFile path initNixSourcesNixContent
+            else putStrLn "Not updating sources.nix"
+        )
+      , ( pathNixSourcesJson
+        , \path -> do
+            createFile path initNixSourcesJsonContent
+            -- Imports @niv@ and @nixpkgs@ (18.09)
+            putStrLn "Importing 'niv' ..."
+            cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMap.empty)
+            putStrLn "Importing 'nixpkgs' ..."
+            cmdAdd
+              (Just (PackageName "nixpkgs"))
+              ( PackageName "NixOS/nixpkgs-channels"
+              , PackageSpec (HMap.singleton "branch" "nixos-18.09"))
+        , \path _content -> dontCreateFile path)
+      , ( pathNixDefaultNix
+        , (`createFile` initNixDefaultNixContent)
+        , \path _content -> dontCreateFile path)
+      , ( pathNixPackagesNix
+        , (`createFile` initNixPackagesNixContent)
+        , \path _content -> dontCreateFile path)
+      , ( pathDefaultNix
+        , (`createFile` initDefaultNixContent)
+        , \path _content -> dontCreateFile path)
+      , ( pathShellNix
+        , (`createFile` initShellNixContent)
+        , \path _content -> dontCreateFile path)
+      ] $ \(path, onCreate, onUpdate) -> do
+          exists <- Dir.doesFileExist path
+          if exists then readFile path >>= onUpdate path else onCreate path
+  where
+    createFile :: FilePath -> String -> IO ()
+    createFile path content = do
+      let dir = takeDirectory path
+      Dir.createDirectoryIfMissing True dir
+      putStrLn $ "Creating " <> path
+      writeFile path content
+    dontCreateFile :: FilePath -> IO ()
+    dontCreateFile path = putStrLn $ "Not creating " <> path
 
 -------------------------------------------------------------------------------
 -- ADD
@@ -604,6 +626,42 @@ nixPrefetchURL unpack url =
 -- | @nix/sources.nix@
 pathNixSourcesNix :: FilePath
 pathNixSourcesNix = "nix" </> "sources.nix"
+
+-- | Checks if content is different than default and if it does /not/ contain
+-- a comment line with @niv: no_update@
+shouldUpdateNixSourcesNix :: String -> Bool
+shouldUpdateNixSourcesNix content =
+    content /= initNixSourcesNixContent &&
+      not (any lineForbids (lines content))
+  where
+    lineForbids :: String -> Bool
+    lineForbids str =
+      case dropWhile isSpace str of
+        '#':rest -> case dropWhile isSpace rest of
+          'n':'i':'v':':':rest' -> case dropWhile isSpace rest' of
+            'n':'o':'_':'u':'p':'d':'a':'t':'e':_ -> True
+            _ -> False
+          _ -> False
+        _ -> False
+
+warnIfOutdated :: IO ()
+warnIfOutdated = do
+    tryAny (readFile pathNixSourcesNix) >>= \case
+      Left e -> putStrLn $ unlines
+        [ "Could not read " <> pathNixSourcesNix
+        , "Error: " <> show e
+        ]
+      Right content ->
+        if shouldUpdateNixSourcesNix content
+        then
+          putStrLn $ unlines
+            [ "WARNING: " <> pathNixSourcesNix <> " is out of date."
+            , "Please run"
+            , "  niv init"
+            , "or add the following line in the " <> pathNixSourcesNix <> "  file:"
+            , "  # niv: no_update"
+            ]
+        else pure ()
 
 -- | Glue code between nix and sources.json
 initNixSourcesNixContent :: String
