@@ -370,10 +370,18 @@ cmdInit = do
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd = Opts.info (subparser <**> Opts.helper) $ Opts.progDesc "Add dependency"
     where
-      subparser = Opts.subparser
-        ( Opts.command "github" parseCmdAddGithub <>
-          Opts.command "file" parseCmdAddFile
-        )
+      subparser =
+        parseCmdAddGeneric <|>
+          Opts.subparser
+          ( Opts.command "github" parseCmdAddGithub <>
+            Opts.command "file" parseCmdAddFile
+          )
+
+parseCmdAddGeneric :: Opts.Parser (IO ())
+parseCmdAddGeneric = parsePackageName <&> doStuffWithPackageName
+
+doStuffWithPackageName :: PackageName -> IO ()
+doStuffWithPackageName _ = pure ()
 
 parseCmdAddGithub :: Opts.ParserInfo (IO ())
 parseCmdAddGithub =
