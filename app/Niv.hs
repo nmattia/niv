@@ -33,6 +33,8 @@ import qualified GitHub as GH
 import qualified GitHub.Data.Name as GH
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
+import qualified Options.Applicative.Builder.Internal as Opts
+import qualified Options.Applicative.Types as Opts
 import qualified System.Directory as Dir
 
 main :: IO ()
@@ -159,7 +161,7 @@ parsePackageName = PackageName <$>
     Opts.argument Opts.str (Opts.metavar "PACKAGE")
 
 parseNameAttribute :: Opts.Parser (Maybe PackageName)
-parseNameAttribute = Opts.optional $ PackageName <$>  Opts.strOption
+parseNameAttribute = Opts.optional $ PackageName <$> Opts.strOption
   ( Opts.long "name" <>
     Opts.short 'n' <>
     Opts.metavar "NAME" <>
@@ -379,20 +381,55 @@ cmdInit = do
 -- ADD
 -------------------------------------------------------------------------------
 
-parseCmdAdd :: Opts.ParserInfo (IO ())
-parseCmdAdd = Opts.info (subparser <**> Opts.helper) $ Opts.progDesc "Add dependency"
-    where
-      subparser = Opts.subparser
-        ( Opts.command "github" parseCmdAddGithub <>
-          Opts.command "file" parseCmdAddFile
-        )
+subparser :: Opts.Mod Opts.CommandFields (IO()) -> Opts.Parser (IO())
+subparser m = Opts.mkParser d g rdr
+  where
+    Opts.Mod _ d g = Opts.metavar "PACKAGE" `mappend` m
+    (groupName, cmds, subs) = mkCommand m
+    rdr = Opts.CmdReader groupName cmds subs
 
-parseCmdAddGithub :: Opts.ParserInfo (IO ())
-parseCmdAddGithub =
-    Opts.info ((cmdAdd' <$> parseNameAttribute <*> parseGithubPackage) <**> Opts.helper) $
+mkCommand :: Opts.Mod Opts.CommandFields (IO ()) -> (Maybe String, [String], String -> Maybe (Opts.ParserInfo (IO())))
+mkCommand m = (group, map fst cmds, subs)
+  where
+    subs str =  do
+      _ <- ownerAndRepo str
+      pure $ parseCmdAddGithubShortcut (PackageName str)
+    Opts.Mod f _ _ = m
+    Opts.CommandFields cmds group = f (Opts.CommandFields [] Nothing)
+
+parseCmdAdd :: Opts.ParserInfo (IO ())
+parseCmdAdd = Opts.info (sp <**> Opts.helper) $ Opts.progDesc "Add dependency"
+    where
+      sp = Opts.subparser
+        ( Opts.command "github" parseCmdAddGithub <>
+          Opts.command "file" parseCmdAddFile )
+        <|> (subparser
+        ( Opts.command "<owner>/<repo>" parseCmdAddGitHub ))
+
+-- Takes the '<owner>/<repo>' as PackageName parameter
+parseCmdAddGithubShortcut :: PackageName -> Opts.ParserInfo (IO ())
+parseCmdAddGithubShortcut packageName =
+    Opts.info ((cmdAddGithub Nothing <$> parser) <**> Opts.helper) $
       mconcat desc
   where
-    cmdAdd' a b = inferOwnerAndRepo b >>= cmdAdd a
+    parser :: Opts.Parser (PackageName, PackageSpec)
+    parser = (,) packageName <$> (mappend <$> parsePackageSpec <*> parseGithubPackageSpec)
+    desc =
+      [ Opts.fullDesc
+      , Opts.progDesc "Add Github dependency"
+      , Opts.headerDoc $ Just $
+          "Examples:" Opts.<$$>
+          "" Opts.<$$>
+          "  niv add stedolan/jq" Opts.<$$>
+          "  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09"
+      ]
+
+-- The PACKAGE must be provided as a CLI option
+parseCmdAddGithub :: Opts.ParserInfo (IO ())
+parseCmdAddGithub =
+    Opts.info ((cmdAddGithub <$> parseNameAttribute <*> parseGithubPackage) <**> Opts.helper) $
+      mconcat desc
+  where
     desc =
       [ Opts.fullDesc
       , Opts.progDesc "Add Github dependency"
@@ -403,17 +440,26 @@ parseCmdAddGithub =
           "  niv add github NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09"
       ]
 
+ownerAndRepo :: String -> Maybe (String, String)
+ownerAndRepo str = case span (/= '/') str of
+    (owner@(_:_), '/':repo@(_:_)) -> Just (owner, repo)
+    _ -> Nothing
+
 -- Figures out the owner and repo
-inferOwnerAndRepo :: (PackageName, PackageSpec) -> IO (PackageName, PackageSpec)
-inferOwnerAndRepo (PackageName str, spec) =
-  flip runStateT spec $ case span (/= '/') str of
-    (owner@(_:_), '/':repo@(_:_)) -> do
+completeOwnerAndRepo :: (PackageName, PackageSpec) -> IO (PackageName, PackageSpec)
+completeOwnerAndRepo (PackageName str, spec) =
+  flip runStateT spec $ case ownerAndRepo str of
+    Just (owner, repo) -> do
       whenNotSet "owner" $
         setPackageSpecAttr "owner" (Aeson.String $ T.pack owner)
       whenNotSet "repo" $ do
           setPackageSpecAttr "repo" (Aeson.String $ T.pack repo)
       pure (PackageName repo)
-    _ -> pure (PackageName str)
+    Nothing -> pure (PackageName str)
+
+
+cmdAddGithub :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
+cmdAddGithub mp package = completeOwnerAndRepo package >>= cmdAdd mp
 
 parseCmdAddFile :: Opts.ParserInfo (IO ())
 parseCmdAddFile =
@@ -428,7 +474,6 @@ parseCmdAddFile =
           "" Opts.<$$>
           "  niv add file my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
       ]
-
 
 cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
 cmdAdd mPackageName (packageName, spec) = do
