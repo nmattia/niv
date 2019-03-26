@@ -30,6 +30,9 @@ import qualified Data.Text as T
 import qualified GitHub as GH
 import qualified GitHub.Data.Name as GH
 import qualified Options.Applicative as Opts
+import qualified Options.Applicative.Types as Opts
+-- import qualified Options.Applicative.Builder as Opts
+import qualified Options.Applicative.Builder.Internal as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import qualified System.Directory as Dir
 
@@ -368,26 +371,49 @@ cmdInit = do
 -------------------------------------------------------------------------------
 
 parseCmdAdd :: Opts.ParserInfo (IO ())
-parseCmdAdd = Opts.info (subparser <**> Opts.helper) $ Opts.progDesc "Add dependency"
+parseCmdAdd = Opts.info (subcommand <**> Opts.helper) $ Opts.progDesc "Add dependency"
     where
-      subparser =
-        parseCmdAddGeneric <|>
+      subcommand =
           Opts.subparser
           ( Opts.command "github" parseCmdAddGithub <>
             Opts.command "file" parseCmdAddFile
-          )
+          ) <|>
+          (subparser (command "<owner>/<repo>" parseCmdAddGithub))
 
-parseCmdAddGeneric :: Opts.Parser (IO ())
-parseCmdAddGeneric = parsePackageName <&> doStuffWithPackageName
+subparser :: Opts.Mod Opts.CommandFields (IO ()) -> Opts.Parser (IO ())
+subparser m = Opts.mkParser d g rdr
+  where
+    Opts.Mod _ d g = Opts.metavar "COMMAND" `mappend` m
+    (groupName, cmds, subs) = mkCommand m
+    rdr = Opts.CmdReader groupName cmds subs
 
-doStuffWithPackageName :: PackageName -> IO ()
-doStuffWithPackageName _ = pure ()
+command :: String -> Opts.ParserInfo a -> Opts.Mod Opts.CommandFields a
+command cmd pinfo = Opts.fieldMod $ \p ->
+  p { Opts.cmdCommands = (cmd, pinfo) : Opts.cmdCommands p }
+
+mkCommand :: Opts.Mod Opts.CommandFields (IO ()) -> (Maybe String, [String], String -> Maybe (Opts.ParserInfo (IO ())))
+mkCommand m = (group, map fst cmds, const $ Just parseCmdAddGithub)
+  where
+    Opts.Mod f _ _ = m
+    Opts.CommandFields cmds group = f (Opts.CommandFields [] Nothing)
+
+-- commandInferGithub :: Opts.Mod Opts.CommandFields (IO ())
+-- commandInferGithub = Opts.fieldMod $ \p ->
+  -- p { Opts.cmdCommands = (cmd, parseCmdAddGithub) : Opts.cmdCommands p }
+
+_parseInferGithub :: Opts.Parser (IO ())
+_parseInferGithub =
+    ((cmdAdd' <$> parseGithubPackage) <**> Opts.helper)
+  where
+    cmdAdd' :: (PackageName, PackageSpec) -> IO ()
+    cmdAdd' b = inferOwnerAndRepo b >>= cmdAdd Nothing
 
 parseCmdAddGithub :: Opts.ParserInfo (IO ())
 parseCmdAddGithub =
     Opts.info ((cmdAdd' <$> parseNameAttribute <*> parseGithubPackage) <**> Opts.helper) $
       mconcat desc
   where
+    cmdAdd' :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
     cmdAdd' a b = inferOwnerAndRepo b >>= cmdAdd a
     desc =
       [ Opts.fullDesc
@@ -399,17 +425,22 @@ parseCmdAddGithub =
           "  niv add github NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09"
       ]
 
+ownerAndRepo :: String -> Maybe (String, String)
+ownerAndRepo str = case span (/= '/') str of
+    (owner@(_:_), '/':repo@(_:_)) -> Just (owner, repo)
+    _ -> Nothing
+
 -- Figures out the owner and repo
 inferOwnerAndRepo :: (PackageName, PackageSpec) -> IO (PackageName, PackageSpec)
 inferOwnerAndRepo (PackageName str, spec) =
-  flip runStateT spec $ case span (/= '/') str of
-    (owner@(_:_), '/':repo@(_:_)) -> do
+  flip runStateT spec $ case ownerAndRepo str of
+    Just (owner, repo) -> do
       whenNotSet "owner" $
         setPackageSpecAttr "owner" (Aeson.String $ T.pack owner)
       whenNotSet "repo" $ do
           setPackageSpecAttr "repo" (Aeson.String $ T.pack repo)
       pure (PackageName repo)
-    _ -> pure (PackageName str)
+    Nothing -> pure (PackageName str)
 
 parseCmdAddFile :: Opts.ParserInfo (IO ())
 parseCmdAddFile =
