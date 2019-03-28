@@ -798,9 +798,9 @@ abortCannotAddPackageExists :: PackageName -> IO a
 abortCannotAddPackageExists (PackageName n) = abort $ unlines
     [ "Cannot add package " <> n <> "."
     , "The package already exists. Use"
-    , "  nix drop " <> n
+    , "  niv drop " <> n
     , "and then re-add the package. Alternatively use"
-    , "  nix update " <> n <> " --attr foo=bar"
+    , "  niv update " <> n <> " --attr foo=bar"
     , "to update the package's attributes."
     ]
 
@@ -808,7 +808,7 @@ abortCannotUpdateNoSuchPackage :: PackageName -> IO a
 abortCannotUpdateNoSuchPackage (PackageName n) = abort $ unlines
     [ "Cannot update package " <> n <> "."
     , "The package doesn't exist. Use"
-    , "  nix add " <> n
+    , "  niv add " <> n
     , "to add the package."
     ]
 
