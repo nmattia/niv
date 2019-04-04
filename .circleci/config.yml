@@ -2,16 +2,18 @@ version: 2
 
 jobs:
   build-nix:
+
     machine:
         enabled: true
+
     steps:
+
       - run:
-          name: Install Nix
+          name: Prepare nix directories
           command: |
             sudo mkdir -p /nix
             sudo chown circleci /nix
-            bash <(curl https://nixos.org/nix/install)
-            echo '. /home/circleci/.nix-profile/etc/profile.d/nix.sh' >> $BASH_ENV
+
             sudo mkdir -p /etc/nix
 
             # Enable sandbox
@@ -21,118 +23,42 @@ jobs:
             echo "keep-outputs = true" | sudo tee -a /etc/nix/nix.conf
             echo "keep-derivations = true" | sudo tee -a /etc/nix/nix.conf
 
+        # Builds everything from scratch on master. On a branch the branch's
+        # cache is used if it exists, otherwise the latest cache generated from
+        # master is used.
+      - restore_cache:
+          keys:
+              - v3-niv-empty-{{ .Branch }}-
+              - v3-niv-cache-{{ .Branch }}-
+              - v3-niv-cache-master-
+
+      - run:
+          name: Install Nix
+          command: |
+            bash <(curl https://nixos.org/nix/install)
+            echo '. /home/circleci/.nix-profile/etc/profile.d/nix.sh' >> $BASH_ENV
+
       - checkout
-
-      - restore_cache:
-          keys:
-              - v2-niv-cache-master-
-
-      - restore_cache:
-          keys:
-              - v2-niv-cache-branch-{{ .Branch }}-
-
-      - run:
-          name: Warm up cache
-          command: |
-              if [ -f ~/.niv-cache.gz ]; then
-                echo "Cache size:"
-                du -h ~/.niv-cache.gz
-                echo "Loading cache..."
-                zcat ~/.niv-cache.gz | nix-store --import || true
-                echo "Deleting cache file..."
-                rm ~/.niv-cache.gz
-                echo "done"
-              else
-                echo "Cache does not exist yet"
-              fi
-
-      - run:
-          name: Warm up branch cache
-          command: |
-              if [ -f ~/.niv-cache-branch.gz ]; then
-                echo "Cache size:"
-                du -h ~/.niv-cache-branch.gz
-                echo "Loading cache..."
-                zcat ~/.niv-cache-branch.gz | nix-store --import || true
-                echo "Deleting cache file..."
-                rm ~/.niv-cache-branch.gz
-                echo "done"
-              else
-                echo "Cache does not exist yet"
-              fi
 
       - run:
           name: Nix build
           command: ./script/test
 
-      - restore_cache:
-          keys:
-              - v2-niv-cache-list-master
+      - save_cache:
+          key: v3-niv-cache-{{ .Branch }}-{{ .BuildNum }}
+          paths:
+              - /nix/store/
 
       - run:
-          name: Create cache
+          name: Clean up cache
+          shell: /bin/bash -eilo pipefail
           command: |
-            if [[ "$CIRCLE_BRANCH" == "master" ]]; then
-                echo "creating cache"
-                nix-store --gc
-                echo "Listing paths"
-                find /nix/store \
-                    -maxdepth 1 -mindepth 1 \
-                    -not -name '\.links' -print \
-                    | sort \
-                    > ~/.niv-cache-list
-                echo "Generating cache file"
-                cat ~/.niv-cache-list \
-                    | nix-store --export `xargs` \
-                    | gzip -c \
-                    > ~/.niv-cache.gz
-                echo "Cache size:"
-                du -h ~/.niv-cache.gz
-                echo "Number of cached artifacts:"
-                cat ~/.niv-cache-list | wc -l
-                echo "done"
-            else
-                echo "creating branch cache"
-                nix-store --gc
-                echo "Listing paths"
-                find /nix/store \
-                    -maxdepth 1 -mindepth 1 \
-                    -not -name '\.links' -print \
-                    | sort \
-                    > ~/.niv-cache-list-tmp
-                comm -13 \
-                    ~/.niv-cache-list ~/.niv-cache-list-tmp \
-                    > ~/.niv-cache-list-branch
-                echo "Generating branch cache file"
-                cat ~/.niv-cache-list-branch \
-                    | nix-store --export `xargs` \
-                    | gzip -c \
-                    > ~/.niv-cache-branch.gz
-                echo "Cache size:"
-                du -h ~/.niv-cache-branch.gz
-                echo "Number of cached artifacts:"
-                cat ~/.niv-cache-list-branch | wc -l
-                echo "done"
-            fi
-
-            echo "Existing cache files:"
-            ls -lh ~/.niv-cache*
-
-
+            sudo rm -rf /nix/store/
+            sudo mkdir -p /nix/store/
       - save_cache:
-          key: v2-niv-cache-master-{{ .BuildNum }}
+          key: v3-niv-empty-master-{{ .BuildNum }}
           paths:
-              - ~/.niv-cache.gz
-
-      - save_cache:
-          key: v2-niv-cache-branch-{{ .Branch }}-{{ .BuildNum }}
-          paths:
-              - ~/.niv-cache-branch.gz
-
-      - save_cache:
-          key: v2-niv-cache-list-{{ .Branch }}-{{ .BuildNum }}
-          paths:
-              - ~/.niv-cache-list
+              - /nix/store/
 
 workflows:
   version: 2
