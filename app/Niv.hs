@@ -6,8 +6,6 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Main (main) where
-
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State

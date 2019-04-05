@@ -23,6 +23,12 @@ jobs:
             echo "keep-outputs = true" | sudo tee -a /etc/nix/nix.conf
             echo "keep-derivations = true" | sudo tee -a /etc/nix/nix.conf
 
+            # Set a new TMP because /run/user is (1) pretty small and (2)
+            # mounted with noexec
+            new_tmp=$HOME/tmp
+            mkdir -p $new_tmp
+            echo "export TMPDIR=$new_tmp" >> $BASH_ENV
+
         # Builds everything from scratch on master. On a branch the branch's
         # cache is used if it exists, otherwise the latest cache generated from
         # master is used.

@@ -1,6 +1,31 @@
 { pkgs ? import ./nix {} }:
+with rec
+{ niv-source = pkgs.lib.sourceByRegex ./.
+    [ "^package.yaml$"
+      "^app.*$"
+      "^README.md$"
+    ];
+  haskellPackages = pkgs.haskellPackages.override
+    { overrides = _: haskellPackages:
+        { niv = haskellPackages.callCabal2nix "niv" niv-source {}; };
+    };
+
+  niv-devshell = haskellPackages.shellFor
+    { packages = (ps: [ ps.niv ]);
+      shellHook =
+        ''
+          repl() {
+            ghci Main.hs
+          }
+
+          echo "To start a REPL session, run:"
+          echo "  > repl"
+        '';
+    };
+};
 rec
-{ niv = pkgs.snack-lib.executable ./package.yaml;
+{ inherit niv-source niv-devshell;
+  inherit (haskellPackages) niv;
   readme = pkgs.writeText "README.md"
     (with
       { template = builtins.readFile ./README.tpl.md;

@@ -16,10 +16,7 @@ $ nix-env -iA niv -f https://github.com/nmattia/niv/tarball/master
 Inside the provided nix shell:
 
 ``` bash
-$ # GHCi:
-$ snack ghci
-$ # run:
-$ snack run -- <args>
+$ repl
 ```
 
 Run the test suite with this command:
