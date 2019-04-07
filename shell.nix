@@ -1,4 +1,2 @@
-with { pkgs = import ./nix {}; };
-pkgs.mkShell
-  { buildInputs = [ pkgs.snack-exe ];
-  }
+{ pkgs ? import ./nix {} }:
+(import ./default.nix { inherit pkgs; }).niv-devshell
