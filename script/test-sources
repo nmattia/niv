@@ -1,0 +1,38 @@
+#!/usr/bin/env nix-shell
+#!nix-shell -i bash
+#!nix-shell -I nixpkgs=./nix
+#!nix-shell -p nix
+#!nix-shell --pure
+
+set -euo pipefail
+
+echo "*** Building Niv"
+NIV=$(nix-build -A niv)/bin/niv
+
+echo "*** Running niv init"
+TEMPDIR=$(mktemp -d)
+pushd $TEMPDIR
+$NIV init
+
+echo "*** Fetching niv sources: classical"
+echo "      - nixpkgs is not in the NIX_PATH"
+echo "      - nixpkgs in sources.json"
+nix-build nix/sources.nix -A niv
+
+echo "*** Fetching niv sources: restricted evaluation mode"
+echo "      - nixpkgs is not in the NIX_PATH"
+echo "      - nixpkgs in sources.json"
+echo "      - restrict-eval is true"
+export NIX_PATH=./
+nix-build nix/sources.nix -A niv \
+  --option restrict-eval true \
+  --option allowed-uris https://github.com
+
+echo "*** Fetching niv sources: only builtins"
+echo "      - nixpkgs is not in the NIX_PATH"
+echo "      - nixpkgs not in sources.json"
+$NIV drop nixpkgs
+nix-build nix/sources.nix -A niv
+
+echo "*** Tear down"
+rm -rf $TEMPDIR
