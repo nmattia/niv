@@ -334,18 +334,6 @@ cmdInit = do
               ( PackageName "NixOS/nixpkgs-channels"
               , PackageSpec (HMap.singleton "branch" "nixos-18.09"))
         , \path _content -> dontCreateFile path)
-      , ( pathNixDefaultNix
-        , (`createFile` initNixDefaultNixContent)
-        , \path _content -> dontCreateFile path)
-      , ( pathNixPackagesNix
-        , (`createFile` initNixPackagesNixContent)
-        , \path _content -> dontCreateFile path)
-      , ( pathDefaultNix
-        , (`createFile` initDefaultNixContent)
-        , \path _content -> dontCreateFile path)
-      , ( pathShellNix
-        , (`createFile` initShellNixContent)
-        , \path _content -> dontCreateFile path)
       ] $ \(path, onCreate, onUpdate) -> do
           exists <- Dir.doesFileExist path
           if exists then readFile path >>= onUpdate path else onCreate path
@@ -621,10 +609,6 @@ nixPrefetchURL unpack url =
 -- Files and their content
 -------------------------------------------------------------------------------
 
--- | @nix/sources.nix@
-pathNixSourcesNix :: FilePath
-pathNixSourcesNix = "nix" </> "sources.nix"
-
 -- | Checks if content is different than default and if it does /not/ contain
 -- a comment line with @niv: no_update@
 shouldUpdateNixSourcesNix :: String -> Bool
@@ -660,6 +644,10 @@ warnIfOutdated = do
             , "  # niv: no_update"
             ]
         else pure ()
+
+-- | @nix/sources.nix@
+pathNixSourcesNix :: FilePath
+pathNixSourcesNix = "nix" </> "sources.nix"
 
 -- | Glue code between nix and sources.json
 initNixSourcesNixContent :: String
@@ -699,59 +687,6 @@ mapAttrs (_: spec:
       { outPath = getFetcher spec { inherit (spec) url sha256; } ; }
     else spec
   ) sources
-|]
-
--- | @nix/default.nix@
-pathNixDefaultNix :: FilePath
-pathNixDefaultNix = "nix" </> "default.nix"
-
--- | File importing @nixpkgs@, setting up overlays, etc
-initNixDefaultNixContent :: String
-initNixDefaultNixContent = [s|
-{ sources ? import ./sources.nix }:
-with
-  { overlay = _: pkgs:
-      { inherit (import sources.niv {}) niv;
-        packages = pkgs.callPackages ./packages.nix {};
-      };
-  };
-import sources.nixpkgs
-  { overlays = [ overlay ] ; config = {}; }
-|]
-
--- | @nix/packages.nix@
-pathNixPackagesNix :: FilePath
-pathNixPackagesNix = "nix" </> "packages.nix"
-
--- | File with packages
-initNixPackagesNixContent :: String
-initNixPackagesNixContent = [s|
-{ writeScriptBin
-}:
-{ foo = writeScriptBin "foo" "echo foo" ; }
-|]
-
--- | @default.nix@
-pathDefaultNix :: FilePath
-pathDefaultNix = "default.nix"
-
--- | Top level @default.nix@
-initDefaultNixContent :: String
-initDefaultNixContent = [s|
-let pkgs = import ./nix {}; in pkgs.packages
-|]
-
--- | @shell.nix@
-pathShellNix :: FilePath
-pathShellNix = "shell.nix"
-
--- | Simple shell that loads @niv@
-initShellNixContent :: String
-initShellNixContent = [s|
-with { pkgs = import ./nix {}; };
-pkgs.mkShell
-  { buildInputs = [ pkgs.niv ];
-  }
 |]
 
 -- | @nix/sources.json"
