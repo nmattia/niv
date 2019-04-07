@@ -11,6 +11,7 @@ executable:
     dependencies:
         - base
         - hashable
+        - file-embed
         - process
         - text
         - bytestring
@@ -24,3 +25,5 @@ executable:
         - optparse-applicative
         - unliftio
         - unordered-containers
+    data-files:
+        - nix/sources.nix
