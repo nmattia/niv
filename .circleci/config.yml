@@ -29,15 +29,6 @@ jobs:
             mkdir -p $new_tmp
             echo "export TMPDIR=$new_tmp" >> $BASH_ENV
 
-        # Builds everything from scratch on master. On a branch the branch's
-        # cache is used if it exists, otherwise the latest cache generated from
-        # master is used.
-      - restore_cache:
-          keys:
-              - v3-niv-empty-{{ .Branch }}-
-              - v3-niv-cache-{{ .Branch }}-
-              - v3-niv-cache-master-
-
       - run:
           name: Install Nix
           command: |
@@ -49,22 +40,6 @@ jobs:
       - run:
           name: Nix build
           command: ./script/test
-
-      - save_cache:
-          key: v3-niv-cache-{{ .Branch }}-{{ .BuildNum }}
-          paths:
-              - /nix/store/
-
-      - run:
-          name: Clean up cache
-          shell: /bin/bash -eilo pipefail
-          command: |
-            sudo rm -rf /nix/store/
-            sudo mkdir -p /nix/store/
-      - save_cache:
-          key: v3-niv-empty-master-{{ .BuildNum }}
-          paths:
-              - /nix/store/
 
 workflows:
   version: 2
