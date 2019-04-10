@@ -7,10 +7,10 @@ with rec
     if hasNixpkgsPath
     then
         if hasThisAsNixpkgsPath
-        then import (builtins_fetchTarball { inherit (sources.nixpkgs) url sha256; }) {}
+        then import (builtins_fetchTarball { inherit (sources_nixpkgs) url sha256; }) {}
         else import <nixpkgs> {}
     else
-        import (builtins_fetchTarball { inherit (sources.nixpkgs) url sha256; }) {};
+        import (builtins_fetchTarball { inherit (sources_nixpkgs) url sha256; }) {};
 
   sources_nixpkgs =
     if builtins.hasAttr "nixpkgs" sources
