@@ -4,6 +4,8 @@ with rec
     [ "^package.yaml$"
       "^app.*$"
       "^README.md$"
+      "^nix$"
+      "^nix.sources.nix$"
     ];
   haskellPackages = pkgs.haskellPackages.override
     { overrides = _: haskellPackages:
