@@ -209,7 +209,8 @@ completePackageSpec = execStateT $ do
       (Just (Aeson.String owner), Just (Aeson.String repo)) -> do
           liftIO (GH.executeRequest' $ GH.repositoryR (GH.N owner) (GH.N repo))
             >>= \case
-              Left _ -> pure ()
+              Left {} ->
+                liftIO $ warnCouldNotFetchGitHubRepo (T.unpack owner, T.unpack repo)
               Right ghRepo -> do
 
                 -- Description
@@ -663,6 +664,29 @@ pathNixSourcesJson = "nix" </> "sources.json"
 -- | Empty JSON map
 initNixSourcesJsonContent :: B.ByteString
 initNixSourcesJsonContent = "{}"
+
+-------------------------------------------------------------------------------
+-- Warn
+-------------------------------------------------------------------------------
+
+warnCouldNotFetchGitHubRepo :: (String, String) -> IO ()
+warnCouldNotFetchGitHubRepo (owner, repo) = putStrLn $ unlines [ line1, line2 ]
+  where
+    line1 = "WARNING: Could not read from GitHub repo: " <> owner <> "/" <> repo
+    line2 = [s|
+I assumed that your package was a GitHub repository. An error occurred while
+gathering information from the repository. Check whether your package was added
+correctly:
+
+  niv show
+
+If not, try re-adding it:
+
+  niv drop <package>
+  niv add <package-without-typo>
+
+Make sure the repository exists.
+|]
 
 -------------------------------------------------------------------------------
 -- Abort
