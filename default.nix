@@ -85,6 +85,7 @@ rec
         set -euo pipefail
         echo '$ niv init'
         niv init
+        echo
         echo '$ niv add stedolan/jq'
         niv add stedolan/jq
       '';
