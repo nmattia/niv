@@ -9,3 +9,4 @@ set -euo pipefail
 echo "Updating README"
 
 cat $(nix-build -A readme) > README.md
+$(nix-build -A niv-svg-gen)

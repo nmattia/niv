@@ -209,8 +209,8 @@ completePackageSpec = execStateT $ do
       (Just (Aeson.String owner), Just (Aeson.String repo)) -> do
           liftIO (GH.executeRequest' $ GH.repositoryR (GH.N owner) (GH.N repo))
             >>= \case
-              Left {} ->
-                liftIO $ warnCouldNotFetchGitHubRepo (T.unpack owner, T.unpack repo)
+              Left e ->
+                liftIO $ warnCouldNotFetchGitHubRepo e (T.unpack owner, T.unpack repo)
               Right ghRepo -> do
 
                 -- Description
@@ -669,8 +669,9 @@ initNixSourcesJsonContent = "{}"
 -- Warn
 -------------------------------------------------------------------------------
 
-warnCouldNotFetchGitHubRepo :: (String, String) -> IO ()
-warnCouldNotFetchGitHubRepo (owner, repo) = putStrLn $ unlines [ line1, line2 ]
+warnCouldNotFetchGitHubRepo :: GH.Error -> (String, String) -> IO ()
+warnCouldNotFetchGitHubRepo e (owner, repo) =
+    putStrLn $ unlines [ line1, line2, line3 ]
   where
     line1 = "WARNING: Could not read from GitHub repo: " <> owner <> "/" <> repo
     line2 = [s|
@@ -687,6 +688,7 @@ If not, try re-adding it:
 
 Make sure the repository exists.
 |]
+    line3 = unwords [ "(Error was:", show e, ")" ]
 
 -------------------------------------------------------------------------------
 -- Abort

@@ -41,8 +41,34 @@ jobs:
           name: Nix build
           command: ./script/test
 
+      - run:
+          name: "Update Node.js and npm (master only)"
+          command: |
+            if [ "$CIRCLE_BRANCH" == "master" ]; then
+                nix-env -f ./nix -iA nodejs-10_x
+            fi
+      - run:
+          name: "Install netlify-cli (master only)"
+          command: |
+            if [ "$CIRCLE_BRANCH" == "master" ]; then
+                npm install netlify-cli
+            fi
+
+      - run:
+          name: "Netlify deploy (master only)"
+          command: |
+            if [ "$CIRCLE_BRANCH" == "master" ]; then
+                echo "Deploying to production"
+                ./node_modules/netlify-cli/bin/run deploy \
+                    --dir=./site \
+                    --message="$CIRCLE_SHA1" --prod
+            else
+                echo "Not deploying"
+            fi
+
 workflows:
   version: 2
   build:
     jobs:
-      - build-nix
+        - build-nix:
+            context: niv-netlify
