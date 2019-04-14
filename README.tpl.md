@@ -1,9 +1,14 @@
 # niv
 
 [![CircleCI](https://circleci.com/gh/nmattia/niv.svg?style=svg)](https://circleci.com/gh/nmattia/niv)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/48532eaa-259f-4ca2-aadf-67f7c6b957fd/deploy-status)](https://app.netlify.com/sites/brave-meninsky-83f073/deploys)
 
 Painless dependencies for [Nix] projects. Read more in the [use case
 section](#use-cases) section below.
+
+<p align="center">
+    <img src="https://niv.nmattia.com/niv.svg">
+</p>
 
 ## Install
 
