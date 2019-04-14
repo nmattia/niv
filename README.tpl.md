@@ -42,7 +42,7 @@ necessary for fetching and updating the packages.
 
 `niv` has two more utility functions:
 
-* [Init](#init): bootstraps a Nix projects, in particular creates a
+* [Init](#init): bootstraps a Nix project, in particular creates a
   `nix/sources.json` file containing `niv` and `nixpkgs` as well as a
   `nix/sources.nix` file that returns the sources as a Nix object.
 * [Show](#show): shows the packages' information.
