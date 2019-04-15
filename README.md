@@ -170,20 +170,27 @@ The following data was added in `nix/sources.json` for `jq`:
 }
 ```
 
+Alternatively, the GitHub `add` sub-command could have been used:
+
+``` shell
+$ niv add github stedolan/jq
+```
+
 #### Using custom URLs
 
 It is possible to use niv to fetch packages from custom URLs. Run this command
 to add the Haskell compiler [GHC] to your `nix/sources.json`:
 
 ``` shell
-$ niv add ghc   \
-    -v 8.4.3    \
-    -t 'https://downloads.haskell.org/~ghc/<version>/ghc-<version>-i386-deb8-linux.tar.xz'
+$ niv add file \
+     ghc       \
+    'https://downloads.haskell.org/~ghc/<version>/ghc-<version>-i386-deb8-linux.tar.xz' \
+    -v 8.4.3   \
 ```
 
-The option `-v` sets the "version" attribute to `8.4.3`. The option `-t` sets a
-template that can be reused by niv when fetching a new URL (see the
-documentation for [add](#add) and [update](#update)).
+The option `-v` sets the "version" attribute to `8.4.3`. The second
+argument sets a template that can be reused by niv when fetching a new
+URL (see the documentation for [add](#add) and [update](#update)).
 
 For updating the version of GHC used run this command:
 
@@ -214,16 +221,32 @@ Available commands:
 #### Add
 
 ```
+Usage: niv add (COMMAND | PACKAGE)
+  Add dependency
+
+Available options:
+  -h,--help                Show this help text
+
+Available commands:
+  github                   Add GitHub dependency
+  file                     Add file dependency
+  <owner>/<repo>           Add GitHub dependency
+
+```
+
+#### Add a GitHub dependency
+
+```
 Examples:
 
-  niv add stedolan/jq
-  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09
-  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
+  niv add github stedolan/jq
+  niv add github NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09
 
-Usage: niv add [-n|--name NAME] PACKAGE ([-a|--attribute KEY=VAL] |
-               [-b|--branch BRANCH] | [-o|--owner OWNER] | [-r|--repo REPO] |
-               [-v|--version VERSION] | [-t|--template URL] | [-T|--type TYPE])
-  Add dependency
+Usage: niv add github [-n|--name NAME] PACKAGE [-a|--attribute KEY=VAL]
+                      ([-b|--branch BRANCH] | [-o|--owner OWNER] |
+                      [-r|--repo REPO] | [-v|--version VERSION] |
+                      [-t|--template URL])
+  Add GitHub dependency
 
 Available options:
   -n,--name NAME           Set the package name to <NAME>
@@ -234,6 +257,24 @@ Available options:
   -v,--version VERSION     Equivalent to --attribute version=<VERSION>
   -t,--template URL        Used during 'update' when building URL. Occurrences
                            of <foo> are replaced with attribute 'foo'.
+  -h,--help                Show this help text
+
+```
+
+#### Add a file dependency
+
+```
+Examples:
+
+  niv add file my-package http://example.com/archive/<version>.zip -v alpha-0.1
+
+Usage: niv add file [-n|--name NAME] PACKAGE URL-TEMPLATE
+                    [-a|--attribute KEY=VAL] [-T|--type TYPE]
+  Add file dependency
+
+Available options:
+  -n,--name NAME           Set the package name to <NAME>
+  -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>
   -T,--type TYPE           The type of the URL target. The value can be either
                            'file' or 'tarball'. If not set, the value is
                            inferred from the suffix of the URL.
@@ -250,22 +291,11 @@ Examples:
   niv update nixpkgs
   niv update my-package -v beta-0.2
 
-Usage: niv update [PACKAGE] ([-a|--attribute KEY=VAL] | [-b|--branch BRANCH] |
-                  [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION]
-                  | [-t|--template URL] | [-T|--type TYPE])
+Usage: niv update [PACKAGE] [-a|--attribute KEY=VAL]
   Update dependencies
 
 Available options:
   -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>
-  -b,--branch BRANCH       Equivalent to --attribute branch=<BRANCH>
-  -o,--owner OWNER         Equivalent to --attribute owner=<OWNER>
-  -r,--repo REPO           Equivalent to --attribute repo=<REPO>
-  -v,--version VERSION     Equivalent to --attribute version=<VERSION>
-  -t,--template URL        Used during 'update' when building URL. Occurrences
-                           of <foo> are replaced with attribute 'foo'.
-  -T,--type TYPE           The type of the URL target. The value can be either
-                           'file' or 'tarball'. If not set, the value is
-                           inferred from the suffix of the URL.
   -h,--help                Show this help text
 
 ```

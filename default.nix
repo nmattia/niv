@@ -38,9 +38,9 @@ rec
           );
         niv_cmd_help = cmd: builtins.readFile
           (pkgs.runCommand "niv_${cmd}_help" { buildInputs = [ niv ]; }
-            "niv ${cmd} --help > $out"
+          "niv ${pkgs.lib.replaceStrings ["_"] [" "] cmd} --help > $out"
           );
-        cmds = [ "add" "update" "drop" "init" "show" ];
+        cmds = [ "add" "add_github" "add_file" "update" "drop" "init" "show" ];
       };
     pkgs.lib.replaceStrings
       ([ "replace_niv_help" ] ++ (map (cmd: "replace_niv_${cmd}_help") cmds))

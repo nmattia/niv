@@ -170,14 +170,20 @@ The following data was added in `nix/sources.json` for `jq`:
 }
 ```
 
+Alternatively, the GitHub `add` sub-command could have been used:
+
+``` shell
+$ niv add github stedolan/jq
+```
+
 #### Using custom URLs
 
 It is possible to use niv to fetch packages from custom URLs. Run this command
 to add the Haskell compiler [GHC] to your `nix/sources.json`:
 
 ``` shell
-$ niv add ghc   \
-    -v 8.4.3    \
+$ niv add file ghc \
+    -v 8.4.3       \
     -t 'https://downloads.haskell.org/~ghc/<version>/ghc-<version>-i386-deb8-linux.tar.xz'
 ```
 
@@ -201,6 +207,18 @@ replace_niv_help
 
 ```
 replace_niv_add_help
+```
+
+#### Add a GitHub dependency
+
+```
+replace_niv_add_github_help
+```
+
+#### Add a file dependency
+
+```
+replace_niv_add_file_help
 ```
 
 #### Update
