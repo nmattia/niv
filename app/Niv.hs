@@ -92,8 +92,8 @@ attributesToPackageSpec attributes =
     fixupAttributes :: (String, String) -> (T.Text, Aeson.Value)
     fixupAttributes (k, v) = (T.pack k, Aeson.String (T.pack v))
 
-parseGithubPackageSpec :: Opts.Parser PackageSpec
-parseGithubPackageSpec = attributesToPackageSpec shortcutAttributes
+parseGitHubPackageSpec :: Opts.Parser PackageSpec
+parseGitHubPackageSpec = attributesToPackageSpec shortcutAttributes
   where
     -- Shortcuts for common attributes
     shortcutAttributes :: Opts.Parser (String, String)
@@ -150,8 +150,8 @@ parsePackageSpec = attributesToPackageSpec parseAttribute
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
 parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
 
-parseGithubPackage :: Opts.Parser (PackageName, PackageSpec)
-parseGithubPackage = (,) <$> parsePackageName <*> (mappend <$> parsePackageSpec <*> parseGithubPackageSpec)
+parseGitHubPackage :: Opts.Parser (PackageName, PackageSpec)
+parseGitHubPackage = (,) <$> parsePackageName <*> (mappend <$> parsePackageSpec <*> parseGitHubPackageSpec)
 
 parseFilePackage :: Opts.Parser (PackageName, PackageSpec)
 parseFilePackage = (,) <$> parsePackageName <*> (mappend <$> parsePackageSpec <*> parseFilePackageSpec)
@@ -393,7 +393,7 @@ mkCommand m = (group, map fst cmds, subs)
   where
     subs str =  do
       _ <- ownerAndRepo str
-      pure $ parseCmdAddGithubShortcut (PackageName str)
+      pure $ parseCmdAddGitHubShortcut (PackageName str)
     Opts.Mod f _ _ = m
     Opts.CommandFields cmds group = f (Opts.CommandFields [] Nothing)
 
@@ -401,22 +401,22 @@ parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd = Opts.info (sp <**> Opts.helper) $ Opts.progDesc "Add dependency"
     where
       sp = Opts.subparser
-        ( Opts.command "github" parseCmdAddGithub <>
+        ( Opts.command "github" parseCmdAddGitHub <>
           Opts.command "file" parseCmdAddFile )
         <|> (subparser
         ( Opts.command "<owner>/<repo>" parseCmdAddGitHub ))
 
 -- Takes the '<owner>/<repo>' as PackageName parameter
-parseCmdAddGithubShortcut :: PackageName -> Opts.ParserInfo (IO ())
-parseCmdAddGithubShortcut packageName =
-    Opts.info ((cmdAddGithub Nothing <$> parser) <**> Opts.helper) $
+parseCmdAddGitHubShortcut :: PackageName -> Opts.ParserInfo (IO ())
+parseCmdAddGitHubShortcut packageName =
+    Opts.info ((cmdAddGitHub Nothing <$> parser) <**> Opts.helper) $
       mconcat desc
   where
     parser :: Opts.Parser (PackageName, PackageSpec)
-    parser = (,) packageName <$> (mappend <$> parsePackageSpec <*> parseGithubPackageSpec)
+    parser = (,) packageName <$> (mappend <$> parsePackageSpec <*> parseGitHubPackageSpec)
     desc =
       [ Opts.fullDesc
-      , Opts.progDesc "Add Github dependency"
+      , Opts.progDesc "Add GitHub dependency"
       , Opts.headerDoc $ Just $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
@@ -425,14 +425,14 @@ parseCmdAddGithubShortcut packageName =
       ]
 
 -- The PACKAGE must be provided as a CLI option
-parseCmdAddGithub :: Opts.ParserInfo (IO ())
-parseCmdAddGithub =
-    Opts.info ((cmdAddGithub <$> parseNameAttribute <*> parseGithubPackage) <**> Opts.helper) $
+parseCmdAddGitHub :: Opts.ParserInfo (IO ())
+parseCmdAddGitHub =
+    Opts.info ((cmdAddGitHub <$> parseNameAttribute <*> parseGitHubPackage) <**> Opts.helper) $
       mconcat desc
   where
     desc =
       [ Opts.fullDesc
-      , Opts.progDesc "Add Github dependency"
+      , Opts.progDesc "Add GitHub dependency"
       , Opts.headerDoc $ Just $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
@@ -458,8 +458,8 @@ completeOwnerAndRepo (PackageName str, spec) =
     Nothing -> pure (PackageName str)
 
 
-cmdAddGithub :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
-cmdAddGithub mp package = completeOwnerAndRepo package >>= cmdAdd mp
+cmdAddGitHub :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
+cmdAddGitHub mp package = completeOwnerAndRepo package >>= cmdAdd mp
 
 parseCmdAddFile :: Opts.ParserInfo (IO ())
 parseCmdAddFile =
