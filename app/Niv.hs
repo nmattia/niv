@@ -93,13 +93,12 @@ attributesToPackageSpec attributes =
     fixupAttributes (k, v) = (T.pack k, Aeson.String (T.pack v))
 
 parseGitHubPackageSpec :: Opts.Parser PackageSpec
-parseGitHubPackageSpec = attributesToPackageSpec shortcutAttributes
+parseGitHubPackageSpec = (attributesToPackageSpec shortcutAttributes) <|> urlTemplate
   where
     -- Shortcuts for common attributes
     shortcutAttributes :: Opts.Parser (String, String)
     shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
       [ "branch", "owner", "repo", "version" ]
-
     mkShortcutAttribute :: String -> Opts.Parser (String, String)
     mkShortcutAttribute = \case
       attr@(c:_) -> (attr,) <$> Opts.strOption
@@ -113,34 +112,22 @@ parseGitHubPackageSpec = attributesToPackageSpec shortcutAttributes
             )
         )
       _ -> empty
+    urlTemplate :: Opts.Parser PackageSpec
+    urlTemplate = PackageSpec . HMap.singleton "url_template" <$> Opts.strOption
+      ( Opts.long "template" <>
+        Opts.short 't' <>
+        Opts.metavar "URL" <>
+        Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
+      )
 
-parseFilePackageSpec :: Opts.Parser PackageSpec
-parseFilePackageSpec = attributesToPackageSpec
-  (("type",) <$> Opts.strOption
-    ( Opts.long "type" <>
-      Opts.short 'T' <>
-      Opts.metavar "TYPE" <>
-      Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
-    ))
-
-parsePackageSpec :: Opts.Parser PackageSpec
-parsePackageSpec = attributesToPackageSpec parseAttribute
+parseAttributes :: Opts.Parser PackageSpec
+parseAttributes = attributesToPackageSpec $ Opts.option (Opts.maybeReader parseKeyVal)
+  ( Opts.long "attribute" <>
+    Opts.short 'a' <>
+    Opts.metavar "KEY=VAL" <>
+    Opts.help "Set the package spec attribute <KEY> to <VAL>"
+  )
   where
-    parseAttribute :: Opts.Parser (String, String)
-    parseAttribute =
-      Opts.option (Opts.maybeReader parseKeyVal)
-        ( Opts.long "attribute" <>
-          Opts.short 'a' <>
-          Opts.metavar "KEY=VAL" <>
-          Opts.help "Set the package spec attribute <KEY> to <VAL>"
-        ) <|>
-      (("url_template",) <$> Opts.strOption
-        ( Opts.long "template" <>
-          Opts.short 't' <>
-          Opts.metavar "URL" <>
-          Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
-        ))
-
     -- Parse "key=val" into ("key", "val")
     parseKeyVal :: String -> Maybe (String, String)
     parseKeyVal str = case span (/= '=') str of
@@ -148,13 +135,33 @@ parsePackageSpec = attributesToPackageSpec parseAttribute
       _ -> Nothing
 
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
-parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
+parsePackage = (,) <$> parsePackageName <*> parseAttributes
 
 parseGitHubPackage :: Opts.Parser (PackageName, PackageSpec)
-parseGitHubPackage = (,) <$> parsePackageName <*> (mappend <$> parsePackageSpec <*> parseGitHubPackageSpec)
+parseGitHubPackage = (,) <$> parsePackageName <*> spec
+  where
+    spec :: Opts.Parser PackageSpec
+    spec = mappend <$> parseAttributes <*> parseGitHubPackageSpec
 
 parseFilePackage :: Opts.Parser (PackageName, PackageSpec)
-parseFilePackage = (,) <$> parsePackageName <*> (mappend <$> parsePackageSpec <*> parseFilePackageSpec)
+parseFilePackage = (,) <$> parsePackageName <*> spec
+  where
+    spec :: Opts.Parser PackageSpec
+    spec = mconcat <$> sequenceA [parseUrl, parseAttributes, parseType]
+    parseUrl :: Opts.Parser PackageSpec
+    parseUrl =  PackageSpec . HMap.singleton "url_template" <$>
+      Opts.strArgument (Opts.metavar "URL-TEMPLATE")
+    parseType :: Opts.Parser PackageSpec
+    parseType = parseMaybeType <&> \case
+      Just t -> PackageSpec $ HMap.singleton "type" (Aeson.String $ T.pack t)
+      Nothing -> PackageSpec $ HMap.empty
+    parseMaybeType :: Opts.Parser (Maybe String)
+    parseMaybeType =  Opts.optional $ Opts.strOption
+      ( Opts.long "type" <>
+        Opts.short 'T' <>
+        Opts.metavar "TYPE" <>
+        Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
+      )
 
 parsePackageName :: Opts.Parser PackageName
 parsePackageName = PackageName <$>
@@ -167,7 +174,6 @@ parseNameAttribute = Opts.optional $ PackageName <$> Opts.strOption
     Opts.metavar "NAME" <>
     Opts.help "Set the package name to <NAME>"
   )
-
 
 -------------------------------------------------------------------------------
 -- PACKAGE SPEC OPS
@@ -413,7 +419,7 @@ parseCmdAddGitHubShortcut packageName =
       mconcat desc
   where
     parser :: Opts.Parser (PackageName, PackageSpec)
-    parser = (,) packageName <$> (mappend <$> parsePackageSpec <*> parseGitHubPackageSpec)
+    parser = (,) packageName <$> (mappend <$> parseAttributes <*> parseGitHubPackageSpec)
     desc =
       [ Opts.fullDesc
       , Opts.progDesc "Add GitHub dependency"
@@ -463,7 +469,7 @@ cmdAddGitHub mp package = completeOwnerAndRepo package >>= cmdAdd mp
 
 parseCmdAddFile :: Opts.ParserInfo (IO ())
 parseCmdAddFile =
-    Opts.info ((cmdAdd <$> parseNameAttribute <*> parseFilePackage) <**> Opts.helper) $
+    Opts.info ((cmdAddFile <$> parseNameAttribute <*> parseFilePackage) <**> Opts.helper) $
       mconcat desc
   where
     desc =
@@ -472,8 +478,11 @@ parseCmdAddFile =
       , Opts.headerDoc $ Just $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
-          "  niv add file my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
+          "  niv add file my-package http://example.com/archive/<version>.zip -v alpha-0.1"
       ]
+
+cmdAddFile :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
+cmdAddFile mPackageName (packageName, spec) = cmdAdd mPackageName (packageName, spec)
 
 cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
 cmdAdd mPackageName (packageName, spec) = do
