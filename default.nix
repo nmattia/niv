@@ -29,6 +29,9 @@ with rec
 rec
 { inherit niv-source niv-devshell;
   inherit (haskellPackages) niv;
+
+  tests = pkgs.callPackage ./tests { inherit niv; };
+
   readme = pkgs.writeText "README.md"
     (with
       { template = builtins.readFile ./README.tpl.md;
