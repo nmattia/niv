@@ -1,0 +1,2432 @@
+[
+  {
+    "sha": "a489b65a5c3a29983701069d1ce395b23d9bde64",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmE0ODliNjVhNWMzYTI5OTgzNzAxMDY5ZDFjZTM5NWIyM2Q5YmRlNjQ=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-15T20:57:36Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-04-15T20:57:36Z"
+      },
+      "message": "Merge pull request #50 from nmattia/nm-update-link\n\nFix netlify link",
+      "tree": {
+        "sha": "f68b098a4fce1c33547c195d53694d8d37270c68",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/f68b098a4fce1c33547c195d53694d8d37270c68"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/a489b65a5c3a29983701069d1ce395b23d9bde64",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJctPBACRBK7hj4Ov3rIwAAdHIIAJsfPjpBjTf1E6FBXYiKnF1u\naPtOnEd4sTjbl0dI02WP2JGI0/b3//OUQU9fDj0A12gA3gbqeZNyvwGgD+Jy7tXd\neZifQHGXkZgtmCCAaeFhX+v5y0/VuoDsJO0a4k17YuoyeCd3dB7Yi/cWWHRMbpmk\nEGmHG3pwk0VhOZ3+pnoXxUasXDNl6EHkPkLxWK2rpQlw4ttfISbayL4U2PDrg3mM\nIGie92JEIgGo/UZ235VslJr6FDkI3AVtYjttkU5bnn42hmyZyygw5sddu6gj9HNg\n0BZmTp3u6lcy4q8H1t5brQHhckw+8pcWAhjRP5K/2+sATcTNeMf5FvdxmreOsCE=\n=UU/i\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree f68b098a4fce1c33547c195d53694d8d37270c68\nparent cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1\nparent abc51449406ba3279c466b4d356b4ae8522ceb58\nauthor Nicolas Mattia <nicolas@nmattia.com> 1555361856 +0200\ncommitter GitHub <noreply@github.com> 1555361856 +0200\n\nMerge pull request #50 from nmattia/nm-update-link\n\nFix netlify link"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/a489b65a5c3a29983701069d1ce395b23d9bde64",
+    "html_url": "https://github.com/nmattia/niv/commit/a489b65a5c3a29983701069d1ce395b23d9bde64",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/a489b65a5c3a29983701069d1ce395b23d9bde64/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1",
+        "html_url": "https://github.com/nmattia/niv/commit/cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1"
+      },
+      {
+        "sha": "abc51449406ba3279c466b4d356b4ae8522ceb58",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/abc51449406ba3279c466b4d356b4ae8522ceb58",
+        "html_url": "https://github.com/nmattia/niv/commit/abc51449406ba3279c466b4d356b4ae8522ceb58"
+      }
+    ]
+  },
+  {
+    "sha": "abc51449406ba3279c466b4d356b4ae8522ceb58",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmFiYzUxNDQ5NDA2YmEzMjc5YzQ2NmI0ZDM1NmI0YWU4NTIyY2ViNTg=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-15T13:17:37Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-15T13:17:37Z"
+      },
+      "message": "Fix netlify link",
+      "tree": {
+        "sha": "f68b098a4fce1c33547c195d53694d8d37270c68",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/f68b098a4fce1c33547c195d53694d8d37270c68"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/abc51449406ba3279c466b4d356b4ae8522ceb58",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/abc51449406ba3279c466b4d356b4ae8522ceb58",
+    "html_url": "https://github.com/nmattia/niv/commit/abc51449406ba3279c466b4d356b4ae8522ceb58",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/abc51449406ba3279c466b4d356b4ae8522ceb58/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1",
+        "html_url": "https://github.com/nmattia/niv/commit/cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1"
+      }
+    ]
+  },
+  {
+    "sha": "cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmNiYWRiODM1NWNhMzQ4OTkxZDJkMWVjOWM3ZGZkYjMwYzc3YzM1ZDE=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-14T22:41:09Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-04-14T22:41:09Z"
+      },
+      "message": "Merge pull request #49 from nmattia/nm-update-readme\n\nUpdate README",
+      "tree": {
+        "sha": "93e270b68fdc356e26390b0083b485d82c55bba4",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/93e270b68fdc356e26390b0083b485d82c55bba4"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcs7cFCRBK7hj4Ov3rIwAAdHIIAG5Y7JpWq5A+eAbNyVLX/xSj\n1osf7YaC0isjCQgNTAn348C3yyPdhrGYRxi1CTKbK8hx19NXVxUUNpoTwTNY3qJP\nnUzUzUWKHMPQ99D3EuYjln6XKikPL6SlOtJILzX5QVM836V93YRQtvQgP5YJ+sDX\nbuGBRI3a++/ImA6FEPThgzgFi/WEF89j5xPmu6i0tau99SjeLbyoZhWREgsU1LSx\nZPqwFKyHC5mwdimGwvSjNUPu9G7R2lR+oeidD1Weoc+kQGy9QX1h1UnmCAxxDFk/\nW79gf7Z9GobMefH8N8qeVjb20cqeYQ9O4ScSZna2RbrqJACWRiJNBXjub5s6y9k=\n=C6xY\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 93e270b68fdc356e26390b0083b485d82c55bba4\nparent aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216\nparent ea9119500d3a2224eb028f7f8e4b4a486fa44ad8\nauthor Nicolas Mattia <nicolas@nmattia.com> 1555281669 +0200\ncommitter GitHub <noreply@github.com> 1555281669 +0200\n\nMerge pull request #49 from nmattia/nm-update-readme\n\nUpdate README"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1",
+    "html_url": "https://github.com/nmattia/niv/commit/cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/cbadb8355ca348991d2d1ec9c7dfdb30c77c35d1/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216",
+        "html_url": "https://github.com/nmattia/niv/commit/aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216"
+      },
+      {
+        "sha": "ea9119500d3a2224eb028f7f8e4b4a486fa44ad8",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/ea9119500d3a2224eb028f7f8e4b4a486fa44ad8",
+        "html_url": "https://github.com/nmattia/niv/commit/ea9119500d3a2224eb028f7f8e4b4a486fa44ad8"
+      }
+    ]
+  },
+  {
+    "sha": "ea9119500d3a2224eb028f7f8e4b4a486fa44ad8",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmVhOTExOTUwMGQzYTIyMjRlYjAyOGY3ZjhlNGI0YTQ4NmZhNDRhZDg=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-14T21:50:42Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-14T21:50:42Z"
+      },
+      "message": "Update README",
+      "tree": {
+        "sha": "93e270b68fdc356e26390b0083b485d82c55bba4",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/93e270b68fdc356e26390b0083b485d82c55bba4"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/ea9119500d3a2224eb028f7f8e4b4a486fa44ad8",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/ea9119500d3a2224eb028f7f8e4b4a486fa44ad8",
+    "html_url": "https://github.com/nmattia/niv/commit/ea9119500d3a2224eb028f7f8e4b4a486fa44ad8",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/ea9119500d3a2224eb028f7f8e4b4a486fa44ad8/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216",
+        "html_url": "https://github.com/nmattia/niv/commit/aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216"
+      }
+    ]
+  },
+  {
+    "sha": "aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmFlZGY0MmFlMGFjNDk0MWI3ZDMxOTYzYzBlNWUyYTNkOGI3NGIyMTY=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-14T19:18:09Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-04-14T19:18:09Z"
+      },
+      "message": "Merge pull request #48 from nmattia/nm-svg\n\nAdd SVG to README",
+      "tree": {
+        "sha": "2af0be6992486c6c76de74e4be2947acddea0119",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/2af0be6992486c6c76de74e4be2947acddea0119"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcs4dxCRBK7hj4Ov3rIwAAdHIIAJTTi9sEH9ygj52o0qPw5BUv\nsi/Xwc2paVARUTzOgwXqAsKGY6IOJis80x8YVslDfw8cBxJgCtsx6dG5nOm7IXmI\nmxde9inZhqkRDBr2iqB+i+YM4neJAsWHNGyIM9VgVmpZUx+7vUjoX+dYOWVG2xma\n4C7EltJf4begrHMsy5inc4fVP1IJ7EAG7EYu4hefXG9IQNada/ao19B5qPda210t\neIuAgy1lo2awwG2wgb8ScZNFDfIgIqPJpbnFk9vCWc6zVFoDuKFsfLw3+lIAlI9l\nErD9lpRNKrUAczzY19pLWMAzEl3XhqYepRpWMrLRq2aw8wtm00PKXAZiilnVCnc=\n=ORn1\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 2af0be6992486c6c76de74e4be2947acddea0119\nparent 7aa070d8b3f5a1399286c685a457c622df616c68\nparent 9703f53e8153489b913fecb804d18d2b1a76e920\nauthor Nicolas Mattia <nicolas@nmattia.com> 1555269489 +0200\ncommitter GitHub <noreply@github.com> 1555269489 +0200\n\nMerge pull request #48 from nmattia/nm-svg\n\nAdd SVG to README"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216",
+    "html_url": "https://github.com/nmattia/niv/commit/aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/aedf42ae0ac4941b7d31963c0e5e2a3d8b74b216/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "7aa070d8b3f5a1399286c685a457c622df616c68",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/7aa070d8b3f5a1399286c685a457c622df616c68",
+        "html_url": "https://github.com/nmattia/niv/commit/7aa070d8b3f5a1399286c685a457c622df616c68"
+      },
+      {
+        "sha": "9703f53e8153489b913fecb804d18d2b1a76e920",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/9703f53e8153489b913fecb804d18d2b1a76e920",
+        "html_url": "https://github.com/nmattia/niv/commit/9703f53e8153489b913fecb804d18d2b1a76e920"
+      }
+    ]
+  },
+  {
+    "sha": "9703f53e8153489b913fecb804d18d2b1a76e920",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjk3MDNmNTNlODE1MzQ4OWI5MTNmZWNiODA0ZDE4ZDJiMWE3NmU5MjA=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-14T12:49:13Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-14T19:11:18Z"
+      },
+      "message": "Add SVG to README",
+      "tree": {
+        "sha": "2af0be6992486c6c76de74e4be2947acddea0119",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/2af0be6992486c6c76de74e4be2947acddea0119"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/9703f53e8153489b913fecb804d18d2b1a76e920",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/9703f53e8153489b913fecb804d18d2b1a76e920",
+    "html_url": "https://github.com/nmattia/niv/commit/9703f53e8153489b913fecb804d18d2b1a76e920",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/9703f53e8153489b913fecb804d18d2b1a76e920/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "7aa070d8b3f5a1399286c685a457c622df616c68",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/7aa070d8b3f5a1399286c685a457c622df616c68",
+        "html_url": "https://github.com/nmattia/niv/commit/7aa070d8b3f5a1399286c685a457c622df616c68"
+      }
+    ]
+  },
+  {
+    "sha": "7aa070d8b3f5a1399286c685a457c622df616c68",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjdhYTA3MGQ4YjNmNWExMzk5Mjg2YzY4NWE0NTdjNjIyZGY2MTZjNjg=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-11T07:57:24Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-04-11T07:57:24Z"
+      },
+      "message": "Merge pull request #47 from nmattia/nm-missing-repo\n\nWarn if GitHub repository cannot be read",
+      "tree": {
+        "sha": "ab4c3318e8206501c0d36dd9e238941a4a850c82",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/ab4c3318e8206501c0d36dd9e238941a4a850c82"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/7aa070d8b3f5a1399286c685a457c622df616c68",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcrvNkCRBK7hj4Ov3rIwAAdHIIABqTCKWBffc6fFZRVD34TooE\nA+UU0mz/XpHugXB3bd51zVOg+Tfe/8OMIBQLoR/lPE/cYlrxujZ3K4eyJIaW5+5o\nFiiMU3JyOK8p6u6Vj9kZFBZliaLcfQEZHWhlWc9cbttwsc41LJ/CVh9mhSW944vD\n4d7beFacov6J8VoSB39sZ/l9Bd6XdcuIA5Mz17FqN7GLHNm6lMs4Egh8bOx5yjKz\niby5O4Adl2ey3X/C947LBuKG6GKSexgbcsS59G6CvpQ64mIbk8rZMlyg43HWZy4y\n5+65xxwkxRPwg4k9SJ/wYSV7Ipiq+kF5gRmtOumX5myHIZ9SI2P3Btq559GMIkg=\n=+3fB\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree ab4c3318e8206501c0d36dd9e238941a4a850c82\nparent 29e351ce6771eccd7e71713d3f22f5e9d58f0a3f\nparent cd9206daf085902707eb656401816ea632f9a928\nauthor Nicolas Mattia <nicolas@nmattia.com> 1554969444 +0200\ncommitter GitHub <noreply@github.com> 1554969444 +0200\n\nMerge pull request #47 from nmattia/nm-missing-repo\n\nWarn if GitHub repository cannot be read"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/7aa070d8b3f5a1399286c685a457c622df616c68",
+    "html_url": "https://github.com/nmattia/niv/commit/7aa070d8b3f5a1399286c685a457c622df616c68",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/7aa070d8b3f5a1399286c685a457c622df616c68/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "29e351ce6771eccd7e71713d3f22f5e9d58f0a3f",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/29e351ce6771eccd7e71713d3f22f5e9d58f0a3f",
+        "html_url": "https://github.com/nmattia/niv/commit/29e351ce6771eccd7e71713d3f22f5e9d58f0a3f"
+      },
+      {
+        "sha": "cd9206daf085902707eb656401816ea632f9a928",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/cd9206daf085902707eb656401816ea632f9a928",
+        "html_url": "https://github.com/nmattia/niv/commit/cd9206daf085902707eb656401816ea632f9a928"
+      }
+    ]
+  },
+  {
+    "sha": "cd9206daf085902707eb656401816ea632f9a928",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmNkOTIwNmRhZjA4NTkwMjcwN2ViNjU2NDAxODE2ZWE2MzJmOWE5Mjg=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-10T21:25:25Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-10T21:27:12Z"
+      },
+      "message": "Warn if GitHub repository cannot be read",
+      "tree": {
+        "sha": "ab4c3318e8206501c0d36dd9e238941a4a850c82",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/ab4c3318e8206501c0d36dd9e238941a4a850c82"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/cd9206daf085902707eb656401816ea632f9a928",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/cd9206daf085902707eb656401816ea632f9a928",
+    "html_url": "https://github.com/nmattia/niv/commit/cd9206daf085902707eb656401816ea632f9a928",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/cd9206daf085902707eb656401816ea632f9a928/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "29e351ce6771eccd7e71713d3f22f5e9d58f0a3f",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/29e351ce6771eccd7e71713d3f22f5e9d58f0a3f",
+        "html_url": "https://github.com/nmattia/niv/commit/29e351ce6771eccd7e71713d3f22f5e9d58f0a3f"
+      }
+    ]
+  },
+  {
+    "sha": "29e351ce6771eccd7e71713d3f22f5e9d58f0a3f",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjI5ZTM1MWNlNjc3MWVjY2Q3ZTcxNzEzZDNmMjJmNWU5ZDU4ZjBhM2Y=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-10T21:14:43Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-04-10T21:14:43Z"
+      },
+      "message": "Merge pull request #45 from nmattia/nm-fix-nixpkgs-fetch\n\nFix infinite recursion and empty nixpkgs",
+      "tree": {
+        "sha": "e6c14851a5297aeb598ddfd9ff4328ec1d13d3f3",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/e6c14851a5297aeb598ddfd9ff4328ec1d13d3f3"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/29e351ce6771eccd7e71713d3f22f5e9d58f0a3f",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcrlzDCRBK7hj4Ov3rIwAAdHIIAALOds8v1uI6IvGgWQfBgIwA\nzTQ5QE8Ho+Xrzk1aRUTxiZQAFYpVwEFq1L2BtV8/TvOtTjWV9wYmEhKkw1MxstFg\nRbpqxvlARjCILbCWNZ5ZxVQFJFaghb9J7E2XL0OBWFSIqNjJW35NhEh44A4DscbI\nbQSCMjSUT9NH8Gwb/7YpHWe7vli2qF7zwQQEFVQ1KSZ6zHenm5zlWrpkQBWPcO7Z\nlU4kHesbJyzb+kw34k99DXKaI1O7+H7rFHvOyqvpkkjv7JuDma/3Wiv2Jkyz/T+k\nqyER6I/QqqqikAKVP3waaqWI6pLMYFknFUKtkCGXZC49gZlFBoiHIGLYCz4KoPk=\n=+/p9\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree e6c14851a5297aeb598ddfd9ff4328ec1d13d3f3\nparent af92a311c9920bae44bd7fd485d1cb0e819141e5\nparent b63863299396d67fa49d10f1d3da9cf193585307\nauthor Nicolas Mattia <nicolas@nmattia.com> 1554930883 +0200\ncommitter GitHub <noreply@github.com> 1554930883 +0200\n\nMerge pull request #45 from nmattia/nm-fix-nixpkgs-fetch\n\nFix infinite recursion and empty nixpkgs"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/29e351ce6771eccd7e71713d3f22f5e9d58f0a3f",
+    "html_url": "https://github.com/nmattia/niv/commit/29e351ce6771eccd7e71713d3f22f5e9d58f0a3f",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/29e351ce6771eccd7e71713d3f22f5e9d58f0a3f/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "af92a311c9920bae44bd7fd485d1cb0e819141e5",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/af92a311c9920bae44bd7fd485d1cb0e819141e5",
+        "html_url": "https://github.com/nmattia/niv/commit/af92a311c9920bae44bd7fd485d1cb0e819141e5"
+      },
+      {
+        "sha": "b63863299396d67fa49d10f1d3da9cf193585307",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/b63863299396d67fa49d10f1d3da9cf193585307",
+        "html_url": "https://github.com/nmattia/niv/commit/b63863299396d67fa49d10f1d3da9cf193585307"
+      }
+    ]
+  },
+  {
+    "sha": "b63863299396d67fa49d10f1d3da9cf193585307",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmI2Mzg2MzI5OTM5NmQ2N2ZhNDlkMTBmMWQzZGE5Y2YxOTM1ODUzMDc=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-10T21:10:46Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-10T21:10:46Z"
+      },
+      "message": "Improve error message when no nixpkgs",
+      "tree": {
+        "sha": "e6c14851a5297aeb598ddfd9ff4328ec1d13d3f3",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/e6c14851a5297aeb598ddfd9ff4328ec1d13d3f3"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/b63863299396d67fa49d10f1d3da9cf193585307",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/b63863299396d67fa49d10f1d3da9cf193585307",
+    "html_url": "https://github.com/nmattia/niv/commit/b63863299396d67fa49d10f1d3da9cf193585307",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/b63863299396d67fa49d10f1d3da9cf193585307/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "e45c61ecdc4b927d713b7b4a3df3383d0c17f31a",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/e45c61ecdc4b927d713b7b4a3df3383d0c17f31a",
+        "html_url": "https://github.com/nmattia/niv/commit/e45c61ecdc4b927d713b7b4a3df3383d0c17f31a"
+      }
+    ]
+  },
+  {
+    "sha": "e45c61ecdc4b927d713b7b4a3df3383d0c17f31a",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmU0NWM2MWVjZGM0YjkyN2Q3MTNiN2I0YTNkZjMzODNkMGMxN2YzMWE=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T17:56:58Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T17:56:58Z"
+      },
+      "message": "Use niv's nix/sources.nix in niv",
+      "tree": {
+        "sha": "2747667a9425690204bd4a99dc70a8f0916ac01e",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/2747667a9425690204bd4a99dc70a8f0916ac01e"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/e45c61ecdc4b927d713b7b4a3df3383d0c17f31a",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/e45c61ecdc4b927d713b7b4a3df3383d0c17f31a",
+    "html_url": "https://github.com/nmattia/niv/commit/e45c61ecdc4b927d713b7b4a3df3383d0c17f31a",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/e45c61ecdc4b927d713b7b4a3df3383d0c17f31a/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "3cd02da1ce9a9d6ac851f01e3628d1ee15c5a0e4",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/3cd02da1ce9a9d6ac851f01e3628d1ee15c5a0e4",
+        "html_url": "https://github.com/nmattia/niv/commit/3cd02da1ce9a9d6ac851f01e3628d1ee15c5a0e4"
+      }
+    ]
+  },
+  {
+    "sha": "3cd02da1ce9a9d6ac851f01e3628d1ee15c5a0e4",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjNjZDAyZGExY2U5YTlkNmFjODUxZjAxZTM2MjhkMWVlMTVjNWEwZTQ=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T17:56:40Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T17:56:40Z"
+      },
+      "message": "Fix sources.nix for empty and ./. <nixpkgs>",
+      "tree": {
+        "sha": "b1160ed55acf7e93230778cfd713a4dd48c12b31",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/b1160ed55acf7e93230778cfd713a4dd48c12b31"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/3cd02da1ce9a9d6ac851f01e3628d1ee15c5a0e4",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/3cd02da1ce9a9d6ac851f01e3628d1ee15c5a0e4",
+    "html_url": "https://github.com/nmattia/niv/commit/3cd02da1ce9a9d6ac851f01e3628d1ee15c5a0e4",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/3cd02da1ce9a9d6ac851f01e3628d1ee15c5a0e4/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "af92a311c9920bae44bd7fd485d1cb0e819141e5",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/af92a311c9920bae44bd7fd485d1cb0e819141e5",
+        "html_url": "https://github.com/nmattia/niv/commit/af92a311c9920bae44bd7fd485d1cb0e819141e5"
+      }
+    ]
+  },
+  {
+    "sha": "af92a311c9920bae44bd7fd485d1cb0e819141e5",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmFmOTJhMzExYzk5MjBiYWU0NGJkN2ZkNDg1ZDFjYjBlODE5MTQxZTU=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T11:09:12Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-04-07T11:09:12Z"
+      },
+      "message": "Merge pull request #44 from nmattia/nm-no-cache\n\nDrop the cache",
+      "tree": {
+        "sha": "89890b3f1c640b49b91404f2728c07248796d5d1",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/89890b3f1c640b49b91404f2728c07248796d5d1"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/af92a311c9920bae44bd7fd485d1cb0e819141e5",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcqdpYCRBK7hj4Ov3rIwAAdHIIACnRd6lLZXTnJt0onXFJN46s\nwsuIYRVTGI+u09WiXg2c2BWJIJ7L6cdXrgsRaUCwitIySaibyr3xY0tUpDo8cZsS\nVcj7JmxNI0vgYrnbKXbR5U2nwzc+prsXX9o9BC3g0s+t17/M0A4+ZsB8PbFZTG1k\nzVOE351K8YcfsRLkbdB4/rzuLTYAOMvDdVVS/WLfpcX1txVkJpRBupiN2VElYpmI\ndwV4QMf+fGJY6GAVt3Q1O8/IF039Gks+C46h038Pk+/K0heuM2gJY2suiZvfqbiU\nZ2WtpVHVzRA0w8NnBg1PhGjNfaPmYVUKzRMdoijj/I7k/ngSI+dt5J1JD9Ko6wA=\n=eQk8\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 89890b3f1c640b49b91404f2728c07248796d5d1\nparent 0491c8a4e88a3087d15b26c30ac00622df257451\nparent 8b1b890b43a05e0a9194af626e75a872356fdee2\nauthor Nicolas Mattia <nicolas@nmattia.com> 1554635352 +0200\ncommitter GitHub <noreply@github.com> 1554635352 +0200\n\nMerge pull request #44 from nmattia/nm-no-cache\n\nDrop the cache"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/af92a311c9920bae44bd7fd485d1cb0e819141e5",
+    "html_url": "https://github.com/nmattia/niv/commit/af92a311c9920bae44bd7fd485d1cb0e819141e5",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/af92a311c9920bae44bd7fd485d1cb0e819141e5/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "0491c8a4e88a3087d15b26c30ac00622df257451",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/0491c8a4e88a3087d15b26c30ac00622df257451",
+        "html_url": "https://github.com/nmattia/niv/commit/0491c8a4e88a3087d15b26c30ac00622df257451"
+      },
+      {
+        "sha": "8b1b890b43a05e0a9194af626e75a872356fdee2",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/8b1b890b43a05e0a9194af626e75a872356fdee2",
+        "html_url": "https://github.com/nmattia/niv/commit/8b1b890b43a05e0a9194af626e75a872356fdee2"
+      }
+    ]
+  },
+  {
+    "sha": "0491c8a4e88a3087d15b26c30ac00622df257451",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjA0OTFjOGE0ZTg4YTMwODdkMTViMjZjMzBhYzAwNjIyZGYyNTc0NTE=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T11:06:15Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-04-07T11:06:15Z"
+      },
+      "message": "Merge pull request #43 from nmattia/nm-sources-cleanup\n\nOnly generate nix/sources.json and nix/sources.nix",
+      "tree": {
+        "sha": "986fc06547fc32fb7d7f37807626df4db7d8b0fc",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/986fc06547fc32fb7d7f37807626df4db7d8b0fc"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/0491c8a4e88a3087d15b26c30ac00622df257451",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcqdmnCRBK7hj4Ov3rIwAAdHIIAFhJnrHC/8Ho62zEBUNvRQ2o\nllL6vZb5qIZDKyuGfOU66Afbxq2IO+EIoCbAmi/kmnjmSjwW5Tyc26DoDk+LoeAc\nROBtp6be3N9baOzl7COnGpsunXW14Uc40Qi9/ABYlz9D/oKr0d7mR5SfAOBdyq79\nCpq+CAR/Q9VxlxSayOoeaCeXKfE54BEFMmt2yYOJSlLXqafwjzi1mPrHPBqiBXUp\nj1PrutfZIgv5IttGrBRla6yY2BIL11+iQM9F9+e2u0qDQog/WzUk1PFUbcHFK95O\nuY2wDsG1EmochAmnJiGPCA1FekeyM/z/bmRhkK6JZ1meRQgtV5fA3yPQJ25vF8g=\n=s182\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 986fc06547fc32fb7d7f37807626df4db7d8b0fc\nparent 130ac83460b2279b40f3b78d239fac159e9672cf\nparent 13f81059c083145e12f76cf6a05474261dcf1e73\nauthor Nicolas Mattia <nicolas@nmattia.com> 1554635175 +0200\ncommitter GitHub <noreply@github.com> 1554635175 +0200\n\nMerge pull request #43 from nmattia/nm-sources-cleanup\n\nOnly generate nix/sources.json and nix/sources.nix"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/0491c8a4e88a3087d15b26c30ac00622df257451",
+    "html_url": "https://github.com/nmattia/niv/commit/0491c8a4e88a3087d15b26c30ac00622df257451",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/0491c8a4e88a3087d15b26c30ac00622df257451/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "130ac83460b2279b40f3b78d239fac159e9672cf",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/130ac83460b2279b40f3b78d239fac159e9672cf",
+        "html_url": "https://github.com/nmattia/niv/commit/130ac83460b2279b40f3b78d239fac159e9672cf"
+      },
+      {
+        "sha": "13f81059c083145e12f76cf6a05474261dcf1e73",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/13f81059c083145e12f76cf6a05474261dcf1e73",
+        "html_url": "https://github.com/nmattia/niv/commit/13f81059c083145e12f76cf6a05474261dcf1e73"
+      }
+    ]
+  },
+  {
+    "sha": "8b1b890b43a05e0a9194af626e75a872356fdee2",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjhiMWI4OTBiNDNhMDVlMGE5MTk0YWY2MjZlNzVhODcyMzU2ZmRlZTI=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T11:04:21Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T11:05:33Z"
+      },
+      "message": "Drop the cache\n\nRight now warming up and saving the cache takes more time than the build\nitself.",
+      "tree": {
+        "sha": "50591903f47c85740f9c11fe4a3a608f24cc9df7",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/50591903f47c85740f9c11fe4a3a608f24cc9df7"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/8b1b890b43a05e0a9194af626e75a872356fdee2",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/8b1b890b43a05e0a9194af626e75a872356fdee2",
+    "html_url": "https://github.com/nmattia/niv/commit/8b1b890b43a05e0a9194af626e75a872356fdee2",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/8b1b890b43a05e0a9194af626e75a872356fdee2/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "130ac83460b2279b40f3b78d239fac159e9672cf",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/130ac83460b2279b40f3b78d239fac159e9672cf",
+        "html_url": "https://github.com/nmattia/niv/commit/130ac83460b2279b40f3b78d239fac159e9672cf"
+      }
+    ]
+  },
+  {
+    "sha": "13f81059c083145e12f76cf6a05474261dcf1e73",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjEzZjgxMDU5YzA4MzE0NWUxMmY3NmNmNmEwNTQ3NDI2MWRjZjFlNzM=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T10:50:47Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T10:50:47Z"
+      },
+      "message": "Drop lots of generated files",
+      "tree": {
+        "sha": "986fc06547fc32fb7d7f37807626df4db7d8b0fc",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/986fc06547fc32fb7d7f37807626df4db7d8b0fc"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/13f81059c083145e12f76cf6a05474261dcf1e73",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/13f81059c083145e12f76cf6a05474261dcf1e73",
+    "html_url": "https://github.com/nmattia/niv/commit/13f81059c083145e12f76cf6a05474261dcf1e73",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/13f81059c083145e12f76cf6a05474261dcf1e73/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "60cc94d3e600c89a13865695c5da1b82bacbb0a6",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/60cc94d3e600c89a13865695c5da1b82bacbb0a6",
+        "html_url": "https://github.com/nmattia/niv/commit/60cc94d3e600c89a13865695c5da1b82bacbb0a6"
+      }
+    ]
+  },
+  {
+    "sha": "60cc94d3e600c89a13865695c5da1b82bacbb0a6",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjYwY2M5NGQzZTYwMGM4OWExMzg2NTY5NWM1ZGExYjgyYmFjYmIwYTY=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T10:50:35Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T10:50:35Z"
+      },
+      "message": "Fix shell hook",
+      "tree": {
+        "sha": "6752fb3cb6c6075f071bd9ea3a080bb07ede065e",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/6752fb3cb6c6075f071bd9ea3a080bb07ede065e"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/60cc94d3e600c89a13865695c5da1b82bacbb0a6",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/60cc94d3e600c89a13865695c5da1b82bacbb0a6",
+    "html_url": "https://github.com/nmattia/niv/commit/60cc94d3e600c89a13865695c5da1b82bacbb0a6",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/60cc94d3e600c89a13865695c5da1b82bacbb0a6/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "262dd9ab218a51e781eebd8593d8a9c6002d473f",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/262dd9ab218a51e781eebd8593d8a9c6002d473f",
+        "html_url": "https://github.com/nmattia/niv/commit/262dd9ab218a51e781eebd8593d8a9c6002d473f"
+      }
+    ]
+  },
+  {
+    "sha": "130ac83460b2279b40f3b78d239fac159e9672cf",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjEzMGFjODM0NjBiMjI3OWI0MGYzYjc4ZDIzOWZhYzE1OWU5NjcyY2Y=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T10:41:41Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-04-07T10:41:41Z"
+      },
+      "message": "Merge pull request #41 from nmattia/nm-nix-cleanup\n\nReplace snack with cabal",
+      "tree": {
+        "sha": "486b8d1ee148255a3d688ce46a886df6454146c6",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/486b8d1ee148255a3d688ce46a886df6454146c6"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/130ac83460b2279b40f3b78d239fac159e9672cf",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcqdPlCRBK7hj4Ov3rIwAAdHIIAAalpJziQhoMLhaCcpVEXIma\nlRL2RtikqBiJsbb7dw/Iut2tDdFmqBqePqAoe9DzEbWxWe5YxHtxUPaFvFtTxTHT\nNOVwCDUKAWr6zKkyssX8yAle/zR7sKnaKmFBDZKr6+vLzsi90MPKBLjykkbG1BF7\nyUpaYnGxOt+osZm/B6GtZe8MGpgn5skop2NcRzVTW3Rv0CunCOIeb+XoCPcexb0E\nV5ovHnwNard8BycbPWZalZK4kjpAeSM5iLm8b7WUo3Iahq1KUtgx0Q2BOogC9YAP\ndmHyqmi9duczG4iWAASc6oG4vzsoRHU8d7VkGQ5foCMa+tiRanOYupi2DoYHppk=\n=wqI1\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 486b8d1ee148255a3d688ce46a886df6454146c6\nparent d9e38ae971f13cca0e6b08c4d22c62f779c9038c\nparent 262dd9ab218a51e781eebd8593d8a9c6002d473f\nauthor Nicolas Mattia <nicolas@nmattia.com> 1554633701 +0200\ncommitter GitHub <noreply@github.com> 1554633701 +0200\n\nMerge pull request #41 from nmattia/nm-nix-cleanup\n\nReplace snack with cabal"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/130ac83460b2279b40f3b78d239fac159e9672cf",
+    "html_url": "https://github.com/nmattia/niv/commit/130ac83460b2279b40f3b78d239fac159e9672cf",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/130ac83460b2279b40f3b78d239fac159e9672cf/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "d9e38ae971f13cca0e6b08c4d22c62f779c9038c",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/d9e38ae971f13cca0e6b08c4d22c62f779c9038c",
+        "html_url": "https://github.com/nmattia/niv/commit/d9e38ae971f13cca0e6b08c4d22c62f779c9038c"
+      },
+      {
+        "sha": "262dd9ab218a51e781eebd8593d8a9c6002d473f",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/262dd9ab218a51e781eebd8593d8a9c6002d473f",
+        "html_url": "https://github.com/nmattia/niv/commit/262dd9ab218a51e781eebd8593d8a9c6002d473f"
+      }
+    ]
+  },
+  {
+    "sha": "262dd9ab218a51e781eebd8593d8a9c6002d473f",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjI2MmRkOWFiMjE4YTUxZTc4MWVlYmQ4NTkzZDhhOWM2MDAyZDQ3M2Y=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-05T09:43:57Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-07T10:29:24Z"
+      },
+      "message": "Replace snack with cabal",
+      "tree": {
+        "sha": "486b8d1ee148255a3d688ce46a886df6454146c6",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/486b8d1ee148255a3d688ce46a886df6454146c6"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/262dd9ab218a51e781eebd8593d8a9c6002d473f",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/262dd9ab218a51e781eebd8593d8a9c6002d473f",
+    "html_url": "https://github.com/nmattia/niv/commit/262dd9ab218a51e781eebd8593d8a9c6002d473f",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/262dd9ab218a51e781eebd8593d8a9c6002d473f/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "45041fa7656c17d098db8e9f84f7f672da734754",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/45041fa7656c17d098db8e9f84f7f672da734754",
+        "html_url": "https://github.com/nmattia/niv/commit/45041fa7656c17d098db8e9f84f7f672da734754"
+      }
+    ]
+  },
+  {
+    "sha": "45041fa7656c17d098db8e9f84f7f672da734754",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjQ1MDQxZmE3NjU2YzE3ZDA5OGRiOGU5Zjg0ZjdmNjcyZGE3MzQ3NTQ=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-05T09:29:26Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-05T09:29:26Z"
+      },
+      "message": "Drop nix/packages.nix",
+      "tree": {
+        "sha": "2c54ba0ae92bcfa9f1ac1067b6a1c1f56ac3ae94",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/2c54ba0ae92bcfa9f1ac1067b6a1c1f56ac3ae94"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/45041fa7656c17d098db8e9f84f7f672da734754",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/45041fa7656c17d098db8e9f84f7f672da734754",
+    "html_url": "https://github.com/nmattia/niv/commit/45041fa7656c17d098db8e9f84f7f672da734754",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/45041fa7656c17d098db8e9f84f7f672da734754/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "d9e38ae971f13cca0e6b08c4d22c62f779c9038c",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/d9e38ae971f13cca0e6b08c4d22c62f779c9038c",
+        "html_url": "https://github.com/nmattia/niv/commit/d9e38ae971f13cca0e6b08c4d22c62f779c9038c"
+      }
+    ]
+  },
+  {
+    "sha": "d9e38ae971f13cca0e6b08c4d22c62f779c9038c",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmQ5ZTM4YWU5NzFmMTNjY2EwZTZiMDhjNGQyMmM2MmY3NzljOTAzOGM=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-04T11:19:33Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-04-04T11:19:33Z"
+      },
+      "message": "Merge pull request #40 from nmattia/nm-build-cleanup\n\nClean up CI build",
+      "tree": {
+        "sha": "04f10c49d869e0ca3a661b923f403e7458d6a97d",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/04f10c49d869e0ca3a661b923f403e7458d6a97d"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/d9e38ae971f13cca0e6b08c4d22c62f779c9038c",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcpehFCRBK7hj4Ov3rIwAAdHIIADZ9Abea432nz7POoXxMa4Ih\ndCn65IOusQ/kp+y9EAiPL+Rha1qvkLyZRiWhEl1yiufQLkS4rTpY9x33uhFENttG\nk00XsJdhBUQVyEEFU9zJmdPuNCnxmvynr0jdtKQ7g4I56RDyyxULOfLB2UyoLHDd\nD+m6LBMkpsAHEaLA5Y6sFeu4Se8/r8uYCu3R+WQ5Wn0JsF8lJSjyuGGa/JLNzS40\nl3bCxzElNevZ18o2VdbK8P7FbbgpuIT3XiJF5EwT6qhKsocuKWQ48UKVPzuBLGS0\nJ1AHo1rCJBaoeQGzPz/OTzm+s4ra1e04d1p9g431PV2YTBVEhDXEKpgBP7OI/vk=\n=a4C1\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 04f10c49d869e0ca3a661b923f403e7458d6a97d\nparent f57c85d05e6c2dd359f901d936f896e4f117d3e6\nparent 5b68e373880a80cd0275dbaf62a16c9716998e96\nauthor Nicolas Mattia <nicolas@nmattia.com> 1554376773 +0200\ncommitter GitHub <noreply@github.com> 1554376773 +0200\n\nMerge pull request #40 from nmattia/nm-build-cleanup\n\nClean up CI build"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/d9e38ae971f13cca0e6b08c4d22c62f779c9038c",
+    "html_url": "https://github.com/nmattia/niv/commit/d9e38ae971f13cca0e6b08c4d22c62f779c9038c",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/d9e38ae971f13cca0e6b08c4d22c62f779c9038c/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "f57c85d05e6c2dd359f901d936f896e4f117d3e6",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/f57c85d05e6c2dd359f901d936f896e4f117d3e6",
+        "html_url": "https://github.com/nmattia/niv/commit/f57c85d05e6c2dd359f901d936f896e4f117d3e6"
+      },
+      {
+        "sha": "5b68e373880a80cd0275dbaf62a16c9716998e96",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/5b68e373880a80cd0275dbaf62a16c9716998e96",
+        "html_url": "https://github.com/nmattia/niv/commit/5b68e373880a80cd0275dbaf62a16c9716998e96"
+      }
+    ]
+  },
+  {
+    "sha": "5b68e373880a80cd0275dbaf62a16c9716998e96",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjViNjhlMzczODgwYTgwY2QwMjc1ZGJhZjYyYTE2Yzk3MTY5OThlOTY=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-04T10:46:41Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-04T11:04:16Z"
+      },
+      "message": "Simplify CI cache",
+      "tree": {
+        "sha": "04f10c49d869e0ca3a661b923f403e7458d6a97d",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/04f10c49d869e0ca3a661b923f403e7458d6a97d"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/5b68e373880a80cd0275dbaf62a16c9716998e96",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/5b68e373880a80cd0275dbaf62a16c9716998e96",
+    "html_url": "https://github.com/nmattia/niv/commit/5b68e373880a80cd0275dbaf62a16c9716998e96",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/5b68e373880a80cd0275dbaf62a16c9716998e96/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "3185f8a32b4b62fd2ed86ff9b095470c7eabe84c",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/3185f8a32b4b62fd2ed86ff9b095470c7eabe84c",
+        "html_url": "https://github.com/nmattia/niv/commit/3185f8a32b4b62fd2ed86ff9b095470c7eabe84c"
+      }
+    ]
+  },
+  {
+    "sha": "3185f8a32b4b62fd2ed86ff9b095470c7eabe84c",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjMxODVmOGEzMmI0YjYyZmQyZWQ4NmZmOWIwOTU0NzBjN2VhYmU4NGM=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-04T10:32:51Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-04-04T10:32:51Z"
+      },
+      "message": "Don't generate links in test script",
+      "tree": {
+        "sha": "60dd614563423913c6244a0ef529f02510ee53a5",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/60dd614563423913c6244a0ef529f02510ee53a5"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/3185f8a32b4b62fd2ed86ff9b095470c7eabe84c",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/3185f8a32b4b62fd2ed86ff9b095470c7eabe84c",
+    "html_url": "https://github.com/nmattia/niv/commit/3185f8a32b4b62fd2ed86ff9b095470c7eabe84c",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/3185f8a32b4b62fd2ed86ff9b095470c7eabe84c/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "f57c85d05e6c2dd359f901d936f896e4f117d3e6",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/f57c85d05e6c2dd359f901d936f896e4f117d3e6",
+        "html_url": "https://github.com/nmattia/niv/commit/f57c85d05e6c2dd359f901d936f896e4f117d3e6"
+      }
+    ]
+  },
+  {
+    "sha": "f57c85d05e6c2dd359f901d936f896e4f117d3e6",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmY1N2M4NWQwNWU2YzJkZDM1OWY5MDFkOTM2Zjg5NmU0ZjExN2QzZTY=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-03-28T09:24:30Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-03-28T09:24:30Z"
+      },
+      "message": "Merge pull request #38 from domenkozar/patch-1\n\nToo much Nix",
+      "tree": {
+        "sha": "bc7cedbea1ea2a1e9ebc13bfc940575db93f5248",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/bc7cedbea1ea2a1e9ebc13bfc940575db93f5248"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/f57c85d05e6c2dd359f901d936f896e4f117d3e6",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcnJLOCRBK7hj4Ov3rIwAAdHIIAA/ZKt7ki4Gcmpe8eQ6CsXtb\nNROaVKrmlnB4VU9VoLJQZmnzW+KXDyiRTwswGvRxQS/BVflOHgoiPvya5CP3PYR+\nheCQHIoK7PIW32S9XpIR6x1gjYet6lS8YCZNr1Ge5fdnlakFxLRGONo1ljRZju8q\nB4ZWf+R11tF0+ON/H28/YNxUecJv4GDLFXzw6TKOE+hYtD23D1BoeJA4QGUSxsod\nvO5R/MA5CgVVthC1FqYz7nLhhY/vAyyBOOSRkXNWI+AnzV8p0GI6B+VvhIjXbTmu\nC1G6ShrFzYZR+wBA+68xLBGbRW+QAXnTlSk39Takyi0NKeGzrn14JFM4LtcQBbA=\n=UtCT\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree bc7cedbea1ea2a1e9ebc13bfc940575db93f5248\nparent c2698b0780b783880e0b1a520723948fe3b5c26a\nparent 86eb9881b8bcc5323dc7e01d2d399579b39207b6\nauthor Nicolas Mattia <nicolas@nmattia.com> 1553765070 +0100\ncommitter GitHub <noreply@github.com> 1553765070 +0100\n\nMerge pull request #38 from domenkozar/patch-1\n\nToo much Nix"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/f57c85d05e6c2dd359f901d936f896e4f117d3e6",
+    "html_url": "https://github.com/nmattia/niv/commit/f57c85d05e6c2dd359f901d936f896e4f117d3e6",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/f57c85d05e6c2dd359f901d936f896e4f117d3e6/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "c2698b0780b783880e0b1a520723948fe3b5c26a",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/c2698b0780b783880e0b1a520723948fe3b5c26a",
+        "html_url": "https://github.com/nmattia/niv/commit/c2698b0780b783880e0b1a520723948fe3b5c26a"
+      },
+      {
+        "sha": "86eb9881b8bcc5323dc7e01d2d399579b39207b6",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/86eb9881b8bcc5323dc7e01d2d399579b39207b6",
+        "html_url": "https://github.com/nmattia/niv/commit/86eb9881b8bcc5323dc7e01d2d399579b39207b6"
+      }
+    ]
+  },
+  {
+    "sha": "86eb9881b8bcc5323dc7e01d2d399579b39207b6",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjg2ZWI5ODgxYjhiY2M1MzIzZGM3ZTAxZDJkMzk5NTc5YjM5MjA3YjY=",
+    "commit": {
+      "author": {
+        "name": "Domen Kožar",
+        "email": "domen@enlambda.com",
+        "date": "2019-03-28T07:43:32Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-03-28T07:43:32Z"
+      },
+      "message": "Too much Nix",
+      "tree": {
+        "sha": "bc7cedbea1ea2a1e9ebc13bfc940575db93f5248",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/bc7cedbea1ea2a1e9ebc13bfc940575db93f5248"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/86eb9881b8bcc5323dc7e01d2d399579b39207b6",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJcnHskCRBK7hj4Ov3rIwAAdHIIAF0VFoI2nQ1sL/B24oTblHOg\n3ot5HZBrvCvi4G568elorTSXtmv0S+C00sh7TRzst31UfVvRHMCl4mHLwikEgZdr\n4K4hfUhNerAQnug5GZ5kj+FCApVvg5LuK6u48nMuZdJTIdz8S+3b18tKAwDyQN2D\njHvVvxUAHcSoYCOL//U1w8x7gHmRTauzGbfS6AzW/ZQUeTclA32p4z4/xmjXshGN\n56q7LOdHH/G5822voX5vSSL6PLKj3bExaHAwIOf+xpTgmG7tALJGkPOjjzg2vTXd\nC9E9tvz3bkuC17xNvg3iRXSLsYKiWWk5tEDWVToQjPfWOx4P4+fwiPi+TJ5TCMo=\n=Y3uv\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree bc7cedbea1ea2a1e9ebc13bfc940575db93f5248\nparent c2698b0780b783880e0b1a520723948fe3b5c26a\nauthor Domen Kožar <domen@enlambda.com> 1553759012 +0000\ncommitter GitHub <noreply@github.com> 1553759012 +0000\n\nToo much Nix"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/86eb9881b8bcc5323dc7e01d2d399579b39207b6",
+    "html_url": "https://github.com/nmattia/niv/commit/86eb9881b8bcc5323dc7e01d2d399579b39207b6",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/86eb9881b8bcc5323dc7e01d2d399579b39207b6/comments",
+    "author": {
+      "login": "domenkozar",
+      "id": 126339,
+      "node_id": "MDQ6VXNlcjEyNjMzOQ==",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/126339?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/domenkozar",
+      "html_url": "https://github.com/domenkozar",
+      "followers_url": "https://api.github.com/users/domenkozar/followers",
+      "following_url": "https://api.github.com/users/domenkozar/following{/other_user}",
+      "gists_url": "https://api.github.com/users/domenkozar/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/domenkozar/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/domenkozar/subscriptions",
+      "organizations_url": "https://api.github.com/users/domenkozar/orgs",
+      "repos_url": "https://api.github.com/users/domenkozar/repos",
+      "events_url": "https://api.github.com/users/domenkozar/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/domenkozar/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "c2698b0780b783880e0b1a520723948fe3b5c26a",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/c2698b0780b783880e0b1a520723948fe3b5c26a",
+        "html_url": "https://github.com/nmattia/niv/commit/c2698b0780b783880e0b1a520723948fe3b5c26a"
+      }
+    ]
+  },
+  {
+    "sha": "c2698b0780b783880e0b1a520723948fe3b5c26a",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmMyNjk4YjA3ODBiNzgzODgwZTBiMWE1MjA3MjM5NDhmZTNiNWMyNmE=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-03-21T19:56:07Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-03-21T19:56:07Z"
+      },
+      "message": "Merge pull request #30 from nmattia/nm-update-sources\n\nUpdate nix/sources.nix if necessary",
+      "tree": {
+        "sha": "49881ae87762dff3d48d19f971865a93c0ed3f2f",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/49881ae87762dff3d48d19f971865a93c0ed3f2f"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/c2698b0780b783880e0b1a520723948fe3b5c26a",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJck+xXCRBK7hj4Ov3rIwAAdHIIAEhwH/Snip4sB6QCeM47m1QR\n4A8qVqDqBH6dkw0FPykWrwV+yTPDbz8JwqP2WCsrFROJbENDo06AY8OQ8RvU8JYK\nx1rM9iQiiVjv+2RYevygCQrsh/NG4k2gtby4Hy94zM35Am2H48LGXIdBGSszRsdT\nhG3w83s0E03DXqMnTotCm27mQVNPx3HGfy/xRqX+dQGC/S1YBZafD80+P69RBCg4\nFGv6xuEDRlVl0ukmJMhxtMsk1y4ePQcprWlnKR3n2OwN3nuzp+qkY5xQEBYlktWS\nSwQKoXP0M7+34vvN8XxbSaZwp6Gq40xyLukDvS6ZWtDyZAu7RebJzrVYH0iZXYg=\n=dIDT\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 49881ae87762dff3d48d19f971865a93c0ed3f2f\nparent fc58efb5ed80b0a5bc997db53748c70d62c27603\nparent fbaed6d7257d6c9ed55dde8fd53ebc31cfe6cdb1\nauthor Nicolas Mattia <nicolas@nmattia.com> 1553198167 +0100\ncommitter GitHub <noreply@github.com> 1553198167 +0100\n\nMerge pull request #30 from nmattia/nm-update-sources\n\nUpdate nix/sources.nix if necessary"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/c2698b0780b783880e0b1a520723948fe3b5c26a",
+    "html_url": "https://github.com/nmattia/niv/commit/c2698b0780b783880e0b1a520723948fe3b5c26a",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/c2698b0780b783880e0b1a520723948fe3b5c26a/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "fc58efb5ed80b0a5bc997db53748c70d62c27603",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/fc58efb5ed80b0a5bc997db53748c70d62c27603",
+        "html_url": "https://github.com/nmattia/niv/commit/fc58efb5ed80b0a5bc997db53748c70d62c27603"
+      },
+      {
+        "sha": "fbaed6d7257d6c9ed55dde8fd53ebc31cfe6cdb1",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/fbaed6d7257d6c9ed55dde8fd53ebc31cfe6cdb1",
+        "html_url": "https://github.com/nmattia/niv/commit/fbaed6d7257d6c9ed55dde8fd53ebc31cfe6cdb1"
+      }
+    ]
+  },
+  {
+    "sha": "fbaed6d7257d6c9ed55dde8fd53ebc31cfe6cdb1",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmZiYWVkNmQ3MjU3ZDZjOWVkNTVkZGU4ZmQ1M2ViYzMxY2ZlNmNkYjE=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-03-13T11:59:41Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-03-13T11:59:41Z"
+      },
+      "message": "Clean up",
+      "tree": {
+        "sha": "49881ae87762dff3d48d19f971865a93c0ed3f2f",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/49881ae87762dff3d48d19f971865a93c0ed3f2f"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/fbaed6d7257d6c9ed55dde8fd53ebc31cfe6cdb1",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/fbaed6d7257d6c9ed55dde8fd53ebc31cfe6cdb1",
+    "html_url": "https://github.com/nmattia/niv/commit/fbaed6d7257d6c9ed55dde8fd53ebc31cfe6cdb1",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/fbaed6d7257d6c9ed55dde8fd53ebc31cfe6cdb1/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "956f976f5b6858151e63cf4d840dccf35f97deb1",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/956f976f5b6858151e63cf4d840dccf35f97deb1",
+        "html_url": "https://github.com/nmattia/niv/commit/956f976f5b6858151e63cf4d840dccf35f97deb1"
+      }
+    ]
+  },
+  {
+    "sha": "956f976f5b6858151e63cf4d840dccf35f97deb1",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOjk1NmY5NzZmNWI2ODU4MTUxZTYzY2Y0ZDg0MGRjY2YzNWY5N2RlYjE=",
+    "commit": {
+      "author": {
+        "name": "lewo",
+        "email": "lewo@abesis.fr",
+        "date": "2019-03-13T11:53:28Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-03-13T11:54:10Z"
+      },
+      "message": "Update Main.hs\n\nCo-Authored-By: nmattia <nicolas@nmattia.com>",
+      "tree": {
+        "sha": "25a73b709f4387ab22fd7797cb5947ad7c091d65",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/25a73b709f4387ab22fd7797cb5947ad7c091d65"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/956f976f5b6858151e63cf4d840dccf35f97deb1",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/956f976f5b6858151e63cf4d840dccf35f97deb1",
+    "html_url": "https://github.com/nmattia/niv/commit/956f976f5b6858151e63cf4d840dccf35f97deb1",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/956f976f5b6858151e63cf4d840dccf35f97deb1/comments",
+    "author": {
+      "login": "nlewo",
+      "id": 3425311,
+      "node_id": "MDQ6VXNlcjM0MjUzMTE=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/3425311?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nlewo",
+      "html_url": "https://github.com/nlewo",
+      "followers_url": "https://api.github.com/users/nlewo/followers",
+      "following_url": "https://api.github.com/users/nlewo/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nlewo/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nlewo/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nlewo/subscriptions",
+      "organizations_url": "https://api.github.com/users/nlewo/orgs",
+      "repos_url": "https://api.github.com/users/nlewo/repos",
+      "events_url": "https://api.github.com/users/nlewo/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nlewo/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "fed62f31e554decb7dc5f8dfe628958e20bd26a0",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/fed62f31e554decb7dc5f8dfe628958e20bd26a0",
+        "html_url": "https://github.com/nmattia/niv/commit/fed62f31e554decb7dc5f8dfe628958e20bd26a0"
+      }
+    ]
+  },
+  {
+    "sha": "fed62f31e554decb7dc5f8dfe628958e20bd26a0",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmZlZDYyZjMxZTU1NGRlY2I3ZGM1ZjhkZmU2Mjg5NThlMjBiZDI2YTA=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-03-05T19:44:41Z"
+      },
+      "committer": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-03-13T11:54:10Z"
+      },
+      "message": "Update nix/sources.nix if necessary",
+      "tree": {
+        "sha": "8a7778bd9fdde9b1eed86f36623f7fef4a3a0407",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/8a7778bd9fdde9b1eed86f36623f7fef4a3a0407"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/fed62f31e554decb7dc5f8dfe628958e20bd26a0",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/fed62f31e554decb7dc5f8dfe628958e20bd26a0",
+    "html_url": "https://github.com/nmattia/niv/commit/fed62f31e554decb7dc5f8dfe628958e20bd26a0",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/fed62f31e554decb7dc5f8dfe628958e20bd26a0/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "fc58efb5ed80b0a5bc997db53748c70d62c27603",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/fc58efb5ed80b0a5bc997db53748c70d62c27603",
+        "html_url": "https://github.com/nmattia/niv/commit/fc58efb5ed80b0a5bc997db53748c70d62c27603"
+      }
+    ]
+  },
+  {
+    "sha": "fc58efb5ed80b0a5bc997db53748c70d62c27603",
+    "node_id": "MDY6Q29tbWl0MTY2Mjk2MTUwOmZjNThlZmI1ZWQ4MGIwYTViYzk5N2RiNTM3NDhjNzBkNjJjMjc2MDM=",
+    "commit": {
+      "author": {
+        "name": "Nicolas Mattia",
+        "email": "nicolas@nmattia.com",
+        "date": "2019-03-13T11:52:41Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2019-03-13T11:52:41Z"
+      },
+      "message": "Merge pull request #33 from nlewo/cleaning\n\nsources.nix: cleaning",
+      "tree": {
+        "sha": "99e2e2d15a2950b5c66c1ef6975ed84b9188d743",
+        "url": "https://api.github.com/repos/nmattia/niv/git/trees/99e2e2d15a2950b5c66c1ef6975ed84b9188d743"
+      },
+      "url": "https://api.github.com/repos/nmattia/niv/git/commits/fc58efb5ed80b0a5bc997db53748c70d62c27603",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJciO8JCRBK7hj4Ov3rIwAAdHIIAD9/zQALS0clbJNLfvGbRwMQ\nXJ+mzxH4HGk3Jb1BzG5yqhMeUa09WETfUaVaiotRDeu3gFZjVuekRkFL3pbYii25\nms0+WNvR0vUIO1zsjkOUxvJMZRufMkTk7j7Zzmr0k/eeg+lyjjSj36r5lQCpshHi\n5ylMly35sPJo8bEO/WqiLrPvNgTeMtTjc2olT51R3yHRbyOIu03S+8cBeBDFWxdm\nZO4BCEwmDdxj0HPn4QBAKHGZnA4zIYxrSYkZ13nHDwZtTEfc2gcEZTkMfdz4J59a\nPwjycL72BC7exaI7FsgQ+mc4HJm+QGiMzKf74cVVWNAvqr1T7uTTLb189HFV64Q=\n=XKfu\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 99e2e2d15a2950b5c66c1ef6975ed84b9188d743\nparent 82bd4999de0215d4de8e5b845d338f8114c590c5\nparent 4c6b3c24510c224cee84f8ae49f22d001db56ed4\nauthor Nicolas Mattia <nicolas@nmattia.com> 1552477961 +0100\ncommitter GitHub <noreply@github.com> 1552477961 +0100\n\nMerge pull request #33 from nlewo/cleaning\n\nsources.nix: cleaning"
+      }
+    },
+    "url": "https://api.github.com/repos/nmattia/niv/commits/fc58efb5ed80b0a5bc997db53748c70d62c27603",
+    "html_url": "https://github.com/nmattia/niv/commit/fc58efb5ed80b0a5bc997db53748c70d62c27603",
+    "comments_url": "https://api.github.com/repos/nmattia/niv/commits/fc58efb5ed80b0a5bc997db53748c70d62c27603/comments",
+    "author": {
+      "login": "nmattia",
+      "id": 6930756,
+      "node_id": "MDQ6VXNlcjY5MzA3NTY=",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6930756?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nmattia",
+      "html_url": "https://github.com/nmattia",
+      "followers_url": "https://api.github.com/users/nmattia/followers",
+      "following_url": "https://api.github.com/users/nmattia/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nmattia/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nmattia/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nmattia/subscriptions",
+      "organizations_url": "https://api.github.com/users/nmattia/orgs",
+      "repos_url": "https://api.github.com/users/nmattia/repos",
+      "events_url": "https://api.github.com/users/nmattia/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nmattia/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "82bd4999de0215d4de8e5b845d338f8114c590c5",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/82bd4999de0215d4de8e5b845d338f8114c590c5",
+        "html_url": "https://github.com/nmattia/niv/commit/82bd4999de0215d4de8e5b845d338f8114c590c5"
+      },
+      {
+        "sha": "4c6b3c24510c224cee84f8ae49f22d001db56ed4",
+        "url": "https://api.github.com/repos/nmattia/niv/commits/4c6b3c24510c224cee84f8ae49f22d001db56ed4",
+        "html_url": "https://github.com/nmattia/niv/commit/4c6b3c24510c224cee84f8ae49f22d001db56ed4"
+      }
+    ]
+  }
+]
