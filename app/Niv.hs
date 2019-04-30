@@ -545,7 +545,9 @@ decodeFileStrict = fmap Aeson.decodeStrict . B.readFile
 
 -- | Efficiently serialize a JSON value as a lazy 'L.ByteString' and write it to a file.
 encodeFile :: (ToJSON a) => FilePath -> a -> IO ()
-encodeFile fp = L.writeFile fp . AesonPretty.encodePretty
+encodeFile fp = L.writeFile fp . AesonPretty.encodePretty' config
+  where
+    config =  AesonPretty.defConfig { AesonPretty.confTrailingNewline = True }
 
 --- HashMap
 
