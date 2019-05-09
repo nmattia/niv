@@ -1,10 +1,22 @@
 { pkgs ? import ./nix {} }:
 with rec
 { files = pkgs.callPackage ./nix/files.nix {};
-  niv-source = files.sourceByRegex "niv" ./.
+  sourceByRegex = name: src: regexes:
+    builtins.path
+      { filter =  (path: type:
+          let
+            relPath = pkgs.lib.removePrefix (toString src + "/") (toString path);
+            accept = pkgs.lib.any (re: builtins.match re relPath != null) regexes;
+          in accept);
+          inherit name;
+          path = src;
+      };
+  niv-source = sourceByRegex "niv" ./.
     [ "^package.yaml$"
-      "^app.*$"
+      "^app$"
+      "^app.*.hs$"
       "^README.md$"
+      "^nix$"
       "^nix.sources.nix$"
     ];
   haskellPackages = pkgs.haskellPackages.override
@@ -76,8 +88,8 @@ rec
       expected_hash=$(${pkgs.nix}/bin/nix-hash ${niv-svg-gen})
       actual_hash=$(grep -oP 'id="\K[^"]+' ${./site/niv.svg} -m 1)
 
-      echo expected $expected_hash
-      echo actuall $actual_hash
+      echo "expected $expected_hash"
+      echo "actual   $actual_hash"
 
       [ $expected_hash == $actual_hash ] && echo dymmy > $out || err
     '';
