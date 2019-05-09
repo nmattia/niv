@@ -15,6 +15,9 @@
 { pkgs, niv }:
 
 let
+  niv_HEAD = "a489b65a5c3a29983701069d1ce395b23d9bde64";
+  niv_HEAD- = "abc51449406ba3279c466b4d356b4ae8522ceb58";
+  nixpkgs-channels_HEAD = "571b40d3f50466d3e91c1e609d372de96d782793";
   nivForTest = niv.overrideDerivation(old: {
     # TODO: Remove this patch by adding an argument to the github
     # subcommand to support GitHub entreprise.
@@ -23,18 +26,27 @@ let
       sed "s|https://github.com|http://localhost:3333|" -i app/Niv.hs
     '';
   });
-in pkgs.runCommand "test" { buildInputs = [ pkgs.python nivForTest pkgs.nix pkgs.jq pkgs.netcat-gnu ]; }
+in pkgs.runCommand "test"
+    { buildInputs =
+        [ pkgs.haskellPackages.wai-app-static
+          nivForTest
+          pkgs.nix
+          pkgs.jq
+          pkgs.netcat-gnu
+        ];
+    }
   ''
     set -euo pipefail
 
     echo *** Starting the webserver...
-    mkdir mock
-    ( cd mock; python -m SimpleHTTPServer 3333 ) &
+    mkdir -p mock
 
-     while ! nc -z 127.0.0.1 3333; do
-       echo waiting for mock server
-       sleep 1
-     done
+    warp -d mock -p 3333 &
+
+    while ! nc -z 127.0.0.1 3333; do
+      echo waiting for mock server
+      sleep 1
+    done
 
     # We can't access /nix or /var from the sandbox
     export NIX_STATE_DIR=$PWD/nix/var/nix
@@ -42,17 +54,25 @@ in pkgs.runCommand "test" { buildInputs = [ pkgs.python nivForTest pkgs.nix pkgs
 
 
     echo -e "\n*** niv init"
+
+    ## mock API behavior:
+    ##  - niv points to HEAD
+    ##  - nixpkgs-channels points to HEAD
+
     mkdir -p mock/repos/nmattia/niv/
     cp  ${./data/repos/nmattia/niv/repository.json} mock/repos/nmattia/niv/index.html
-    cat ${./data/repos/nmattia/niv/commits.json} | jq '.[0] | [.]' > mock/repos/nmattia/niv/commits
+    # XXX: cat so we don't inherit the read-only permissions
+    cat ${./data/repos/nmattia/niv/commits.json} > mock/repos/nmattia/niv/commits
     mkdir -p mock/nmattia/niv/archive
-    cp ${./data/archives/a489b65a5c3a29983701069d1ce395b23d9bde64.tar.gz} mock/nmattia/niv/archive/a489b65a5c3a29983701069d1ce395b23d9bde64.tar.gz
+    cp ${./data/archives + "/${niv_HEAD}.tar.gz"} \
+      mock/nmattia/niv/archive/${niv_HEAD}.tar.gz
 
     mkdir -p mock/repos/NixOS/nixpkgs-channels
     cp  ${./data/repos/NixOS/nixpkgs-channels/repository.json} mock/repos/NixOS/nixpkgs-channels/index.html
-    cat ${./data/repos/NixOS/nixpkgs-channels/commits.json} | jq '.[0] | [.]' > mock/repos/NixOS/nixpkgs-channels/commits
+    cat ${./data/repos/NixOS/nixpkgs-channels/commits.json} > mock/repos/NixOS/nixpkgs-channels/commits
     mkdir -p mock/NixOS/nixpkgs-channels/archive
-    cp ${./data/archives/571b40d3f50466d3e91c1e609d372de96d782793.tar.gz} mock/NixOS/nixpkgs-channels/archive/571b40d3f50466d3e91c1e609d372de96d782793.tar.gz
+    cp ${./data/archives + "/${nixpkgs-channels_HEAD}.tar.gz"} \
+      mock/NixOS/nixpkgs-channels/archive/${nixpkgs-channels_HEAD}.tar.gz
 
     niv init
     diff -h ${./expected/niv-init.json} nix/sources.json
@@ -65,24 +85,31 @@ in pkgs.runCommand "test" { buildInputs = [ pkgs.python nivForTest pkgs.nix pkgs
     cat nix/sources.json  | jq -e '. | has("niv") | not'
     echo -e "*** ok."
 
+    ## mock API behavior:
+    ##  - niv points to HEAD~
+    ##  - nixpkgs-channels points to HEAD
 
     echo -e "\n*** niv add nmattia/niv"
     # We use the HEAD~1 commit to update it in the next step
-    cat ${./data/repos/nmattia/niv/commits.json} | jq '.[1] | [.]' > mock/repos/nmattia/niv/commits
-    cp ${./data/archives/abc51449406ba3279c466b4d356b4ae8522ceb58.tar.gz} mock/nmattia/niv/archive/abc51449406ba3279c466b4d356b4ae8522ceb58.tar.gz
+    # (e.g. we drop the first element of the commit array)
+    cat ${./data/repos/nmattia/niv/commits.json} | jq 'del(.[0])' > mock/repos/nmattia/niv/commits
+    cp ${./data/archives + "/${niv_HEAD-}.tar.gz"} \
+      mock/nmattia/niv/archive/${niv_HEAD-}.tar.gz
     niv add nmattia/niv
-    echo -n "niv.rev == abc51449406ba3279c466b4d356b4ae8522ceb58: "
-    cat nix/sources.json | jq -e '.niv | .rev == "abc51449406ba3279c466b4d356b4ae8522ceb58"'
+    echo -n "niv.rev == ${niv_HEAD-} (HEAD~): "
+    cat nix/sources.json | jq -e '.niv | .rev == "${niv_HEAD-}"'
     echo -e "*** ok."
 
+    ## mock API behavior:
+    ##  - niv points to HEAD
+    ##  - nixpkgs-channels points to HEAD
 
     echo -e "\n*** niv update niv"
     cat ${./data/repos/nmattia/niv/commits.json} | jq '.[0] | [.]' > mock/repos/nmattia/niv/commits
     niv update niv
-    echo -n "niv.rev == a489b65a5c3a29983701069d1ce395b23d9bde64: "
-    cat nix/sources.json | jq -e '.niv | .rev == "a489b65a5c3a29983701069d1ce395b23d9bde64"'
+    echo -n "niv.rev == ${niv_HEAD} (HEAD): "
+    cat nix/sources.json | jq -e '.niv | .rev == "${niv_HEAD}"'
     echo -e "*** ok."
-
 
     echo -e "\n*** niv add foo -v 1 -t 'localhost:3333/foo-v<version>'"
     echo foo > mock/foo-v1
