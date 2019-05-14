@@ -27,7 +27,7 @@ import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as L
-import qualified Data.HashMap.Strict as HMap
+import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified GitHub as GH
@@ -54,7 +54,7 @@ parseCommand = Opts.subparser (
     Opts.command "drop"  parseCmdDrop )
 
 newtype Sources = Sources
-  { unSources :: HMap.HashMap PackageName PackageSpec }
+  { unSources :: HMS.HashMap PackageName PackageSpec }
   deriving newtype (FromJSON, ToJSON)
 
 getSources :: IO Sources
@@ -68,10 +68,10 @@ getSources = do
     decodeFileStrict pathNixSourcesJson >>= \case
       Just (Aeson.Object obj) ->
         fmap (Sources . mconcat) $
-          forM (HMap.toList obj) $ \(k, v) ->
+          forM (HMS.toList obj) $ \(k, v) ->
             case v of
               Aeson.Object v' ->
-                pure $ HMap.singleton (PackageName k) (PackageSpec v')
+                pure $ HMS.singleton (PackageName k) (PackageSpec v')
               _ -> abortAttributeIsntAMap
       Just _ -> abortSourcesIsntAMap
       Nothing -> abortSourcesIsntJSON
@@ -91,7 +91,7 @@ newtype PackageSpec = PackageSpec { _unPackageSpec :: Aeson.Object }
 
 parsePackageSpec :: Opts.Parser PackageSpec
 parsePackageSpec =
-    (PackageSpec . HMap.fromList . fmap fixupAttributes) <$>
+    (PackageSpec . HMS.fromList . fmap fixupAttributes) <$>
       many parseAttribute
   where
     parseAttribute :: Opts.Parser (T.Text, T.Text)
@@ -283,18 +283,18 @@ getPackageSpecAttr
   -> StateT PackageSpec IO (Maybe Aeson.Value)
 getPackageSpecAttr attrName = do
   PackageSpec obj <- get
-  pure $ HMap.lookup attrName obj
+  pure $ HMS.lookup attrName obj
 
 setPackageSpecAttr
   :: T.Text -> Aeson.Value
   -> StateT PackageSpec IO ()
 setPackageSpecAttr attrName attrValue = do
   PackageSpec obj <- get
-  let obj' = HMap.insert attrName attrValue obj
+  let obj' = HMS.insert attrName attrValue obj
   put (PackageSpec obj')
 
 packageSpecStringValues :: PackageSpec -> [(String, String)]
-packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMap.toList m)
+packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMS.toList m)
   where
     toVal :: (T.Text, Aeson.Value) -> Maybe (String, String)
     toVal = \case
@@ -334,12 +334,12 @@ cmdInit = do
             createFile path initNixSourcesJsonContent
             -- Imports @niv@ and @nixpkgs@ (18.09)
             putStrLn "Importing 'niv' ..."
-            cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMap.empty)
+            cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
             putStrLn "Importing 'nixpkgs' ..."
             cmdAdd
               (Just (PackageName "nixpkgs"))
               ( PackageName "NixOS/nixpkgs-channels"
-              , PackageSpec (HMap.singleton "branch" "nixos-18.09"))
+              , PackageSpec (HMS.singleton "branch" "nixos-18.09"))
         , \path _content -> dontCreateFile path)
       ] $ \(path, onCreate, onUpdate) -> do
           exists <- Dir.doesFileExist path
@@ -399,14 +399,14 @@ cmdAdd mPackageName (PackageName str, spec) = do
 
     let packageName' = fromMaybe packageName mPackageName
 
-    when (HMap.member packageName' sources) $
+    when (HMS.member packageName' sources) $
       abortCannotAddPackageExists packageName'
 
     spec'' <- updatePackageSpec =<< completePackageSpec spec'
 
     putStrLn $ "Writing new sources file"
     setSources $ Sources $
-      HMap.insert packageName' spec'' sources
+      HMS.insert packageName' spec'' sources
 
 -------------------------------------------------------------------------------
 -- SHOW
@@ -423,7 +423,7 @@ cmdShow = do
 
     forWithKeyM_ sources $ \key (PackageSpec spec) -> do
       T.putStrLn $ "Package: " <> unPackageName key
-      forM_ (HMap.toList spec) $ \(attrName, attrValValue) -> do
+      forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
         let attrValue = case attrValValue of
               Aeson.String str -> str
               _ -> "<barabajagal>"
@@ -456,7 +456,7 @@ cmdUpdate = \case
       T.putStrLn $ "Updating single package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
-      packageSpec' <- case HMap.lookup packageName sources of
+      packageSpec' <- case HMS.lookup packageName sources of
         Just packageSpec' -> do
 
           -- TODO: something fishy happening here
@@ -466,7 +466,7 @@ cmdUpdate = \case
         Nothing -> abortCannotUpdateNoSuchPackage packageName
 
       setSources $ Sources $
-        HMap.insert packageName packageSpec' sources
+        HMS.insert packageName packageSpec' sources
 
     Nothing -> do
       sources <- unSources <$> getSources
@@ -508,26 +508,26 @@ cmdDrop packageName = \case
       T.putStrLn $ "Dropping package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
-      when (not $ HMap.member packageName sources) $
+      when (not $ HMS.member packageName sources) $
         abortCannotDropNoSuchPackage packageName
 
       setSources $ Sources $
-        HMap.delete packageName sources
+        HMS.delete packageName sources
     attrs -> do
       putStrLn $ "Dropping attributes :" <>
         (T.unpack (T.intercalate " " attrs))
       T.putStrLn $ "In package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
-      packageSpec <- case HMap.lookup packageName sources of
+      packageSpec <- case HMS.lookup packageName sources of
         Nothing ->
           abortCannotAttributesDropNoSuchPackage packageName
         Just (PackageSpec packageSpec) -> pure $ PackageSpec $
-          HMap.mapMaybeWithKey
+          HMS.mapMaybeWithKey
             (\k v -> if k `elem` attrs then Nothing else Just v) packageSpec
 
       setSources $ Sources $
-        HMap.insert packageName packageSpec sources
+        HMS.insert packageName packageSpec sources
 
 -------------------------------------------------------------------------------
 -- Aux
@@ -557,14 +557,14 @@ encodeFile fp = L.writeFile fp . AesonPretty.encodePretty' config
 
 forWithKeyM
   :: (Eq k, Hashable k, Monad m)
-  => HMap.HashMap k v1
+  => HMS.HashMap k v1
   -> (k -> v1 -> m v2)
-  -> m (HMap.HashMap k v2)
+  -> m (HMS.HashMap k v2)
 forWithKeyM = flip mapWithKeyM
 
 forWithKeyM_
   :: (Eq k, Hashable k, Monad m)
-  => HMap.HashMap k v1
+  => HMS.HashMap k v1
   -> (k -> v1 -> m ())
   -> m ()
 forWithKeyM_ = flip mapWithKeyM_
@@ -572,20 +572,20 @@ forWithKeyM_ = flip mapWithKeyM_
 mapWithKeyM
   :: (Eq k, Hashable k, Monad m)
   => (k -> v1 -> m v2)
-  -> HMap.HashMap k v1
-  -> m (HMap.HashMap k v2)
+  -> HMS.HashMap k v1
+  -> m (HMS.HashMap k v2)
 mapWithKeyM f m = do
-    fmap mconcat $ forM (HMap.toList m) $ \(k, v) ->
-      HMap.singleton k <$> f k v
+    fmap mconcat $ forM (HMS.toList m) $ \(k, v) ->
+      HMS.singleton k <$> f k v
 
 mapWithKeyM_
   :: (Eq k, Hashable k, Monad m)
   => (k -> v1 -> m ())
-  -> HMap.HashMap k v1
+  -> HMS.HashMap k v1
   -> m ()
 mapWithKeyM_ f m = do
-    forM_ (HMap.toList m) $ \(k, v) ->
-      HMap.singleton k <$> f k v
+    forM_ (HMS.toList m) $ \(k, v) ->
+      HMS.singleton k <$> f k v
 
 -- | Renders the template. Returns 'Nothing' if some of the attributes are
 -- missing.
