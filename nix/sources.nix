@@ -67,7 +67,7 @@ with rec
     let fetcherName =
       if builtins.hasAttr "type" spec
       then builtins.getAttr "type" spec
-      else "tarball";
+      else "builtin-tarball";
     in builtins.getAttr fetcherName {
       "tarball" = fetchzip;
       "builtin-tarball" = builtins_fetchTarball;
