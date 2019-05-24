@@ -58,6 +58,9 @@ newtype Sources = Sources
 
 getSources :: IO Sources
 getSources = do
+    exists <- Dir.doesFileExist pathNixSourcesJson
+    unless exists abortSourcesDoesntExist
+
     warnIfOutdated
     -- TODO: if doesn't exist: run niv init
     putStrLn $ "Reading sources file"
@@ -695,6 +698,14 @@ Make sure the repository exists.
 -------------------------------------------------------------------------------
 -- Abort
 -------------------------------------------------------------------------------
+
+abortSourcesDoesntExist :: IO a
+abortSourcesDoesntExist = abort $ unlines [ line1, line2 ]
+  where
+    line1 = "Cannot use " <> pathNixSourcesJson
+    line2 = [s|
+The sources file does not exist! You may need to run 'niv init'.
+|]
 
 abortSourcesIsntAMap :: IO a
 abortSourcesIsntAMap = abort $ unlines [ line1, line2 ]
