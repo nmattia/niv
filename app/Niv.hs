@@ -151,12 +151,13 @@ parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
 -------------------------------------------------------------------------------
 
 completePackageSpec
-  :: PackageSpec
+  :: Bool
+  -> PackageSpec
   -> IO (PackageSpec)
-completePackageSpec = execStateT $ do
+completePackageSpec forceRevUpdate = execStateT $ do
 
     -- In case we have @owner@ and @repo@, pull some data from GitHub
-    populateGithubInfo
+    populateGithubInfo forceRevUpdate
 
     -- Figures out the URL template
     setDefaultUrlTemplate
@@ -176,13 +177,19 @@ completePackageSpec = execStateT $ do
 -- PackageSpec State helpers
 -------------------------------------------------------------------------------
 
+whenM :: Monad m => m Bool -> m () -> m ()
+whenM test act = do
+  b <- test
+  if b then act else pure ()
+
 whenNotSet
   :: T.Text
   -> StateT PackageSpec IO ()
   -> StateT PackageSpec IO ()
-whenNotSet attrName act = getPackageSpecAttr attrName >>= \case
-  Just _ -> pure ()
-  Nothing -> act
+whenNotSet attrName = whenM (gets (isSet attrName))
+
+isSet :: T.Text -> PackageSpec -> Bool
+isSet attrName (PackageSpec obj) = HMap.member attrName obj
 
 withPackageSpecAttr
   :: T.Text
@@ -215,8 +222,8 @@ packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMap.toList m)
       (key, Aeson.String val) -> Just (T.unpack key, T.unpack val)
       _ -> Nothing
 
-populateGithubInfo :: StateT PackageSpec IO ()
-populateGithubInfo = (,) <$> getPackageSpecAttr "owner" <*> getPackageSpecAttr "repo" >>= \case
+populateGithubInfo :: Bool -> StateT PackageSpec IO ()
+populateGithubInfo forceUpdateRev = (,) <$> getPackageSpecAttr "owner" <*> getPackageSpecAttr "repo" >>= \case
   (Just (Aeson.String owner), Just (Aeson.String repo)) -> do
       liftIO (GH.executeRequest' $ GH.repositoryR (GH.N owner) (GH.N repo))
         >>= \case
@@ -241,7 +248,8 @@ populateGithubInfo = (,) <$> getPackageSpecAttr "owner" <*> getPackageSpecAttr "
                 setPackageSpecAttr "branch" (Aeson.String branch)
               Nothing -> pure ()
 
-            whenNotSet "rev" $ withPackageSpecAttr "branch" (\case
+            revSet <- gets (isSet "rev")
+            when (forceUpdateRev || (not revSet)) $ withPackageSpecAttr "branch" (\case
               Aeson.String branch -> do
                 liftIO (GH.executeRequest' $
                   GH.commitsWithOptionsForR
@@ -412,7 +420,9 @@ cmdAdd mPackageName (PackageName str, spec) = do
     when (HMap.member packageName' sources) $
       abortCannotAddPackageExists packageName'
 
-    spec'' <- completePackageSpec spec'
+    -- Don't force updating the rev - if the user gave
+    -- us a revision then we want to use that.
+    spec'' <- completePackageSpec False spec'
 
     putStrLn $ "Writing new sources file"
     setSources $ Sources $
@@ -462,20 +472,21 @@ parseCmdUpdate =
 
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
-    Just (packageName, packageSpec) -> do
+    Just (packageName, newSpec) -> do
       putStrLn $ "Updating single package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
-      packageSpec' <- case HMap.lookup packageName sources of
-        Just packageSpec' -> do
-
-          -- TODO: something fishy happening here
-          completePackageSpec $ packageSpec <> packageSpec'
+      newSpec' <- case HMap.lookup packageName sources of
+        Just oldSpec -> do
+          -- We update the rev from upstream unless we were given the
+          -- rev in the cmdline spec
+          let needsRevUpdate = not $ isSet "rev" newSpec
+          completePackageSpec needsRevUpdate $ newSpec <> oldSpec
 
         Nothing -> abortCannotUpdateNoSuchPackage packageName
 
       setSources $ Sources $
-        HMap.insert packageName packageSpec' sources
+        HMap.insert packageName newSpec' sources
 
     Nothing -> do
       sources <- unSources <$> getSources
@@ -483,7 +494,8 @@ cmdUpdate = \case
       sources' <- forWithKeyM sources $
         \packageName packageSpec -> do
           putStrLn $ "Package: " <> unPackageName packageName
-          completePackageSpec packageSpec
+          -- No cmdline spec, so do update from upstream
+          completePackageSpec True packageSpec
 
       setSources $ Sources sources'
 
