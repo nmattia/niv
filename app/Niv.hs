@@ -150,113 +150,27 @@ parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
 -- PACKAGE SPEC OPS
 -------------------------------------------------------------------------------
 
-updatePackageSpec :: PackageSpec -> IO PackageSpec
-updatePackageSpec = execStateT $ do
-    originalUrl <- getPackageSpecAttr "url"
-
-    -- Figures out the URL from the template
-    withPackageSpecAttr "url_template" (\case
-      Aeson.String (T.unpack -> template) -> do
-        packageSpec <- get
-        let stringValues = packageSpecStringValues packageSpec
-        case renderTemplate stringValues template of
-          Just renderedURL ->
-            setPackageSpecAttr "url" (Aeson.String $ T.pack renderedURL)
-          Nothing -> pure ()
-      _ -> pure ()
-      )
-
-    -- If the type attribute is not set, we try to infer its value based on the url suffix
-    (,) <$> getPackageSpecAttr "type" <*> getPackageSpecAttr "url" >>= \case
-      -- If an url type is set, we'll use it
-      (Just _, _) -> pure ()
-      -- We need an url to infer a url type
-      (_, Nothing) -> pure ()
-      (Nothing, Just (Aeson.String url)) -> do
-         let urlType = if "tar.gz" `T.isSuffixOf` url
-                       then "tarball"
-                       else "file"
-         setPackageSpecAttr "type" (Aeson.String $ T.pack urlType)
-      -- If the JSON value is not a string, we ignore it
-      (_, _) -> pure ()
-
-    -- Updates the sha256 based on the URL contents
-    (,) <$> getPackageSpecAttr "url" <*> getPackageSpecAttr "sha256" >>= \case
-      -- If no URL is set, we simply can't prefetch
-      (Nothing, _) -> pure ()
-
-      -- If an URL is set and no sha is set, /do/ update
-      (Just url, Nothing) -> prefetch url
-
-      -- If both the URL and sha are set, update only if the url has changed
-      (Just url, Just{}) -> when (Just url /= originalUrl) (prefetch url)
-  where
-    prefetch :: Aeson.Value -> StateT PackageSpec IO ()
-    prefetch = \case
-      Aeson.String (T.unpack -> url) -> do
-        unpack <- getPackageSpecAttr "type" <&> \case
-          -- Do not unpack if the url type is 'file'
-          Just (Aeson.String urlType) -> not $ T.unpack urlType == "file"
-          _ -> True
-        sha256 <- liftIO $ nixPrefetchURL unpack url
-        setPackageSpecAttr "sha256" (Aeson.String $ T.pack sha256)
-      _ -> pure ()
-
 completePackageSpec
   :: PackageSpec
   -> IO (PackageSpec)
 completePackageSpec = execStateT $ do
 
     -- In case we have @owner@ and @repo@, pull some data from GitHub
-    (,) <$> getPackageSpecAttr "owner" <*> getPackageSpecAttr "repo" >>= \case
-      (Just (Aeson.String owner), Just (Aeson.String repo)) -> do
-          liftIO (GH.executeRequest' $ GH.repositoryR (GH.N owner) (GH.N repo))
-            >>= \case
-              Left e ->
-                liftIO $ warnCouldNotFetchGitHubRepo e (T.unpack owner, T.unpack repo)
-              Right ghRepo -> do
-
-                -- Description
-                whenNotSet "description" $ case GH.repoDescription ghRepo of
-                  Just descr ->
-                    setPackageSpecAttr "description" (Aeson.String descr)
-                  Nothing -> pure ()
-
-                whenNotSet "homepage" $ case GH.repoHomepage ghRepo of
-                  Just descr ->
-                    setPackageSpecAttr "homepage" (Aeson.String descr)
-                  Nothing -> pure ()
-
-                -- Branch and rev
-                whenNotSet "branch" $ case GH.repoDefaultBranch ghRepo of
-                  Just branch ->
-                    setPackageSpecAttr "branch" (Aeson.String branch)
-                  Nothing -> pure ()
-
-                withPackageSpecAttr "branch" (\case
-                  Aeson.String branch -> do
-                    liftIO (GH.executeRequest' $
-                      GH.commitsWithOptionsForR
-                      (GH.N owner) (GH.N repo) (GH.FetchAtLeast 1)
-                      [GH.CommitQuerySha branch]) >>= \case
-                        Right (toList -> (commit:_)) -> do
-                          let GH.N rev = GH.commitSha commit
-                          setPackageSpecAttr "rev" (Aeson.String rev)
-                        _ -> pure ()
-                  _ -> pure ()
-                  )
-      (_,_) -> pure ()
+    populateGithubInfo
 
     -- Figures out the URL template
-    whenNotSet "url_template" $
-      setPackageSpecAttr
-        "url_template"
-        (Aeson.String $ T.pack githubURLTemplate)
+    setDefaultUrlTemplate
 
-  where
-    githubURLTemplate :: String
-    githubURLTemplate =
-      "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    originalUrl <- getPackageSpecAttr "url"
+
+    -- Figures out the URL from the template
+    updateUrlFromTemplate
+
+    -- If the type attribute is not set, we try to infer its value based on the url suffix
+    guessAndSetType
+
+    -- Updates the sha256 based on the URL contents
+    prefetchAndUpdateSha originalUrl
 
 -------------------------------------------------------------------------------
 -- PackageSpec State helpers
@@ -300,6 +214,103 @@ packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMap.toList m)
     toVal = \case
       (key, Aeson.String val) -> Just (T.unpack key, T.unpack val)
       _ -> Nothing
+
+populateGithubInfo :: StateT PackageSpec IO ()
+populateGithubInfo = (,) <$> getPackageSpecAttr "owner" <*> getPackageSpecAttr "repo" >>= \case
+  (Just (Aeson.String owner), Just (Aeson.String repo)) -> do
+      liftIO (GH.executeRequest' $ GH.repositoryR (GH.N owner) (GH.N repo))
+        >>= \case
+          Left e ->
+            liftIO $ warnCouldNotFetchGitHubRepo e (T.unpack owner, T.unpack repo)
+          Right ghRepo -> do
+
+            -- Description
+            whenNotSet "description" $ case GH.repoDescription ghRepo of
+              Just descr ->
+                setPackageSpecAttr "description" (Aeson.String descr)
+              Nothing -> pure ()
+
+            whenNotSet "homepage" $ case GH.repoHomepage ghRepo of
+              Just descr ->
+                setPackageSpecAttr "homepage" (Aeson.String descr)
+              Nothing -> pure ()
+
+            -- Branch and rev
+            whenNotSet "branch" $ case GH.repoDefaultBranch ghRepo of
+              Just branch ->
+                setPackageSpecAttr "branch" (Aeson.String branch)
+              Nothing -> pure ()
+
+            whenNotSet "rev" $ withPackageSpecAttr "branch" (\case
+              Aeson.String branch -> do
+                liftIO (GH.executeRequest' $
+                  GH.commitsWithOptionsForR
+                  (GH.N owner) (GH.N repo) (GH.FetchAtLeast 1)
+                  [GH.CommitQuerySha branch]) >>= \case
+                    Right (toList -> (commit:_)) -> do
+                      let GH.N rev = GH.commitSha commit
+                      setPackageSpecAttr "rev" (Aeson.String rev)
+                    _ -> pure ()
+              _ -> pure ()
+              )
+  (_,_) -> pure ()
+
+setDefaultUrlTemplate :: StateT PackageSpec IO ()
+setDefaultUrlTemplate = whenNotSet "url_template" $
+  setPackageSpecAttr
+    "url_template"
+    (Aeson.String $ T.pack githubURLTemplate)
+  where
+    githubURLTemplate :: String
+    githubURLTemplate =
+      "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+
+updateUrlFromTemplate :: StateT PackageSpec IO ()
+updateUrlFromTemplate = withPackageSpecAttr "url_template" $ \case
+  Aeson.String (T.unpack -> template) -> do
+    packageSpec <- get
+    let stringValues = packageSpecStringValues packageSpec
+    case renderTemplate stringValues template of
+      Just renderedURL ->
+        setPackageSpecAttr "url" (Aeson.String $ T.pack renderedURL)
+      Nothing -> pure ()
+  _ -> pure ()
+
+guessAndSetType :: StateT PackageSpec IO ()
+guessAndSetType = (,) <$> getPackageSpecAttr "type" <*> getPackageSpecAttr "url" >>= \case
+  -- If an url type is set, we'll use it
+  (Just _, _) -> pure ()
+  -- We need an url to infer a url type
+  (_, Nothing) -> pure ()
+  (Nothing, Just (Aeson.String url)) -> do
+      let urlType = if "tar.gz" `T.isSuffixOf` url
+                    then "tarball"
+                    else "file"
+      setPackageSpecAttr "type" (Aeson.String $ T.pack urlType)
+  -- If the JSON value is not a string, we ignore it
+  (_, _) -> pure ()
+
+prefetchAndUpdateSha :: Maybe Aeson.Value -> StateT PackageSpec IO ()
+prefetchAndUpdateSha originalUrl = let
+    prefetch :: Aeson.Value -> StateT PackageSpec IO ()
+    prefetch = \case
+      Aeson.String (T.unpack -> url) -> do
+        unpack <- getPackageSpecAttr "type" <&> \case
+          -- Do not unpack if the url type is 'file'
+          Just (Aeson.String urlType) -> not $ T.unpack urlType == "file"
+          _ -> True
+        sha256 <- liftIO $ nixPrefetchURL unpack url
+        setPackageSpecAttr "sha256" (Aeson.String $ T.pack sha256)
+      _ -> pure ()
+  in (,) <$> getPackageSpecAttr "url" <*> getPackageSpecAttr "sha256" >>= \case
+  -- If no URL is set, we simply can't prefetch
+  (Nothing, _) -> pure ()
+
+  -- If an URL is set and no sha is set, /do/ update
+  (Just url, Nothing) -> prefetch url
+
+  -- If both the URL and sha are set, update only if the url has changed
+  (Just url, Just{}) -> when (Just url /= originalUrl) (prefetch url)
 
 -------------------------------------------------------------------------------
 -- INIT
@@ -401,7 +412,7 @@ cmdAdd mPackageName (PackageName str, spec) = do
     when (HMap.member packageName' sources) $
       abortCannotAddPackageExists packageName'
 
-    spec'' <- updatePackageSpec =<< completePackageSpec spec'
+    spec'' <- completePackageSpec spec'
 
     putStrLn $ "Writing new sources file"
     setSources $ Sources $
@@ -459,8 +470,7 @@ cmdUpdate = \case
         Just packageSpec' -> do
 
           -- TODO: something fishy happening here
-          pkgSpec <- completePackageSpec $ packageSpec <> packageSpec'
-          updatePackageSpec $ pkgSpec
+          completePackageSpec $ packageSpec <> packageSpec'
 
         Nothing -> abortCannotUpdateNoSuchPackage packageName
 
@@ -473,7 +483,7 @@ cmdUpdate = \case
       sources' <- forWithKeyM sources $
         \packageName packageSpec -> do
           putStrLn $ "Package: " <> unPackageName packageName
-          updatePackageSpec =<< completePackageSpec packageSpec
+          completePackageSpec packageSpec
 
       setSources $ Sources sources'
 
