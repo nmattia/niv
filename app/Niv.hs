@@ -701,9 +701,9 @@ Make sure the repository exists.
 -------------------------------------------------------------------------------
 
 abortSourcesDoesntExist :: IO a
-abortSourcesDoesntExist = abort $ unlines [ line1, line2 ]
+abortSourcesDoesntExist = abort $ T.unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> pathNixSourcesJson
+    line1 = "Cannot use " <> T.pack pathNixSourcesJson
     line2 = [s|
 The sources file does not exist! You may need to run 'niv init'.
 |]
