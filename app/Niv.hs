@@ -11,7 +11,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
-import Data.Char (isSpace, toUpper)
+import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
 import Data.Functor ((<&>))
 import Data.Hashable (Hashable)
@@ -27,8 +27,9 @@ import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as L
-import qualified Data.HashMap.Strict as HMap
+import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import qualified GitHub as GH
 import qualified GitHub.Data.Name as GH
 import qualified Options.Applicative as Opts
@@ -53,7 +54,7 @@ parseCommand = Opts.subparser (
     Opts.command "drop"  parseCmdDrop )
 
 newtype Sources = Sources
-  { unSources :: HMap.HashMap PackageName PackageSpec }
+  { unSources :: HMS.HashMap PackageName PackageSpec }
   deriving newtype (FromJSON, ToJSON)
 
 getSources :: IO Sources
@@ -67,19 +68,18 @@ getSources = do
     decodeFileStrict pathNixSourcesJson >>= \case
       Just (Aeson.Object obj) ->
         fmap (Sources . mconcat) $
-          forM (HMap.toList obj) $ \(k, v) ->
+          forM (HMS.toList obj) $ \(k, v) ->
             case v of
               Aeson.Object v' ->
-                pure $ HMap.singleton (PackageName (T.unpack k)) (PackageSpec v')
+                pure $ HMS.singleton (PackageName k) (PackageSpec v')
               _ -> abortAttributeIsntAMap
       Just _ -> abortSourcesIsntAMap
       Nothing -> abortSourcesIsntJSON
 
--- TODO: pretty
 setSources :: Sources -> IO ()
 setSources sources = encodeFile pathNixSourcesJson sources
 
-newtype PackageName = PackageName { unPackageName :: String }
+newtype PackageName = PackageName { unPackageName :: T.Text }
   deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)
 
 parsePackageName :: Opts.Parser PackageName
@@ -91,10 +91,10 @@ newtype PackageSpec = PackageSpec { _unPackageSpec :: Aeson.Object }
 
 parsePackageSpec :: Opts.Parser PackageSpec
 parsePackageSpec =
-    (PackageSpec . HMap.fromList . fmap fixupAttributes) <$>
+    (PackageSpec . HMS.fromList . fmap fixupAttributes) <$>
       many parseAttribute
   where
-    parseAttribute :: Opts.Parser (String, String)
+    parseAttribute :: Opts.Parser (T.Text, T.Text)
     parseAttribute =
       Opts.option (Opts.maybeReader parseKeyVal)
         ( Opts.long "attribute" <>
@@ -116,32 +116,32 @@ parsePackageSpec =
         ))
 
     -- Parse "key=val" into ("key", "val")
-    parseKeyVal :: String -> Maybe (String, String)
+    parseKeyVal :: String -> Maybe (T.Text, T.Text)
     parseKeyVal str = case span (/= '=') str of
-      (key, '=':val) -> Just (key, val)
+      (key, '=':val) -> Just (T.pack key, T.pack val)
       _ -> Nothing
 
     -- Shortcuts for common attributes
-    shortcutAttributes :: Opts.Parser (String, String)
+    shortcutAttributes :: Opts.Parser (T.Text, T.Text)
     shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
       [ "branch", "owner", "repo", "version" ]
 
-    mkShortcutAttribute :: String -> Opts.Parser (String, String)
+    mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, T.Text)
     mkShortcutAttribute = \case
-      attr@(c:_) -> (attr,) <$> Opts.strOption
-        ( Opts.long attr <>
+      attr@(T.uncons -> Just (c,_)) -> (attr,) <$> Opts.strOption
+        ( Opts.long (T.unpack attr) <>
           Opts.short c <>
-          Opts.metavar (toUpper <$> attr) <>
+          Opts.metavar (T.unpack $ T.toUpper attr) <>
           Opts.help
-            (
+            ( T.unpack $
               "Equivalent to --attribute " <>
-              attr <> "=<" <> (toUpper <$> attr) <> ">"
+              attr <> "=<" <> (T.toUpper attr) <> ">"
             )
         )
       _ -> empty
 
-    fixupAttributes :: (String, String) -> (T.Text, Aeson.Value)
-    fixupAttributes (k, v) = (T.pack k, Aeson.String (T.pack v))
+    fixupAttributes :: (T.Text, T.Text) -> (T.Text, Aeson.Value)
+    fixupAttributes (k, v) = (k, Aeson.String v)
 
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
 parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
@@ -251,10 +251,10 @@ completePackageSpec = execStateT $ do
     whenNotSet "url_template" $
       setPackageSpecAttr
         "url_template"
-        (Aeson.String $ T.pack githubURLTemplate)
+        (Aeson.String githubURLTemplate)
 
   where
-    githubURLTemplate :: String
+    githubURLTemplate :: T.Text
     githubURLTemplate =
       "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
 
@@ -283,18 +283,18 @@ getPackageSpecAttr
   -> StateT PackageSpec IO (Maybe Aeson.Value)
 getPackageSpecAttr attrName = do
   PackageSpec obj <- get
-  pure $ HMap.lookup attrName obj
+  pure $ HMS.lookup attrName obj
 
 setPackageSpecAttr
   :: T.Text -> Aeson.Value
   -> StateT PackageSpec IO ()
 setPackageSpecAttr attrName attrValue = do
   PackageSpec obj <- get
-  let obj' = HMap.insert attrName attrValue obj
+  let obj' = HMS.insert attrName attrValue obj
   put (PackageSpec obj')
 
 packageSpecStringValues :: PackageSpec -> [(String, String)]
-packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMap.toList m)
+packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMS.toList m)
   where
     toVal :: (T.Text, Aeson.Value) -> Maybe (String, String)
     toVal = \case
@@ -334,12 +334,12 @@ cmdInit = do
             createFile path initNixSourcesJsonContent
             -- Imports @niv@ and @nixpkgs@ (18.09)
             putStrLn "Importing 'niv' ..."
-            cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMap.empty)
+            cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
             putStrLn "Importing 'nixpkgs' ..."
             cmdAdd
               (Just (PackageName "nixpkgs"))
               ( PackageName "NixOS/nixpkgs-channels"
-              , PackageSpec (HMap.singleton "branch" "nixos-18.09"))
+              , PackageSpec (HMS.singleton "branch" "nixos-18.09"))
         , \path _content -> dontCreateFile path)
       ] $ \(path, onCreate, onUpdate) -> do
           exists <- Dir.doesFileExist path
@@ -385,12 +385,13 @@ cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
 cmdAdd mPackageName (PackageName str, spec) = do
 
     -- Figures out the owner and repo
-    (packageName, spec') <- flip runStateT spec $ case span (/= '/') str of
-          (owner@(_:_), '/':repo@(_:_)) -> do
+    (packageName, spec') <- flip runStateT spec $ case T.span (/= '/') str of
+          ( owner@(T.null -> False)
+            , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
             whenNotSet "owner" $
-              setPackageSpecAttr "owner" (Aeson.String $ T.pack owner)
+              setPackageSpecAttr "owner" (Aeson.String owner)
             whenNotSet "repo" $ do
-                setPackageSpecAttr "repo" (Aeson.String $ T.pack repo)
+                setPackageSpecAttr "repo" (Aeson.String repo)
             pure (PackageName repo)
           _ -> pure (PackageName str)
 
@@ -398,14 +399,14 @@ cmdAdd mPackageName (PackageName str, spec) = do
 
     let packageName' = fromMaybe packageName mPackageName
 
-    when (HMap.member packageName' sources) $
+    when (HMS.member packageName' sources) $
       abortCannotAddPackageExists packageName'
 
     spec'' <- updatePackageSpec =<< completePackageSpec spec'
 
     putStrLn $ "Writing new sources file"
     setSources $ Sources $
-      HMap.insert packageName' spec'' sources
+      HMS.insert packageName' spec'' sources
 
 -------------------------------------------------------------------------------
 -- SHOW
@@ -421,8 +422,8 @@ cmdShow = do
     sources <- unSources <$> getSources
 
     forWithKeyM_ sources $ \key (PackageSpec spec) -> do
-      putStrLn $ "Package: " <> unPackageName key
-      forM_ (HMap.toList spec) $ \(attrName, attrValValue) -> do
+      T.putStrLn $ "Package: " <> unPackageName key
+      forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
         let attrValue = case attrValValue of
               Aeson.String str -> str
               _ -> "<barabajagal>"
@@ -452,10 +453,10 @@ parseCmdUpdate =
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
     Just (packageName, packageSpec) -> do
-      putStrLn $ "Updating single package: " <> unPackageName packageName
+      T.putStrLn $ "Updating single package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
-      packageSpec' <- case HMap.lookup packageName sources of
+      packageSpec' <- case HMS.lookup packageName sources of
         Just packageSpec' -> do
 
           -- TODO: something fishy happening here
@@ -465,14 +466,14 @@ cmdUpdate = \case
         Nothing -> abortCannotUpdateNoSuchPackage packageName
 
       setSources $ Sources $
-        HMap.insert packageName packageSpec' sources
+        HMS.insert packageName packageSpec' sources
 
     Nothing -> do
       sources <- unSources <$> getSources
 
       sources' <- forWithKeyM sources $
         \packageName packageSpec -> do
-          putStrLn $ "Package: " <> unPackageName packageName
+          T.putStrLn $ "Package: " <> unPackageName packageName
           updatePackageSpec =<< completePackageSpec packageSpec
 
       setSources $ Sources sources'
@@ -504,29 +505,29 @@ parseCmdDrop =
 cmdDrop :: PackageName -> [T.Text] -> IO ()
 cmdDrop packageName = \case
     [] -> do
-      putStrLn $ "Dropping package: " <> unPackageName packageName
+      T.putStrLn $ "Dropping package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
-      when (not $ HMap.member packageName sources) $
+      when (not $ HMS.member packageName sources) $
         abortCannotDropNoSuchPackage packageName
 
       setSources $ Sources $
-        HMap.delete packageName sources
+        HMS.delete packageName sources
     attrs -> do
       putStrLn $ "Dropping attributes :" <>
         (T.unpack (T.intercalate " " attrs))
-      putStrLn $ "In package: " <> unPackageName packageName
+      T.putStrLn $ "In package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
-      packageSpec <- case HMap.lookup packageName sources of
+      packageSpec <- case HMS.lookup packageName sources of
         Nothing ->
           abortCannotAttributesDropNoSuchPackage packageName
         Just (PackageSpec packageSpec) -> pure $ PackageSpec $
-          HMap.mapMaybeWithKey
+          HMS.mapMaybeWithKey
             (\k v -> if k `elem` attrs then Nothing else Just v) packageSpec
 
       setSources $ Sources $
-        HMap.insert packageName packageSpec sources
+        HMS.insert packageName packageSpec sources
 
 -------------------------------------------------------------------------------
 -- Aux
@@ -556,14 +557,14 @@ encodeFile fp = L.writeFile fp . AesonPretty.encodePretty' config
 
 forWithKeyM
   :: (Eq k, Hashable k, Monad m)
-  => HMap.HashMap k v1
+  => HMS.HashMap k v1
   -> (k -> v1 -> m v2)
-  -> m (HMap.HashMap k v2)
+  -> m (HMS.HashMap k v2)
 forWithKeyM = flip mapWithKeyM
 
 forWithKeyM_
   :: (Eq k, Hashable k, Monad m)
-  => HMap.HashMap k v1
+  => HMS.HashMap k v1
   -> (k -> v1 -> m ())
   -> m ()
 forWithKeyM_ = flip mapWithKeyM_
@@ -571,20 +572,20 @@ forWithKeyM_ = flip mapWithKeyM_
 mapWithKeyM
   :: (Eq k, Hashable k, Monad m)
   => (k -> v1 -> m v2)
-  -> HMap.HashMap k v1
-  -> m (HMap.HashMap k v2)
+  -> HMS.HashMap k v1
+  -> m (HMS.HashMap k v2)
 mapWithKeyM f m = do
-    fmap mconcat $ forM (HMap.toList m) $ \(k, v) ->
-      HMap.singleton k <$> f k v
+    fmap mconcat $ forM (HMS.toList m) $ \(k, v) ->
+      HMS.singleton k <$> f k v
 
 mapWithKeyM_
   :: (Eq k, Hashable k, Monad m)
   => (k -> v1 -> m ())
-  -> HMap.HashMap k v1
+  -> HMS.HashMap k v1
   -> m ()
 mapWithKeyM_ f m = do
-    forM_ (HMap.toList m) $ \(k, v) ->
-      HMap.singleton k <$> f k v
+    forM_ (HMS.toList m) $ \(k, v) ->
+      HMS.singleton k <$> f k v
 
 -- | Renders the template. Returns 'Nothing' if some of the attributes are
 -- missing.
@@ -601,9 +602,9 @@ renderTemplate vals = \case
     c:str -> (c:) <$> renderTemplate vals str
     [] -> Just []
 
-abort :: String -> IO a
+abort :: T.Text -> IO a
 abort msg = do
-    putStrLn msg
+    T.putStrLn msg
     exitFailure
 
 nixPrefetchURL :: Bool -> String -> IO String
@@ -638,18 +639,18 @@ shouldUpdateNixSourcesNix content =
 warnIfOutdated :: IO ()
 warnIfOutdated = do
     tryAny (B.readFile pathNixSourcesNix) >>= \case
-      Left e -> putStrLn $ unlines
-        [ "Could not read " <> pathNixSourcesNix
-        , "Error: " <> show e
+      Left e -> T.putStrLn $ T.unlines
+        [ "Could not read " <> T.pack pathNixSourcesNix
+        , "Error: " <> tshow e
         ]
       Right content ->
         if shouldUpdateNixSourcesNix content
         then
-          putStrLn $ unlines
-            [ "WARNING: " <> pathNixSourcesNix <> " is out of date."
+          T.putStrLn $ T.unlines
+            [ "WARNING: " <> T.pack pathNixSourcesNix <> " is out of date."
             , "Please run"
             , "  niv init"
-            , "or add the following line in the " <> pathNixSourcesNix <> "  file:"
+            , "or add the following line in the " <> T.pack pathNixSourcesNix <> "  file:"
             , "  # niv: no_update"
             ]
         else pure ()
@@ -700,17 +701,17 @@ Make sure the repository exists.
 -------------------------------------------------------------------------------
 
 abortSourcesDoesntExist :: IO a
-abortSourcesDoesntExist = abort $ unlines [ line1, line2 ]
+abortSourcesDoesntExist = abort $ T.unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> pathNixSourcesJson
+    line1 = "Cannot use " <> T.pack pathNixSourcesJson
     line2 = [s|
 The sources file does not exist! You may need to run 'niv init'.
 |]
 
 abortSourcesIsntAMap :: IO a
-abortSourcesIsntAMap = abort $ unlines [ line1, line2 ]
+abortSourcesIsntAMap = abort $ T.unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> pathNixSourcesJson
+    line1 = "Cannot use " <> T.pack pathNixSourcesJson
     line2 = [s|
 The sources file should be a JSON map from package name to package
 specification, e.g.:
@@ -718,9 +719,9 @@ specification, e.g.:
 |]
 
 abortAttributeIsntAMap :: IO a
-abortAttributeIsntAMap = abort $ unlines [ line1, line2 ]
+abortAttributeIsntAMap = abort $ T.unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> pathNixSourcesJson
+    line1 = "Cannot use " <> T.pack pathNixSourcesJson
     line2 = [s|
 The package specifications in the sources file should be JSON maps from
 attribute name to attribute value, e.g.:
@@ -728,13 +729,13 @@ attribute name to attribute value, e.g.:
 |]
 
 abortSourcesIsntJSON :: IO a
-abortSourcesIsntJSON = abort $ unlines [ line1, line2 ]
+abortSourcesIsntJSON = abort $ T.unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> pathNixSourcesJson
+    line1 = "Cannot use " <> T.pack pathNixSourcesJson
     line2 = "The sources file should be JSON."
 
 abortCannotAddPackageExists :: PackageName -> IO a
-abortCannotAddPackageExists (PackageName n) = abort $ unlines
+abortCannotAddPackageExists (PackageName n) = abort $ T.unlines
     [ "Cannot add package " <> n <> "."
     , "The package already exists. Use"
     , "  niv drop " <> n
@@ -744,7 +745,7 @@ abortCannotAddPackageExists (PackageName n) = abort $ unlines
     ]
 
 abortCannotUpdateNoSuchPackage :: PackageName -> IO a
-abortCannotUpdateNoSuchPackage (PackageName n) = abort $ unlines
+abortCannotUpdateNoSuchPackage (PackageName n) = abort $ T.unlines
     [ "Cannot update package " <> n <> "."
     , "The package doesn't exist. Use"
     , "  niv add " <> n
@@ -752,13 +753,13 @@ abortCannotUpdateNoSuchPackage (PackageName n) = abort $ unlines
     ]
 
 abortCannotDropNoSuchPackage :: PackageName -> IO a
-abortCannotDropNoSuchPackage (PackageName n) = abort $ unlines
+abortCannotDropNoSuchPackage (PackageName n) = abort $ T.unlines
     [ "Cannot drop package " <> n <> "."
     , "The package doesn't exist."
     ]
 
 abortCannotAttributesDropNoSuchPackage :: PackageName -> IO a
-abortCannotAttributesDropNoSuchPackage (PackageName n) = abort $ unlines
+abortCannotAttributesDropNoSuchPackage (PackageName n) = abort $ T.unlines
     [ "Cannot drop attributes of package " <> n <> "."
     , "The package doesn't exist."
     ]
@@ -772,3 +773,6 @@ ticket:
 
 Thanks! I'll buy you a beer.
 |]
+
+tshow :: Show a => a -> T.Text
+tshow = T.pack . show
