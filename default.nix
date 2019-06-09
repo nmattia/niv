@@ -15,6 +15,11 @@ with rec
     [ "^package.yaml$"
       "^app$"
       "^app.*.hs$"
+      "^src$"
+      "^src/Niv$"
+      "^src/Niv/GitHub$"
+      "^src/Niv/Update$"
+      "^src.*.hs$"
       "^README.md$"
       "^nix$"
       "^nix.sources.nix$"
@@ -29,7 +34,8 @@ with rec
       shellHook =
         ''
           repl() {
-            ghci app/Niv.hs
+            shopt -s globstar
+            ghci -Wall app/**/*.hs src/**/*.hs
           }
 
           echo "To start a REPL session, run:"
@@ -94,6 +100,8 @@ rec
       [ $expected_hash == $actual_hash ] && echo dymmy > $out || err
     '';
 
+
+  # TODO: use nivForTest for this one
   niv-svg-cmds = pkgs.writeScript "niv-svg-cmds"
       ''
         #!${pkgs.stdenv.shell}

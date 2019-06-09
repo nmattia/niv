@@ -6,24 +6,41 @@ ghc-options:
     - -Wall
     - -Werror
 
-executable:
-    main: app/Niv.hs
+dependencies:
+    - base
+    - text
+    - mtl
+    - unliftio
+
+library:
+    source-dirs:
+        - src
     dependencies:
-        - base
-        - hashable
-        - file-embed
-        - process
-        - text
-        - bytestring
         - aeson
-        - aeson-pretty
-        - directory
-        - string-qq
-        - filepath
         - github
-        - mtl
-        - optparse-applicative
-        - unliftio
+        - tasty
+        - tasty-hunit
         - unordered-containers
-    data-files:
-        - nix/sources.nix
+
+executables:
+    niv:
+        source-dirs:
+            - app
+        main: Niv.main
+        data-files:
+            - nix/sources.nix
+        dependencies:
+            - aeson
+            - aeson-pretty
+            - bytestring
+            - directory
+            - filepath
+            - github
+            - hashable
+            - file-embed
+            - niv
+            - optparse-applicative
+            - process
+            - string-qq
+            - tasty
+            - unordered-containers

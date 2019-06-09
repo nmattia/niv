@@ -7,17 +7,20 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
+module Niv where
+
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
-import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
+import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
 import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
-import Data.Functor ((<&>))
 import Data.Hashable (Hashable)
 import Data.Maybe (mapMaybe, fromMaybe)
 import Data.String.QQ (s)
-import GHC.Exts (toList)
+import Niv.GitHub
+import Niv.Test
+import Niv.Update
 import System.Exit (exitFailure)
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
@@ -31,10 +34,10 @@ import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified GitHub as GH
-import qualified GitHub.Data.Name as GH
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import qualified System.Directory as Dir
+import qualified Test.Tasty as Tasty
 
 main :: IO ()
 main = join $ Opts.execParser opts
@@ -86,8 +89,12 @@ parsePackageName :: Opts.Parser PackageName
 parsePackageName = PackageName <$>
     Opts.argument Opts.str (Opts.metavar "PACKAGE")
 
-newtype PackageSpec = PackageSpec { _unPackageSpec :: Aeson.Object }
+newtype PackageSpec = PackageSpec { unPackageSpec :: Aeson.Object }
   deriving newtype (FromJSON, ToJSON, Show, Semigroup, Monoid)
+
+-- | Simply discards the 'Freedom'
+attrsToSpec :: Attrs -> PackageSpec
+attrsToSpec = PackageSpec . fmap snd
 
 parsePackageSpec :: Opts.Parser PackageSpec
 parsePackageSpec =
@@ -126,6 +133,7 @@ parsePackageSpec =
     shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
       [ "branch", "owner", "repo", "version" ]
 
+    -- TODO: infer those shortcuts from 'Update' keys
     mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, T.Text)
     mkShortcutAttribute = \case
       attr@(T.uncons -> Just (c,_)) -> (attr,) <$> Opts.strOption
@@ -150,113 +158,8 @@ parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
 -- PACKAGE SPEC OPS
 -------------------------------------------------------------------------------
 
-updatePackageSpec :: PackageSpec -> IO PackageSpec
-updatePackageSpec = execStateT $ do
-    originalUrl <- getPackageSpecAttr "url"
-
-    -- Figures out the URL from the template
-    withPackageSpecAttr "url_template" (\case
-      Aeson.String (T.unpack -> template) -> do
-        packageSpec <- get
-        let stringValues = packageSpecStringValues packageSpec
-        case renderTemplate stringValues template of
-          Just renderedURL ->
-            setPackageSpecAttr "url" (Aeson.String $ T.pack renderedURL)
-          Nothing -> pure ()
-      _ -> pure ()
-      )
-
-    -- If the type attribute is not set, we try to infer its value based on the url suffix
-    (,) <$> getPackageSpecAttr "type" <*> getPackageSpecAttr "url" >>= \case
-      -- If an url type is set, we'll use it
-      (Just _, _) -> pure ()
-      -- We need an url to infer a url type
-      (_, Nothing) -> pure ()
-      (Nothing, Just (Aeson.String url)) -> do
-         let urlType = if "tar.gz" `T.isSuffixOf` url
-                       then "tarball"
-                       else "file"
-         setPackageSpecAttr "type" (Aeson.String $ T.pack urlType)
-      -- If the JSON value is not a string, we ignore it
-      (_, _) -> pure ()
-
-    -- Updates the sha256 based on the URL contents
-    (,) <$> getPackageSpecAttr "url" <*> getPackageSpecAttr "sha256" >>= \case
-      -- If no URL is set, we simply can't prefetch
-      (Nothing, _) -> pure ()
-
-      -- If an URL is set and no sha is set, /do/ update
-      (Just url, Nothing) -> prefetch url
-
-      -- If both the URL and sha are set, update only if the url has changed
-      (Just url, Just{}) -> when (Just url /= originalUrl) (prefetch url)
-  where
-    prefetch :: Aeson.Value -> StateT PackageSpec IO ()
-    prefetch = \case
-      Aeson.String (T.unpack -> url) -> do
-        unpack <- getPackageSpecAttr "type" <&> \case
-          -- Do not unpack if the url type is 'file'
-          Just (Aeson.String urlType) -> not $ T.unpack urlType == "file"
-          _ -> True
-        sha256 <- liftIO $ nixPrefetchURL unpack url
-        setPackageSpecAttr "sha256" (Aeson.String $ T.pack sha256)
-      _ -> pure ()
-
-completePackageSpec
-  :: PackageSpec
-  -> IO (PackageSpec)
-completePackageSpec = execStateT $ do
-
-    -- In case we have @owner@ and @repo@, pull some data from GitHub
-    (,) <$> getPackageSpecAttr "owner" <*> getPackageSpecAttr "repo" >>= \case
-      (Just (Aeson.String owner), Just (Aeson.String repo)) -> do
-          liftIO (GH.executeRequest' $ GH.repositoryR (GH.N owner) (GH.N repo))
-            >>= \case
-              Left e ->
-                liftIO $ warnCouldNotFetchGitHubRepo e (T.unpack owner, T.unpack repo)
-              Right ghRepo -> do
-
-                -- Description
-                whenNotSet "description" $ case GH.repoDescription ghRepo of
-                  Just descr ->
-                    setPackageSpecAttr "description" (Aeson.String descr)
-                  Nothing -> pure ()
-
-                whenNotSet "homepage" $ case GH.repoHomepage ghRepo of
-                  Just descr ->
-                    setPackageSpecAttr "homepage" (Aeson.String descr)
-                  Nothing -> pure ()
-
-                -- Branch and rev
-                whenNotSet "branch" $ case GH.repoDefaultBranch ghRepo of
-                  Just branch ->
-                    setPackageSpecAttr "branch" (Aeson.String branch)
-                  Nothing -> pure ()
-
-                withPackageSpecAttr "branch" (\case
-                  Aeson.String branch -> do
-                    liftIO (GH.executeRequest' $
-                      GH.commitsWithOptionsForR
-                      (GH.N owner) (GH.N repo) (GH.FetchAtLeast 1)
-                      [GH.CommitQuerySha branch]) >>= \case
-                        Right (toList -> (commit:_)) -> do
-                          let GH.N rev = GH.commitSha commit
-                          setPackageSpecAttr "rev" (Aeson.String rev)
-                        _ -> pure ()
-                  _ -> pure ()
-                  )
-      (_,_) -> pure ()
-
-    -- Figures out the URL template
-    whenNotSet "url_template" $
-      setPackageSpecAttr
-        "url_template"
-        (Aeson.String githubURLTemplate)
-
-  where
-    githubURLTemplate :: T.Text
-    githubURLTemplate =
-      "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+test :: IO ()
+test = Tasty.defaultMain $ Niv.Test.tests
 
 -------------------------------------------------------------------------------
 -- PackageSpec State helpers
@@ -382,18 +285,14 @@ parseCmdAdd =
       ]
 
 cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
-cmdAdd mPackageName (PackageName str, spec) = do
+cmdAdd mPackageName (PackageName str, cliSpec) = do
 
     -- Figures out the owner and repo
-    (packageName, spec') <- flip runStateT spec $ case T.span (/= '/') str of
+    let (packageName, defaultSpec) = case T.span (/= '/') str of
           ( owner@(T.null -> False)
             , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
-            whenNotSet "owner" $
-              setPackageSpecAttr "owner" (Aeson.String owner)
-            whenNotSet "repo" $ do
-                setPackageSpecAttr "repo" (Aeson.String repo)
-            pure (PackageName repo)
-          _ -> pure (PackageName str)
+            (PackageName repo, HMS.fromList [ "owner" .= owner, "repo" .= repo ])
+          _ -> (PackageName str, HMS.empty)
 
     sources <- unSources <$> getSources
 
@@ -402,7 +301,11 @@ cmdAdd mPackageName (PackageName str, spec) = do
     when (HMS.member packageName' sources) $
       abortCannotAddPackageExists packageName'
 
-    spec'' <- updatePackageSpec =<< completePackageSpec spec'
+    let defaultSpec' = PackageSpec $ defaultSpec
+
+    spec'' <- attrsToSpec <$> evalUpdate
+      (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec')
+      (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
 
     putStrLn $ "Writing new sources file"
     setSources $ Sources $
@@ -415,6 +318,7 @@ cmdAdd mPackageName (PackageName str, spec) = do
 parseCmdShow :: Opts.ParserInfo (IO ())
 parseCmdShow = Opts.info (pure cmdShow <**> Opts.helper) Opts.fullDesc
 
+-- TODO: nicer output
 cmdShow :: IO ()
 cmdShow = do
     putStrLn $ "Showing sources file"
@@ -450,6 +354,13 @@ parseCmdUpdate =
           "  niv update my-package -v beta-0.2"
       ]
 
+specToFreeAttrs :: PackageSpec -> Attrs
+specToFreeAttrs = fmap (Free,) . unPackageSpec
+
+specToLockedAttrs :: PackageSpec -> Attrs
+specToLockedAttrs = fmap (Locked,) . unPackageSpec
+
+-- TODO: sexy logging + concurrent updates
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
     Just (packageName, packageSpec) -> do
@@ -458,10 +369,9 @@ cmdUpdate = \case
 
       packageSpec' <- case HMS.lookup packageName sources of
         Just packageSpec' -> do
-
-          -- TODO: something fishy happening here
-          pkgSpec <- completePackageSpec $ packageSpec <> packageSpec'
-          updatePackageSpec $ pkgSpec
+          attrsToSpec <$> evalUpdate
+            (specToLockedAttrs packageSpec <> specToFreeAttrs packageSpec')
+            (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
 
         Nothing -> abortCannotUpdateNoSuchPackage packageName
 
@@ -474,7 +384,9 @@ cmdUpdate = \case
       sources' <- forWithKeyM sources $
         \packageName packageSpec -> do
           T.putStrLn $ "Package: " <> unPackageName packageName
-          updatePackageSpec =<< completePackageSpec packageSpec
+          attrsToSpec <$> evalUpdate
+            (specToFreeAttrs packageSpec)
+            (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
 
       setSources $ Sources sources'
 
@@ -587,31 +499,16 @@ mapWithKeyM_ f m = do
     forM_ (HMS.toList m) $ \(k, v) ->
       HMS.singleton k <$> f k v
 
--- | Renders the template. Returns 'Nothing' if some of the attributes are
--- missing.
---
---  renderTemplate [("foo", "bar")] "<foo>" == Just "bar"
---  renderTemplate [("foo", "bar")] "<baz>" == Nothing
-renderTemplate :: [(String, String)] -> String -> Maybe String
-renderTemplate vals = \case
-    '<':str -> do
-      case span (/= '>') str of
-        (key, '>':rest) ->
-          liftA2 (<>) (lookup key vals) (renderTemplate vals rest)
-        _ -> Nothing
-    c:str -> (c:) <$> renderTemplate vals str
-    [] -> Just []
-
 abort :: T.Text -> IO a
 abort msg = do
     T.putStrLn msg
     exitFailure
 
-nixPrefetchURL :: Bool -> String -> IO String
-nixPrefetchURL unpack url =
+nixPrefetchURL :: Bool -> T.Text -> IO T.Text
+nixPrefetchURL unpack (T.unpack -> url) =
     lines <$> readProcess "nix-prefetch-url" args "" >>=
       \case
-        (l:_) -> pure l
+        (l:_) -> pure (T.pack l)
         _ -> abortNixPrefetchExpectedOutput
   where args = if unpack then ["--unpack", url] else [url]
 
