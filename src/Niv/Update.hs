@@ -1,4 +1,3 @@
-{-# LANGUAGE Arrows #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -21,57 +20,7 @@ import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
 
-type JSON a = (ToJSON a, FromJSON a)
-
-data UpdateFailed
-  = FailNoSuchKey T.Text
-  | FailBadIo SomeException
-  | FailZero
-  | FailCheck
-  | FailTemplate T.Text [T.Text]
-  deriving Show
-
-data UpdateRes a b
-  = UpdateReady (UpdateReady b)
-  | UpdateNeedMore (a -> IO (UpdateReady b))
-  deriving Functor
-
-data UpdateReady b
-  = UpdateSuccess BoxedAttrs b
-  | UpdateFailed UpdateFailed
-  deriving Functor
-
-execUpdate :: Attrs -> Update () a -> IO a
-execUpdate attrs a = snd <$> runUpdate attrs a
-
-evalUpdate :: Attrs -> Update () a -> IO Attrs
-evalUpdate attrs a = fst <$> runUpdate attrs a
-
-tryEvalUpdate :: Attrs -> Update () a -> IO (Either SomeException Attrs)
-tryEvalUpdate attrs upd = tryAny (evalUpdate attrs upd)
-
-runUpdate :: Attrs -> Update () a -> IO (Attrs, a)
-runUpdate (boxAttrs -> attrs) a = runUpdate' attrs a >>= feed
-  where
-    feed = \case
-      UpdateReady res -> hndl res
-      UpdateNeedMore next -> next (()) >>= hndl
-    hndl = \case
-      UpdateSuccess f v -> (,v) <$> unboxAttrs f
-      UpdateFailed e -> error $ "baaaah: " <> show e
-
-runBox :: Box a -> IO a
-runBox = boxOp
-
-instance ArrowZero Update where
-    zeroArrow = Zero
-
-instance ArrowPlus Update where
-    (<+>) = Plus
-
-instance Arrow Update where
-    arr = Arr
-    first = First
+type Attrs = HMS.HashMap T.Text (Freedom, Value)
 
 data Update b c where
   Id :: Update a a
@@ -87,14 +36,98 @@ data Update b c where
   Run :: (a -> IO b)  -> Update (Box a) (Box b)
   Template :: Update (Box T.Text) (Box T.Text)
 
+instance ArrowZero Update where
+    zeroArrow = Zero
+
+instance ArrowPlus Update where
+    (<+>) = Plus
+
+instance Arrow Update where
+    arr = Arr
+    first = First
+
 instance Cat.Category Update where
     id = Id
     f . g = Compose (Compose' f g)
 
+instance Show (Update b c) where
+  show = \case
+    Id -> "Id"
+    Compose (Compose' f g)-> "(" <> show f <> " . " <> show g <> ")"
+    Arr _f -> "Arr"
+    First a -> "First " <> show a
+    Zero -> "Zero"
+    Plus l r -> "(" <> show l <> " + " <> show r <> ")"
+    Check _ch -> "Check"
+    Load k -> "Load " <> T.unpack k
+    UseOrSet k -> "UseOrSet " <> T.unpack k
+    Update k -> "Update " <> T.unpack k
+    Run _act -> "Io"
+    Template -> "Template"
+
 data Compose a c = forall b. Compose' (Update b c) (Update a b)
+
+-- | Run an 'Update' and return the new attributes and result.
+runUpdate :: Attrs -> Update () a -> IO (Attrs, a)
+runUpdate (boxAttrs -> attrs) a = runUpdate' attrs a >>= feed
+  where
+    feed = \case
+      UpdateReady res -> hndl res
+      UpdateNeedMore next -> next (()) >>= hndl
+    hndl = \case
+      UpdateSuccess f v -> (,v) <$> unboxAttrs f
+      -- TODO: fix this
+      UpdateFailed e -> error $ "Update failed: " <> T.unpack (prettyFail e)
+    prettyFail :: UpdateFailed -> T.Text
+    prettyFail = \case
+      FailNoSuchKey k -> "Key could not be found: " <> k
+      FailZero -> T.unlines
+        [ "A dead end was reached during evaluation."
+        , "This is a bug. Please create a ticket:"
+        , "  https://github.com/nmattia/niv/issues/new"
+        , "Thanks! I'll buy you a beer."
+        ]
+      FailCheck -> "A check failed during update"
+      FailTemplate tpl keys -> T.unlines
+        [ "Could not render template " <> tpl
+        , "with keys: " <> T.intercalate ", " keys
+        ]
+
+execUpdate :: Attrs -> Update () a -> IO a
+execUpdate attrs a = snd <$> runUpdate attrs a
+
+evalUpdate :: Attrs -> Update () a -> IO Attrs
+evalUpdate attrs a = fst <$> runUpdate attrs a
+
+tryEvalUpdate :: Attrs -> Update () a -> IO (Either SomeException Attrs)
+tryEvalUpdate attrs upd = tryAny (evalUpdate attrs upd)
+
+type JSON a = (ToJSON a, FromJSON a)
+
+data UpdateFailed
+  = FailNoSuchKey T.Text
+  | FailZero
+  | FailCheck
+  | FailTemplate T.Text [T.Text]
+  deriving Show
+
+data UpdateRes a b
+  = UpdateReady (UpdateReady b)
+  | UpdateNeedMore (a -> IO (UpdateReady b))
+  deriving Functor
+
+data UpdateReady b
+  = UpdateSuccess BoxedAttrs b
+  | UpdateFailed UpdateFailed
+  deriving Functor
+
+runBox :: Box a -> IO a
+runBox = boxOp
 
 data Box a = Box
   { boxNew :: Bool
+    -- ^ Whether the value is new or was retrieved (or derived) from old
+    -- attributes
   , boxOp :: IO a
   }
   deriving Functor
@@ -112,23 +145,7 @@ instance Semigroup a => Semigroup (Box a) where
 instance IsString (Box T.Text) where
   fromString str = Box { boxNew = False, boxOp = pure $ T.pack str }
 
-instance Show (Update b c) where
-  show = \case
-    Id -> "Id"
-    Compose (Compose' f g)-> "(" <> show f <> " . " <> show g <> ")"
-    Arr _f -> "Arr"
-    First a -> "First " <> show a
-    Zero -> "Zero"
-    Plus l r -> "(" <> show l <> " + " <> show r <> ")"
-    Check _ch -> "Check"
-    Load k -> "Load " <> T.unpack k
-    UseOrSet k -> "UseOrSet " <> T.unpack k
-    Update k -> "Update " <> T.unpack k
-    Run _act -> "Io"
-    Template -> "Template"
-
 type BoxedAttrs = HMS.HashMap T.Text (Freedom, Box Value)
-type Attrs = HMS.HashMap T.Text (Freedom, Value)
 
 unboxAttrs :: BoxedAttrs -> IO Attrs
 unboxAttrs = traverse (\(fr, v) -> (fr,) <$> runBox v)
@@ -146,6 +163,9 @@ data Freedom
   | Free
   deriving (Eq, Show)
 
+-- | Runs an update, trying to evaluate the 'Box'es as little as possible.
+-- This is a hairy piece of code, apologies ¯\_(ツ)_/¯
+-- In most cases I just picked the first implementation that compiled
 runUpdate' :: BoxedAttrs -> Update a b -> IO (UpdateRes a b)
 runUpdate' attrs = \case
     Id -> pure $ UpdateNeedMore $ pure . UpdateSuccess attrs
@@ -226,9 +246,8 @@ decodeValue msg v = case Aeson.fromJSON v of
 
 -- | Renders the template. Returns 'Nothing' if some of the attributes are
 -- missing.
---  TODO: fix doc
---  renderTemplate [("foo", "bar")] "<foo>" == pure (Just "bar")
---  renderTemplate [("foo", "bar")] "<baz>" == pure Nothing
+--  renderTemplate ("foo" -> "bar") "<foo>" -> pure (Just "bar")
+--  renderTemplate ("foo" -> "bar") "<baz>" -> pure Nothing
 renderTemplate :: (T.Text -> Maybe (Box T.Text)) -> T.Text -> Maybe (Box T.Text)
 renderTemplate vals = \case
     (T.uncons -> Just ('<', str)) -> do
@@ -241,7 +260,6 @@ renderTemplate vals = \case
     (T.uncons -> Nothing) -> Just $ pure T.empty
     -- XXX: isn't this redundant?
     _ -> Just $ pure T.empty
-
 
 template :: Update (Box T.Text) (Box T.Text)
 template = Template
