@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -45,6 +46,9 @@ execUpdate attrs a = snd <$> runUpdate attrs a
 
 evalUpdate :: Attrs -> Update () a -> IO Attrs
 evalUpdate attrs a = fst <$> runUpdate attrs a
+
+tryEvalUpdate :: Attrs -> Update () a -> IO (Either SomeException Attrs)
+tryEvalUpdate attrs upd = tryAny (evalUpdate attrs upd)
 
 runUpdate :: Attrs -> Update () a -> IO (Attrs, a)
 runUpdate (boxAttrs -> attrs) a = runUpdate' attrs a >>= feed
@@ -142,7 +146,6 @@ data Freedom
   | Free
   deriving (Eq, Show)
 
--- TODO: tryAny all IOs
 runUpdate' :: BoxedAttrs -> Update a b -> IO (UpdateRes a b)
 runUpdate' attrs = \case
     Id -> pure $ UpdateNeedMore $ pure . UpdateSuccess attrs
@@ -205,17 +208,21 @@ runUpdate' attrs = \case
             UpdateNeedMore next' -> next' act
     Template -> pure $ UpdateNeedMore $ \v -> do
       v' <- runBox v
-      case renderTemplate (\k -> (decodeBox . snd) <$> HMS.lookup k attrs) v' of
+      case renderTemplate
+            (\k ->
+              ((decodeBox $ "When rendering template " <> v') . snd) <$>
+              HMS.lookup k attrs) v' of
         Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
         Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
 
-decodeBox :: FromJSON a => Box Value -> Box a
-decodeBox v = v { boxOp = boxOp v >>= decodeValue }
+decodeBox :: FromJSON a => T.Text -> Box Value -> Box a
+decodeBox msg v = v { boxOp = boxOp v >>= decodeValue msg }
 
-decodeValue :: FromJSON a => Value -> IO a
-decodeValue v = case Aeson.fromJSON v of
+decodeValue :: FromJSON a => T.Text -> Value -> IO a
+decodeValue msg v = case Aeson.fromJSON v of
   Aeson.Success x -> pure x
-  Aeson.Error str -> error $ "Could not decode: " <> show v <> " :" <> str
+  Aeson.Error str ->
+    error $ T.unpack msg <> ": Could not decode: " <> show v <> ": " <> str
 
 -- | Renders the template. Returns 'Nothing' if some of the attributes are
 -- missing.
@@ -243,20 +250,20 @@ check :: (a -> Bool) -> Update (Box a) ()
 check = Check
 
 load :: FromJSON a => T.Text -> Update () (Box a)
-load k = Load k >>> arr decodeBox
+load k = Load k >>> arr (decodeBox $ "When loading key " <> k)
 
 -- TODO: should input really be Box?
 useOrSet :: JSON a => T.Text -> Update (Box a) (Box a)
 useOrSet k =
     arr (fmap Aeson.toJSON) >>>
     UseOrSet k >>>
-    arr decodeBox
+    arr (decodeBox $ "When trying to use or set key " <> k)
 
 update :: JSON a => T.Text -> Update (Box a) (Box a)
 update k =
     arr (fmap Aeson.toJSON) >>>
     Update k >>>
-    arr decodeBox
+    arr (decodeBox $ "When updating key " <> k)
 
 run :: (a -> IO b) -> Update (Box a) (Box b)
 run = Run

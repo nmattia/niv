@@ -262,13 +262,16 @@ cmdAdd mPackageName (PackageName str, cliSpec) = do
 
     let defaultSpec' = PackageSpec $ defaultSpec
 
-    finalSpec <- attrsToSpec <$> evalUpdate
+    eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate
       (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec')
       (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
 
-    putStrLn $ "Writing new sources file"
-    setSources $ Sources $
-      HMS.insert packageName' finalSpec sources
+    case eFinalSpec of
+      Left e -> abortUpdateFailed [(packageName', e)]
+      Right finalSpec -> do
+        putStrLn $ "Writing new sources file"
+        setSources $ Sources $
+          HMS.insert packageName' finalSpec sources
 
 -------------------------------------------------------------------------------
 -- SHOW
@@ -326,28 +329,40 @@ cmdUpdate = \case
       T.putStrLn $ "Updating single package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
-      finalSpec <- case HMS.lookup packageName sources of
+      eFinalSpec <- case HMS.lookup packageName sources of
         Just defaultSpec -> do
-          attrsToSpec <$> evalUpdate
+          fmap attrsToSpec <$> tryEvalUpdate
             (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
             (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
 
         Nothing -> abortCannotUpdateNoSuchPackage packageName
 
-      setSources $ Sources $
-        HMS.insert packageName finalSpec sources
+      case eFinalSpec of
+        Left e -> abortUpdateFailed [(packageName, e)]
+        Right finalSpec ->
+          setSources $ Sources $
+            HMS.insert packageName finalSpec sources
 
     Nothing -> do
       sources <- unSources <$> getSources
 
-      sources' <- forWithKeyM sources $
+      esources' <- forWithKeyM sources $
         \packageName defaultSpec -> do
           T.putStrLn $ "Package: " <> unPackageName packageName
-          attrsToSpec <$> evalUpdate
+          fmap attrsToSpec <$> tryEvalUpdate
             (specToFreeAttrs defaultSpec)
             (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
 
+      let (failed, sources') = partitionEithersHMS esources'
+
+      unless (HMS.null failed) $
+        abortUpdateFailed (HMS.toList failed)
+
       setSources $ Sources sources'
+
+partitionEithersHMS
+  :: HMS.HashMap k (Either a b) -> (HMS.HashMap k a, HMS.HashMap k b)
+partitionEithersHMS = undefined
 
 -------------------------------------------------------------------------------
 -- DROP
@@ -619,6 +634,13 @@ abortCannotAttributesDropNoSuchPackage (PackageName n) = abort $ T.unlines
     [ "Cannot drop attributes of package " <> n <> "."
     , "The package doesn't exist."
     ]
+
+abortUpdateFailed :: [ (PackageName, SomeException) ] -> IO a
+abortUpdateFailed errs = abort $ T.unlines $
+    [ "One or more packages failed to update:" ] <>
+    map (\(PackageName pname, e) ->
+      pname <> ": " <> tshow e
+    ) errs
 
 abortNixPrefetchExpectedOutput :: IO a
 abortNixPrefetchExpectedOutput = abort [s|
