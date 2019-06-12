@@ -11,12 +11,11 @@ module Niv where
 
 import Control.Applicative
 import Control.Monad
-import Control.Monad.State
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
 import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
 import Data.Hashable (Hashable)
-import Data.Maybe (mapMaybe, fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.String.QQ (s)
 import Niv.GitHub
 import Niv.Test
@@ -160,49 +159,6 @@ parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
 
 test :: IO ()
 test = Tasty.defaultMain $ Niv.Test.tests
-
--------------------------------------------------------------------------------
--- PackageSpec State helpers
--------------------------------------------------------------------------------
-
-whenNotSet
-  :: T.Text
-  -> StateT PackageSpec IO ()
-  -> StateT PackageSpec IO ()
-whenNotSet attrName act = getPackageSpecAttr attrName >>= \case
-  Just _ -> pure ()
-  Nothing -> act
-
-withPackageSpecAttr
-  :: T.Text
-  -> (Aeson.Value -> StateT PackageSpec IO ())
-  -> StateT PackageSpec IO ()
-withPackageSpecAttr attrName act = getPackageSpecAttr attrName >>= \case
-  Just v -> act v
-  Nothing -> pure ()
-
-getPackageSpecAttr
-  :: T.Text
-  -> StateT PackageSpec IO (Maybe Aeson.Value)
-getPackageSpecAttr attrName = do
-  PackageSpec obj <- get
-  pure $ HMS.lookup attrName obj
-
-setPackageSpecAttr
-  :: T.Text -> Aeson.Value
-  -> StateT PackageSpec IO ()
-setPackageSpecAttr attrName attrValue = do
-  PackageSpec obj <- get
-  let obj' = HMS.insert attrName attrValue obj
-  put (PackageSpec obj')
-
-packageSpecStringValues :: PackageSpec -> [(String, String)]
-packageSpecStringValues (PackageSpec m) = mapMaybe toVal (HMS.toList m)
-  where
-    toVal :: (T.Text, Aeson.Value) -> Maybe (String, String)
-    toVal = \case
-      (key, Aeson.String val) -> Just (T.unpack key, T.unpack val)
-      _ -> Nothing
 
 -------------------------------------------------------------------------------
 -- INIT
