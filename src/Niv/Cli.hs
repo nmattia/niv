@@ -361,8 +361,12 @@ cmdUpdate = \case
       setSources $ Sources sources'
 
 partitionEithersHMS
-  :: HMS.HashMap k (Either a b) -> (HMS.HashMap k a, HMS.HashMap k b)
-partitionEithersHMS = undefined
+  :: (Eq k, Hashable k)
+  => HMS.HashMap k (Either a b) -> (HMS.HashMap k a, HMS.HashMap k b)
+partitionEithersHMS =
+    flip HMS.foldlWithKey' (HMS.empty, HMS.empty) $ \(ls, rs) k -> \case
+      Left l -> (HMS.insert k l ls, rs)
+      Right r -> (ls, HMS.insert k r rs)
 
 -------------------------------------------------------------------------------
 -- DROP
