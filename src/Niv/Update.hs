@@ -76,7 +76,6 @@ runUpdate (boxAttrs -> attrs) a = runUpdate' attrs a >>= feed
       UpdateNeedMore next -> next (()) >>= hndl
     hndl = \case
       UpdateSuccess f v -> (,v) <$> unboxAttrs f
-      -- TODO: fix this
       UpdateFailed e -> error $ "Update failed: " <> T.unpack (prettyFail e)
     prettyFail :: UpdateFailed -> T.Text
     prettyFail = \case

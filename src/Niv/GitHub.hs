@@ -1,6 +1,8 @@
 {-# LANGUAGE Arrows #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Niv.GitHub where
@@ -8,6 +10,7 @@ module Niv.GitHub where
 import Control.Arrow
 import Data.Bool
 import Data.Maybe
+import Data.String.QQ (s)
 import GHC.Exts (toList)
 import Niv.Update
 import qualified Data.Text as T
@@ -23,7 +26,9 @@ data GithubRepo = GithubRepo
 githubRepo :: T.Text -> T.Text -> IO GithubRepo
 githubRepo owner repo = fmap translate <$>
     GH.executeRequest' (GH.repositoryR (GH.N owner) (GH.N repo)) >>= \case
-      Left e -> error (show e)
+      Left e -> do
+        warnCouldNotFetchGitHubRepo e (owner, repo)
+        error (show e)
       Right x -> pure x
   where
     translate r = GithubRepo
@@ -31,6 +36,27 @@ githubRepo owner repo = fmap translate <$>
       , repoHomepage = GH.repoHomepage r
       , repoDefaultBranch = GH.repoDefaultBranch r
       }
+
+warnCouldNotFetchGitHubRepo :: GH.Error -> (T.Text, T.Text) -> IO ()
+warnCouldNotFetchGitHubRepo e (T.unpack -> owner, T.unpack -> repo) =
+    putStrLn $ unlines [ line1, line2, line3 ]
+  where
+    line1 = "WARNING: Could not read from GitHub repo: " <> owner <> "/" <> repo
+    line2 = [s|
+I assumed that your package was a GitHub repository. An error occurred while
+gathering information from the repository. Check whether your package was added
+correctly:
+
+  niv show
+
+If not, try re-adding it:
+
+  niv drop <package>
+  niv add <package-without-typo>
+
+Make sure the repository exists.
+|]
+    line3 = unwords [ "(Error was:", show e, ")" ]
 
 -- TODO: fetchers for:
 --  * npm
