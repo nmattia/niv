@@ -1,9 +1,12 @@
-module Niv.Test (tests) where
+module Niv.Test (tests, test) where
 
 import Niv.GitHub.Test
 import Niv.Update.Test
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as Tasty
+
+test :: IO ()
+test = Tasty.defaultMain tests
 
 tests :: Tasty.TestTree
 tests = Tasty.testGroup "niv"

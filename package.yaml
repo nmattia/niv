@@ -10,10 +10,22 @@ ghc-options:
     - -optP-Wno-nonportable-include-path
 
 dependencies:
+    - aeson
+    - aeson-pretty
     - base
-    - text
+    - bytestring
+    - directory
+    - file-embed
+    - filepath
+    - github
+    - hashable
     - mtl
+    - optparse-applicative
+    - process
+    - string-qq
+    - text
     - unliftio
+    - unordered-containers
 
 library:
     source-dirs:
@@ -27,25 +39,15 @@ library:
 
 executables:
     niv:
-        main: app/niv.hs
+        main: Niv.main
+        source-dirs: app
         data-files:
             - nix/sources.nix
         dependencies:
-            - aeson
-            - aeson-pretty
-            - bytestring
-            - directory
-            - filepath
-            - github
-            - hashable
-            - file-embed
             - niv
-            - optparse-applicative
-            - process
-            - string-qq
-            - unordered-containers
     niv-test:
-        main: app/test.hs
+        main: NivTest.main
+        source-dirs: app
         dependencies:
             - tasty
             - niv
