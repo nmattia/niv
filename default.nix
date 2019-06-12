@@ -50,6 +50,9 @@ rec
 
   tests = pkgs.callPackage ./tests { inherit niv; };
 
+  niv-test = pkgs.runCommand "niv-test" { buildInputs = [ niv ] ; }
+    "niv-test && touch $out";
+
   readme = pkgs.writeText "README.md"
     (with
       { template = builtins.readFile ./README.tpl.md;

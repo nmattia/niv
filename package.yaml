@@ -27,9 +27,7 @@ library:
 
 executables:
     niv:
-        source-dirs:
-            - app
-        main: Niv.main
+        main: app/niv.hs
         data-files:
             - nix/sources.nix
         dependencies:
@@ -45,5 +43,9 @@ executables:
             - optparse-applicative
             - process
             - string-qq
-            - tasty
             - unordered-containers
+    niv-test:
+        main: app/test.hs
+        dependencies:
+            - tasty
+            - niv

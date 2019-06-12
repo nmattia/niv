@@ -7,7 +7,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Niv where
+module Main where
 
 import Control.Applicative
 import Control.Monad
@@ -18,7 +18,6 @@ import Data.Hashable (Hashable)
 import Data.Maybe (fromMaybe)
 import Data.String.QQ (s)
 import Niv.GitHub
-import Niv.Test
 import Niv.Update
 import System.Exit (exitFailure)
 import System.FilePath ((</>), takeDirectory)
@@ -36,7 +35,6 @@ import qualified GitHub as GH
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import qualified System.Directory as Dir
-import qualified Test.Tasty as Tasty
 
 main :: IO ()
 main = join $ Opts.execParser opts
@@ -152,13 +150,6 @@ parsePackageSpec =
 
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
 parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
-
--------------------------------------------------------------------------------
--- PACKAGE SPEC OPS
--------------------------------------------------------------------------------
-
-test :: IO ()
-test = Tasty.defaultMain $ Niv.Test.tests
 
 -------------------------------------------------------------------------------
 -- INIT
