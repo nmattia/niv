@@ -3,6 +3,7 @@
 #!nix-shell -I nixpkgs=./nix
 #!nix-shell -p nix
 #!nix-shell --pure
+#!nix-shell --keep SSL_CERT_FILE
 
 set -euo pipefail
 

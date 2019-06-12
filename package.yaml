@@ -6,6 +6,9 @@ ghc-options:
     - -Wall
     - -Werror
 
+    # For macOS: https://github.com/gibiansky/IHaskell/issues/942
+    - -optP-Wno-nonportable-include-path
+
 dependencies:
     - base
     - text
