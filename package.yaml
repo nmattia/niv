@@ -6,24 +6,48 @@ ghc-options:
     - -Wall
     - -Werror
 
-executable:
-    main: app/Niv.hs
+    # For macOS: https://github.com/gibiansky/IHaskell/issues/942
+    - -optP-Wno-nonportable-include-path
+
+dependencies:
+    - aeson
+    - aeson-pretty
+    - base
+    - bytestring
+    - directory
+    - file-embed
+    - filepath
+    - github
+    - hashable
+    - mtl
+    - optparse-applicative
+    - process
+    - string-qq
+    - text
+    - unliftio
+    - unordered-containers
+
+library:
+    source-dirs:
+        - src
     dependencies:
-        - base
-        - hashable
-        - file-embed
-        - process
-        - text
-        - bytestring
         - aeson
-        - aeson-pretty
-        - directory
-        - string-qq
-        - filepath
         - github
-        - mtl
-        - optparse-applicative
-        - unliftio
+        - tasty
+        - tasty-hunit
         - unordered-containers
-    data-files:
-        - nix/sources.nix
+
+executables:
+    niv:
+        main: Niv.main
+        source-dirs: app
+        data-files:
+            - nix/sources.nix
+        dependencies:
+            - niv
+    niv-test:
+        main: NivTest.main
+        source-dirs: app
+        dependencies:
+            - tasty
+            - niv

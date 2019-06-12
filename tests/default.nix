@@ -22,8 +22,8 @@ let
     # TODO: Remove this patch by adding an argument to the github
     # subcommand to support GitHub entreprise.
     prePatch = ''
-      sed "s|GH.executeRequest'|GH.executeRequest (GH.EnterpriseOAuth \"http://localhost:3333\" \"\")|" -i app/Niv.hs
-      sed "s|https://github.com|http://localhost:3333|" -i app/Niv.hs
+      sed "s|GH.executeRequest'|GH.executeRequest (GH.EnterpriseOAuth \"http://localhost:3333\" \"\")|" -i src/Niv/GitHub.hs
+      sed "s|https://github.com|http://localhost:3333|" -i src/Niv/GitHub.hs
     '';
   });
 in pkgs.runCommand "test"
@@ -75,7 +75,11 @@ in pkgs.runCommand "test"
       mock/NixOS/nixpkgs-channels/archive/${nixpkgs-channels_HEAD}.tar.gz
 
     niv init
-    diff -h ${./expected/niv-init.json} nix/sources.json
+    diff -h ${./expected/niv-init.json} nix/sources.json || \
+      (echo "Mismatched sources.json"; \
+      echo "Reference: tests/expected/niv-init.json"; \
+      exit 1)
+
     echo "*** ok."
 
 

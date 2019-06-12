@@ -3,6 +3,7 @@
 #!nix-shell -I nixpkgs=./nix
 #!nix-shell -p nix
 #!nix-shell --pure
+#!nix-shell --keep SSL_CERT_FILE
 
 set -euo pipefail
 
@@ -11,6 +12,6 @@ export NIX_PATH="nixpkgs=./nix"
 echo "Building"
 
 # Build and create a root
-nix-build --no-link
+nix-build --sandbox --no-link --max-jobs 10
 
 echo "all good"
