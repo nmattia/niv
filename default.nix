@@ -13,6 +13,8 @@ with rec
       };
   niv-source = sourceByRegex "niv" ./.
     [ "^package.yaml$"
+      "^README.md$"
+      "^LICENSE$"
       "^app$"
       "^app.*.hs$"
       "^src$"
@@ -24,10 +26,24 @@ with rec
       "^nix$"
       "^nix.sources.nix$"
     ];
+
   haskellPackages = pkgs.haskellPackages.override
     { overrides = _: haskellPackages:
         { niv = haskellPackages.callCabal2nix "niv" niv-source {}; };
     };
+
+  niv = haskellPackages.niv;
+
+  niv-sdist = pkgs.haskell.lib.sdistTarball niv;
+
+  niv-cabal-upload =
+    with
+      {  niv-version = niv.version;
+      };
+    pkgs.writeScript "cabal-upload"
+    ''
+      cabal upload "$@" "${niv-sdist}/niv-${niv-version}.tar.gz"
+    '';
 
   niv-devshell = haskellPackages.shellFor
     { packages = (ps: [ ps.niv ]);
@@ -45,8 +61,7 @@ with rec
 
 };
 rec
-{ inherit niv-source niv-devshell;
-  inherit (haskellPackages) niv;
+{ inherit niv niv-sdist niv-source niv-devshell niv-cabal-upload;
 
   tests = pkgs.callPackage ./tests { inherit niv; };
 
