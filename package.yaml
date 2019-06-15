@@ -25,6 +25,7 @@ dependencies:
     - base
     - bytestring
     - directory
+    - concurrent-output
     - file-embed
     - filepath
     - github
