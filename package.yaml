@@ -24,8 +24,8 @@ dependencies:
     - aeson-pretty
     - base
     - bytestring
-    - directory
     - concurrent-output
+    - directory
     - file-embed
     - filepath
     - github
@@ -47,6 +47,7 @@ library:
         - tasty
         - tasty-hunit
         - unordered-containers
+        - concurrent-output
 
 executables:
     niv:

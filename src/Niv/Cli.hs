@@ -24,7 +24,6 @@ import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
 import Data.Text (Text)
 import UnliftIO
-import Control.Concurrent.Async
 import System.Console.Concurrent
 
 import qualified Data.Aeson as Aeson
@@ -34,7 +33,6 @@ import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as L
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import qualified System.Directory as Dir
@@ -280,7 +278,7 @@ cmdShow = do
     sources <- unSources <$> getSources
 
     forWithKeyM_ sources $ \key (PackageSpec spec) -> do
-      T.putStrLn $ "Package: " <> unPackageName key
+      logMsg $ "Package: " <> unPackageName key
       forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
         let attrValue = case attrValValue of
               Aeson.String str -> str
@@ -318,7 +316,7 @@ specToLockedAttrs = fmap (Locked,) . unPackageSpec
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
     Just (packageName, cliSpec) -> do
-      T.putStrLn $ "Updating single package: " <> unPackageName packageName
+      logMsg $ "Updating single package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
       eFinalSpec <- case HMS.lookup packageName sources of
@@ -340,7 +338,7 @@ cmdUpdate = \case
 
       esources' <- forWithKeyM sources $
         \packageName defaultSpec -> do
-          T.putStrLn $ "Package: " <> unPackageName packageName
+          logMsg $ "Package: " <> unPackageName packageName
           fmap attrsToSpec <$> tryEvalUpdate
             (specToFreeAttrs defaultSpec)
             (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
@@ -418,7 +416,7 @@ parseCmdDrop =
 cmdDrop :: PackageName -> [Text] -> IO ()
 cmdDrop packageName = \case
     [] -> do
-      T.putStrLn $ "Dropping package: " <> unPackageName packageName
+      logMsg $ "Dropping package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
       when (not $ HMS.member packageName sources) $
@@ -429,7 +427,7 @@ cmdDrop packageName = \case
     attrs -> do
       putStrLn $ "Dropping attributes :" <>
         (T.unpack (T.intercalate " " attrs))
-      T.putStrLn $ "In package: " <> unPackageName packageName
+      logMsg $ "In package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
       packageSpec <- case HMS.lookup packageName sources of
@@ -502,8 +500,11 @@ mapWithKeyM_ f m = do
 
 abort :: Text -> IO a
 abort msg = do
-    outputConcurrent msg <> "\n"
+    outputConcurrent $ msg <> "\n"
     exitFailure
+
+logMsg :: Text -> IO ()
+logMsg msg = outputConcurrent $ msg <> "\n"
 
 nixPrefetchURL :: Bool -> Text -> IO Text
 nixPrefetchURL unpack (T.unpack -> url) =
@@ -537,14 +538,14 @@ shouldUpdateNixSourcesNix content =
 warnIfOutdated :: IO ()
 warnIfOutdated = do
     tryAny (B.readFile pathNixSourcesNix) >>= \case
-      Left e -> T.putStrLn $ T.unlines
+      Left e -> logMsg $ T.unlines
         [ "Could not read " <> T.pack pathNixSourcesNix
         , "Error: " <> tshow e
         ]
       Right content ->
         if shouldUpdateNixSourcesNix content
         then
-          T.putStrLn $ T.unlines
+          logMsg $ T.unlines
             [ "WARNING: " <> T.pack pathNixSourcesNix <> " is out of date."
             , "Please run"
             , "  niv init"
