@@ -50,6 +50,7 @@ parseCommand = Opts.subparser (
     Opts.command "add"  parseCmdAdd <>
     Opts.command "show"  parseCmdShow <>
     Opts.command "update"  parseCmdUpdate <>
+    Opts.command "modify"  parseCmdModify <>
     Opts.command "drop"  parseCmdDrop )
 
 newtype Sources = Sources
@@ -356,6 +357,37 @@ partitionEithersHMS =
       Right r -> (ls, HMS.insert k r rs)
 
 -------------------------------------------------------------------------------
+-- MODIFY
+-------------------------------------------------------------------------------
+
+parseCmdModify :: Opts.ParserInfo (IO ())
+parseCmdModify =
+    Opts.info
+      ((cmdModify <$> parsePackage) <**> Opts.helper) $
+      mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc
+      , Opts.progDesc "Modify dependency"
+      , Opts.headerDoc $ Just $
+          "Examples:" Opts.<$$>
+          "" Opts.<$$>
+          "  niv modify nixpkgs -v beta-0.2" Opts.<$$>
+          "  niv modify nixpkgs -a branch=nixpkgs-unstable"
+      ]
+
+cmdModify :: (PackageName, PackageSpec) -> IO ()
+cmdModify (packageName, cliSpec) = do
+    T.putStrLn $ "Modifying package: " <> unPackageName packageName
+    sources <- unSources <$> getSources
+
+    finalSpec <- case HMS.lookup packageName sources of
+      Just defaultSpec -> pure $ attrsToSpec (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
+      Nothing -> abortCannotModifyNoSuchPackage packageName
+
+    setSources $ Sources $ HMS.insert packageName finalSpec sources
+
+-------------------------------------------------------------------------------
 -- DROP
 -------------------------------------------------------------------------------
 
@@ -584,6 +616,14 @@ abortCannotAddPackageExists (PackageName n) = abort $ T.unlines
 abortCannotUpdateNoSuchPackage :: PackageName -> IO a
 abortCannotUpdateNoSuchPackage (PackageName n) = abort $ T.unlines
     [ "Cannot update package " <> n <> "."
+    , "The package doesn't exist. Use"
+    , "  niv add " <> n
+    , "to add the package."
+    ]
+
+abortCannotModifyNoSuchPackage :: PackageName -> IO a
+abortCannotModifyNoSuchPackage (PackageName n) = abort $ T.unlines
+    [ "Cannot modify package " <> n <> "."
     , "The package doesn't exist. Use"
     , "  niv add " <> n
     , "to add the package."
