@@ -1,2 +1,8 @@
 result*
 tags
+# In case anyone uses cabal or stack
+dist
+dist-newstyle
+.stack-work
+# Cabal file can be generated from package.yaml but shouldn't be checked in
+*.cabal
