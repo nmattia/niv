@@ -1,32 +1,11 @@
-{ pkgs ? import ./nix {} }:
+{ sources ? import ./nix/sources.nix
+, pkgs ? import ./nix { inherit sources; }
+}:
+
 with rec
 { files = pkgs.callPackage ./nix/files.nix {};
-  sourceByRegex = name: src: regexes:
-    builtins.path
-      { filter =  (path: type:
-          let
-            relPath = pkgs.lib.removePrefix (toString src + "/") (toString path);
-            accept = pkgs.lib.any (re: builtins.match re relPath != null) regexes;
-          in accept);
-          inherit name;
-          path = src;
-      };
-  niv-source = sourceByRegex "niv" ./.
-    [ "^package.yaml$"
-      "^README.md$"
-      "^LICENSE$"
-      "^app$"
-      "^app.*.hs$"
-      "^src$"
-      "^src/Niv$"
-      "^src/Niv/GitHub$"
-      "^src/Niv/Update$"
-      "^src.*.hs$"
-      "^README.md$"
-      "^nix$"
-      "^nix.sources.nix$"
-    ];
-
+  gitignoreSource = (pkgs.callPackage sources.gitignore {}).gitignoreSource;
+  niv-source = gitignoreSource ./.;
   haskellPackages = pkgs.haskellPackages.override
     { overrides = _: haskellPackages:
         { niv = haskellPackages.callCabal2nix "niv" niv-source {}; };
