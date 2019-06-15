@@ -90,19 +90,7 @@ newtype PackageSpec = PackageSpec { unPackageSpec :: Aeson.Object }
 
 -- | Simply discards the 'Freedom'
 attrsToSpec :: Attrs -> PackageSpec
-attrsToSpec = PackageSpec . dropNulls . fmap snd
-  where
-    dropNulls
-      :: HMS.HashMap T.Text Aeson.Value
-      -> HMS.HashMap T.Text Aeson.Value
-    dropNulls = HMS.mapMaybe $ \case
-      x@Aeson.Object{} -> Just x
-      x@Aeson.Array{} -> Just x
-      x@Aeson.String{} -> Just x
-      x@Aeson.Number{} -> Just x
-      x@Aeson.Bool{} -> Just x
-      Aeson.Null -> Nothing
-
+attrsToSpec = PackageSpec . fmap snd
 
 parsePackageSpec :: Opts.Parser PackageSpec
 parsePackageSpec =
