@@ -3,8 +3,7 @@
 [![CircleCI](https://circleci.com/gh/nmattia/niv.svg?style=svg)](https://circleci.com/gh/nmattia/niv)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/48532eaa-259f-4ca2-aadf-67f7c6b957fd/deploy-status)](https://niv.nmattia.com)
 
-Painless dependencies for [Nix] projects. Read more in the [use case
-section](#use-cases) section below.
+Painless dependencies for [Nix] projects. Read more in the [Getting started](#getting-started) section below.
 
 <p align="center">
     <img src="https://niv.nmattia.com/niv.svg">
@@ -47,10 +46,10 @@ necessary for fetching and updating the packages.
   `nix/sources.nix` file that returns the sources as a Nix object.
 * [Show](#show): shows the packages' information.
 
-The next two sections cover [common use cases](#use-cases) and [full command
+The next two sections cover [common use cases](#getting-started) and [full command
 description](#commands).
 
-### Use cases
+### Getting started
 
 This section covers common use cases:
 
@@ -61,23 +60,19 @@ This section covers common use cases:
 
 #### Bootstrapping a Nix project
 
-There is an `init` command that is useful when starting a new Nix project or
-when porting an existing Nix project to the niv versioning:
+Use the `init` command when starting a new Nix project or when porting an
+existing Nix project to niv:
 
 ``` shell
 $ niv init
 ...
 $ tree
 .
-├── default.nix
-├── nix
-│   ├── default.nix
-│   ├── packages.nix
-│   ├── sources.json
-│   └── sources.nix
-└── shell.nix
+└── nix
+    ├── sources.json
+    └── sources.nix
 
-1 directory, 6 files
+1 directory, 2 files
 ```
 
 The file `nix/sources.json` is the file used by niv to store versions and is
@@ -109,23 +104,18 @@ initialized with niv and nixpkgs:
 }
 ```
 
-The content of this file can be used from Nix by importing `nix/sources.nix` as
-done in the generated `nix/default.nix` file:
+To use those dependencies `import` the file `nix/sources.nix`, e.g.:
 
 ``` nix
-{ sources ? import ./sources.nix }:
+{ sources ? import ./sources.nix }:     # import the sources
 with
   { overlay = _: pkgs:
-      { inherit (import sources.niv {}) niv;
-        packages = pkgs.callPackages ./packages.nix {};
+      { niv = import sources.niv {};    # use the sources :)
       };
   };
-import sources.nixpkgs
+import sources.nixpkgs                  # and use them again!
   { overlays = [ overlay ] ; config = {}; }
 ```
-
-The files `default.nix`, `shell.nix` and `nix/packages.nix` are placeholders
-for your project.
 
 #### Tracking a nixpkgs branch
 
