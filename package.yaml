@@ -1,6 +1,13 @@
 name: niv
-
+version: 0.1.0
 license: MIT
+author: Nicolas Mattia <nicolas@nmattia.com>
+maintainer: Nicolas Mattia <nicolas@nmattia.com>
+copyright: (c) 2019 Nicolas Mattia
+category: Development
+github: deckgo/wai-lambda
+synopsis: Easy dependency management for Nix projects
+description: Easy dependency management for Nix projects.
 
 ghc-options:
     - -Wall
@@ -8,6 +15,9 @@ ghc-options:
 
     # For macOS: https://github.com/gibiansky/IHaskell/issues/942
     - -optP-Wno-nonportable-include-path
+
+extra-source-files:
+    - README.md
 
 dependencies:
     - aeson
