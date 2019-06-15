@@ -4,6 +4,8 @@
 #!nix-shell -p nix
 #!nix-shell --pure
 #!nix-shell --keep SSL_CERT_FILE
+#!nix-shell --keep NIX_SSL_CERT_FILE
+
 
 set -euo pipefail
 
