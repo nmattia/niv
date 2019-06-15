@@ -207,6 +207,7 @@ Available commands:
   add                      Add dependency
   show                     
   update                   Update dependencies
+  modify                   Modify dependency
   drop                     Drop dependency
 
 ```
