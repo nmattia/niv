@@ -22,7 +22,11 @@ import Niv.Update
 import System.Exit (exitFailure)
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
+import Data.Text (Text)
 import UnliftIO
+import Control.Concurrent.Async
+import System.Console.Concurrent
+
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
@@ -79,7 +83,7 @@ getSources = do
 setSources :: Sources -> IO ()
 setSources sources = encodeFile pathNixSourcesJson sources
 
-newtype PackageName = PackageName { unPackageName :: T.Text }
+newtype PackageName = PackageName { unPackageName :: Text }
   deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)
 
 parsePackageName :: Opts.Parser PackageName
@@ -98,7 +102,7 @@ parsePackageSpec =
     (PackageSpec . HMS.fromList . fmap fixupAttributes) <$>
       many parseAttribute
   where
-    parseAttribute :: Opts.Parser (T.Text, T.Text)
+    parseAttribute :: Opts.Parser (Text, Text)
     parseAttribute =
       Opts.option (Opts.maybeReader parseKeyVal)
         ( Opts.long "attribute" <>
@@ -120,18 +124,18 @@ parsePackageSpec =
         ))
 
     -- Parse "key=val" into ("key", "val")
-    parseKeyVal :: String -> Maybe (T.Text, T.Text)
+    parseKeyVal :: String -> Maybe (Text, Text)
     parseKeyVal str = case span (/= '=') str of
       (key, '=':val) -> Just (T.pack key, T.pack val)
       _ -> Nothing
 
     -- Shortcuts for common attributes
-    shortcutAttributes :: Opts.Parser (T.Text, T.Text)
+    shortcutAttributes :: Opts.Parser (Text, Text)
     shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
       [ "branch", "owner", "repo", "version" ]
 
     -- TODO: infer those shortcuts from 'Update' keys
-    mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, T.Text)
+    mkShortcutAttribute :: Text -> Opts.Parser (Text, Text)
     mkShortcutAttribute = \case
       attr@(T.uncons -> Just (c,_)) -> (attr,) <$> Opts.strOption
         ( Opts.long (T.unpack attr) <>
@@ -145,7 +149,7 @@ parsePackageSpec =
         )
       _ -> empty
 
-    fixupAttributes :: (T.Text, T.Text) -> (T.Text, Aeson.Value)
+    fixupAttributes :: (Text, Text) -> (Text, Aeson.Value)
     fixupAttributes (k, v) = (k, Aeson.String v)
 
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
@@ -407,11 +411,11 @@ parseCmdDrop =
           "  niv drop jq" Opts.<$$>
           "  niv drop my-package version"
       ]
-    parseDropAttributes :: Opts.Parser [T.Text]
+    parseDropAttributes :: Opts.Parser [Text]
     parseDropAttributes = many $
       Opts.argument Opts.str (Opts.metavar "ATTRIBUTE")
 
-cmdDrop :: PackageName -> [T.Text] -> IO ()
+cmdDrop :: PackageName -> [Text] -> IO ()
 cmdDrop packageName = \case
     [] -> do
       T.putStrLn $ "Dropping package: " <> unPackageName packageName
@@ -496,12 +500,12 @@ mapWithKeyM_ f m = do
     forM_ (HMS.toList m) $ \(k, v) ->
       HMS.singleton k <$> f k v
 
-abort :: T.Text -> IO a
+abort :: Text -> IO a
 abort msg = do
-    T.putStrLn msg
+    outputConcurrent msg <> "\n"
     exitFailure
 
-nixPrefetchURL :: Bool -> T.Text -> IO T.Text
+nixPrefetchURL :: Bool -> Text -> IO Text
 nixPrefetchURL unpack (T.unpack -> url) =
     lines <$> readProcess "nix-prefetch-url" args "" >>=
       \case
@@ -658,5 +662,5 @@ ticket:
 Thanks! I'll buy you a beer.
 |]
 
-tshow :: Show a => a -> T.Text
+tshow :: Show a => a -> Text
 tshow = T.pack . show
