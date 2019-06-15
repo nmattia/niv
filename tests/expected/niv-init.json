@@ -1,26 +1,26 @@
 {
-    "nixpkgs": {
-        "homepage": null,
-        "url": "http://localhost:3333/NixOS/nixpkgs-channels/archive/571b40d3f50466d3e91c1e609d372de96d782793.tar.gz",
-        "owner": "NixOS",
-        "branch": "nixos-18.09",
-        "url_template": "http://localhost:3333/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "nixpkgs-channels",
-        "type": "tarball",
-        "sha256": "18hlxki1hbimvm1jagcf7dy5km1iakr1px472cb05y9602py7f6g",
-        "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
-        "rev": "571b40d3f50466d3e91c1e609d372de96d782793"
-    },
     "niv": {
-        "homepage": "https://github.com/nmattia/niv",
-        "url": "http://localhost:3333/nmattia/niv/archive/a489b65a5c3a29983701069d1ce395b23d9bde64.tar.gz",
-        "owner": "nmattia",
         "branch": "master",
-        "url_template": "http://localhost:3333/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "niv",
-        "type": "tarball",
-        "sha256": "18hx0pg48xh306gwz9wja8fcyl8isfkv3ja7453yj3hmy72b6scp",
         "description": "Easy dependency management for Nix projects",
-        "rev": "a489b65a5c3a29983701069d1ce395b23d9bde64"
+        "homepage": "https://github.com/nmattia/niv",
+        "owner": "nmattia",
+        "repo": "niv",
+        "rev": "a489b65a5c3a29983701069d1ce395b23d9bde64",
+        "sha256": "18hx0pg48xh306gwz9wja8fcyl8isfkv3ja7453yj3hmy72b6scp",
+        "type": "tarball",
+        "url": "http://localhost:3333/nmattia/niv/archive/a489b65a5c3a29983701069d1ce395b23d9bde64.tar.gz",
+        "url_template": "http://localhost:3333/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "nixpkgs": {
+        "branch": "nixos-18.09",
+        "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
+        "homepage": null,
+        "owner": "NixOS",
+        "repo": "nixpkgs-channels",
+        "rev": "571b40d3f50466d3e91c1e609d372de96d782793",
+        "sha256": "18hlxki1hbimvm1jagcf7dy5km1iakr1px472cb05y9602py7f6g",
+        "type": "tarball",
+        "url": "http://localhost:3333/NixOS/nixpkgs-channels/archive/571b40d3f50466d3e91c1e609d372de96d782793.tar.gz",
+        "url_template": "http://localhost:3333/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
