@@ -8,7 +8,12 @@ with rec
   niv-source = gitignoreSource ./.;
   haskellPackages = pkgs.haskellPackages.override
     { overrides = _: haskellPackages:
-        { niv = haskellPackages.callCabal2nix "niv" niv-source {}; };
+        { niv =
+            pkgs.haskell.lib.disableExecutableProfiling (
+            pkgs.haskell.lib.disableLibraryProfiling (
+            pkgs.haskell.lib.generateOptparseApplicativeCompletion "niv" (
+            haskellPackages.callCabal2nix "niv" niv-source {})));
+        };
     };
 
   niv = haskellPackages.niv;
