@@ -22,7 +22,7 @@ let
     # TODO: Remove this patch by adding an argument to the github
     # subcommand to support GitHub entreprise.
     prePatch = ''
-      sed "s|GH.executeRequest'|GH.executeRequest (GH.EnterpriseOAuth \"http://localhost:3333\" \"\")|" -i src/Niv/GitHub.hs
+      sed "s|GH.executeRequest'|(GH.executeRequest (GH.EnterpriseOAuth \"http://localhost:3333\" \"\"))|" -i src/Niv/GitHub.hs
       sed "s|https://github.com|http://localhost:3333|" -i src/Niv/GitHub.hs
     '';
   });
