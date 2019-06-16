@@ -35,7 +35,9 @@ jobs:
             until bash <(curl https://nixos.org/nix/install)
             do
               echo "Nix install failed, retrying"
-              rm -rf /nix
+              sudo rm -rf /nix
+              sudo mkdir -p /nix
+              sudo chown circleci /nix
             done
             echo '. /home/circleci/.nix-profile/etc/profile.d/nix.sh' >> $BASH_ENV
 
