@@ -460,7 +460,7 @@ decodeFileStrict = fmap Aeson.decodeStrict . B.readFile
 encodeFile :: (ToJSON a) => FilePath -> a -> IO ()
 encodeFile fp = L.writeFile fp . AesonPretty.encodePretty' config
   where
-    config =  AesonPretty.defConfig { AesonPretty.confTrailingNewline = True }
+    config =  AesonPretty.defConfig { AesonPretty.confTrailingNewline = True, AesonPretty.confCompare = compare }
 
 --- HashMap
 
