@@ -32,7 +32,11 @@ jobs:
       - run:
           name: Install Nix
           command: |
-            bash <(curl https://nixos.org/nix/install)
+            until bash <(curl https://nixos.org/nix/install)
+            do
+              echo "Nix install failed, retrying"
+              rm -rf /nix
+            done
             echo '. /home/circleci/.nix-profile/etc/profile.d/nix.sh' >> $BASH_ENV
 
       - checkout

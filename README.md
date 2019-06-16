@@ -120,8 +120,8 @@ import sources.nixpkgs                  # and use them again!
 #### Tracking a nixpkgs branch
 
 The `init` command sets the `nix/sources.json` file to track the latest commit
-present on nixpkgs 18.09 when the command was run. Run this commit to track
-update to the latest commit:
+present on nixpkgs 18.09 when the command was run. Run the following command to
+update it:
 
 ``` shell
 $ niv update nixpkgs
