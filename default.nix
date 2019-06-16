@@ -38,8 +38,21 @@ with rec
             ghci -Wall app/NivTest.hs src/**/*.hs
           }
 
-          echo "To start a REPL session, run:"
+          repl_niv() {
+            shopt -s globstar
+            ghci -Wall app/Niv.hs src/**/*.hs
+          }
+
+          echo "To start a REPL session for the test suite, run:"
           echo "  > repl"
+          echo "  > :main"
+          echo "  (tests run)"
+          echo
+          echo "To start a REPL session emulating the niv executable, run:"
+          echo "  > repl_niv"
+          echo "  > :main --help ..."
+          echo "  NIV - Version manager for Nix projects"
+          echo "  ..."
         '';
     };
 
