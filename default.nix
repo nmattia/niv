@@ -35,7 +35,7 @@ with rec
         ''
           repl() {
             shopt -s globstar
-            ghci -Wall app/NivTest.hs src/**/*.hs
+            ghci -clear-package-db -global-package-db -Wall app/NivTest.hs src/**/*.hs
           }
 
           repl_niv() {
