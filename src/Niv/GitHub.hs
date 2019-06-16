@@ -13,9 +13,11 @@ import Data.Maybe
 import Data.String.QQ (s)
 import GHC.Exts (toList)
 import Niv.Update
+import Data.Text.Encoding (encodeUtf8)
 import qualified Data.Text as T
 import qualified GitHub as GH
 import qualified GitHub.Data.Name as GH
+import System.Environment (lookupEnv)
 
 data GithubRepo = GithubRepo
   { repoDescription :: Maybe T.Text
@@ -24,13 +26,20 @@ data GithubRepo = GithubRepo
   }
 
 githubRepo :: T.Text -> T.Text -> IO GithubRepo
-githubRepo owner repo = fmap translate <$>
-    GH.executeRequest' (GH.repositoryR (GH.N owner) (GH.N repo)) >>= \case
+githubRepo owner repo = executeRequest >>= pickResponse >>= return . translate
+  where
+    pickResponse :: Either GH.Error GH.Repo -> IO GH.Repo
+    pickResponse = \case
       Left e -> do
         warnCouldNotFetchGitHubRepo e (owner, repo)
         error (show e)
-      Right x -> pure x
-  where
+      Right x -> return x
+    resolveRequestExecutionFn = do
+      token <- fmap (GH.OAuth . encodeUtf8 . T.pack) <$> lookupEnv "GITHUB_TOKEN"
+      return $ maybe GH.executeRequest' GH.executeRequest token
+    executeRequest :: IO (Either GH.Error GH.Repo)
+    executeRequest = resolveRequestExecutionFn >>= \fn -> fn (GH.repositoryR (GH.N owner) (GH.N repo)) 
+    translate :: GH.Repo -> GithubRepo
     translate r = GithubRepo
       { repoDescription = GH.repoDescription r
       , repoHomepage = GH.repoHomepage r
