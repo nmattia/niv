@@ -24,7 +24,7 @@ import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
 import Data.Text (Text)
 import UnliftIO
-import System.Console.Concurrent
+import System.Console.Concurrent (outputConcurrent, errorConcurrent)
 
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
@@ -500,7 +500,7 @@ mapWithKeyM_ f m = do
 
 abort :: Text -> IO a
 abort msg = do
-    outputConcurrent $ msg <> "\n"
+    errorConcurrent $ msg <> "\n"
     exitFailure
 
 logMsg :: Text -> IO ()
