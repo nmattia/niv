@@ -66,7 +66,7 @@ getSources = do
 
     warnIfOutdated
     -- TODO: if doesn't exist: run niv init
-    putStrLn $ "Reading sources file"
+    logMsg $ "Reading sources file"
     decodeFileStrict pathNixSourcesJson >>= \case
       Just (Aeson.Object obj) ->
         fmap (Sources . mconcat) $
@@ -177,17 +177,17 @@ cmdInit = do
         , \path content -> do
             if shouldUpdateNixSourcesNix content
             then do
-              putStrLn "Updating sources.nix"
+              logMsg "Updating sources.nix"
               B.writeFile path initNixSourcesNixContent
-            else putStrLn "Not updating sources.nix"
+            else logMsg "Not updating sources.nix"
         )
       , ( pathNixSourcesJson
         , \path -> do
             createFile path initNixSourcesJsonContent
             -- Imports @niv@ and @nixpkgs@ (18.09)
-            putStrLn "Importing 'niv' ..."
+            logMsg "Importing 'niv' ..."
             cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
-            putStrLn "Importing 'nixpkgs' ..."
+            logMsg "Importing 'nixpkgs' ..."
             cmdAdd
               (Just (PackageName "nixpkgs"))
               ( PackageName "NixOS/nixpkgs-channels"
@@ -201,10 +201,10 @@ cmdInit = do
     createFile path content = do
       let dir = takeDirectory path
       Dir.createDirectoryIfMissing True dir
-      putStrLn $ "Creating " <> path
+      logMsg $ "Creating " <> T.pack path
       B.writeFile path content
     dontCreateFile :: FilePath -> IO ()
-    dontCreateFile path = putStrLn $ "Not creating " <> path
+    dontCreateFile path = logMsg $ "Not creating " <> T.pack path
 
 -------------------------------------------------------------------------------
 -- ADD
@@ -259,7 +259,7 @@ cmdAdd mPackageName (PackageName str, cliSpec) = do
     case eFinalSpec of
       Left e -> abortUpdateFailed [(packageName', e)]
       Right finalSpec -> do
-        putStrLn $ "Writing new sources file"
+        logMsg $ "Writing new sources file"
         setSources $ Sources $
           HMS.insert packageName' finalSpec sources
 
@@ -273,7 +273,7 @@ parseCmdShow = Opts.info (pure cmdShow <**> Opts.helper) Opts.fullDesc
 -- TODO: nicer output
 cmdShow :: IO ()
 cmdShow = do
-    putStrLn $ "Showing sources file"
+    logMsg $ "Showing sources file"
 
     sources <- unSources <$> getSources
 
@@ -283,7 +283,7 @@ cmdShow = do
         let attrValue = case attrValValue of
               Aeson.String str -> str
               _ -> "<barabajagal>"
-        putStrLn $ "  " <> T.unpack attrName <> ": " <> T.unpack attrValue
+        logMsg $ "  " <> attrName <> ": " <> attrValue
 
 -------------------------------------------------------------------------------
 -- UPDATE
@@ -380,7 +380,7 @@ parseCmdModify =
 
 cmdModify :: (PackageName, PackageSpec) -> IO ()
 cmdModify (packageName, cliSpec) = do
-    T.putStrLn $ "Modifying package: " <> unPackageName packageName
+    logMsg $ "Modifying package: " <> unPackageName packageName
     sources <- unSources <$> getSources
 
     finalSpec <- case HMS.lookup packageName sources of
@@ -425,8 +425,8 @@ cmdDrop packageName = \case
       setSources $ Sources $
         HMS.delete packageName sources
     attrs -> do
-      putStrLn $ "Dropping attributes :" <>
-        (T.unpack (T.intercalate " " attrs))
+      logMsg $ "Dropping attributes :" <>
+        (T.intercalate " " attrs)
       logMsg $ "In package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
