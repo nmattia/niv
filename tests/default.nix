@@ -22,7 +22,9 @@ let
     # TODO: Remove this patch by adding an argument to the github
     # subcommand to support GitHub entreprise.
     prePatch = ''
-      sed "s|GH.executeRequest'|(GH.executeRequest (GH.EnterpriseOAuth \"http://localhost:3333\" \"\"))|" -i src/Niv/GitHub.hs
+      sed "/import Data.Text.Encoding (encodeUtf8)/d" -i src/Niv/GitHub.hs
+      sed "/import System.Environment (lookupEnv)/d" -i src/Niv/GitHub.hs
+      sed "s|token <- fmap (GH.OAuth . encodeUtf8 . T.pack) <$> lookupEnv \"GITHUB_TOKEN\"|let token = Just (GH.EnterpriseOAuth \"http://localhost:3333\" \"\")|" -i src/Niv/GitHub.hs
       sed "s|https://github.com|http://localhost:3333|" -i src/Niv/GitHub.hs
     '';
   });
