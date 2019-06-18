@@ -1,4 +1,5 @@
 {-# LANGUAGE Arrows #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -25,8 +26,13 @@ data GithubRepo = GithubRepo
   , repoDefaultBranch :: Maybe T.Text
   }
 
+executeRequest :: GH.Request 'GH.RO a -> IO (Either GH.Error a)
+executeRequest req = do
+  token <- fmap (GH.OAuth . encodeUtf8 . T.pack) <$> lookupEnv "GITHUB_TOKEN"
+  GH.executeRequestMaybe token req
+
 githubRepo :: T.Text -> T.Text -> IO GithubRepo
-githubRepo owner repo = executeRequest >>= pickResponse >>= return . translate
+githubRepo owner repo = request >>= pickResponse >>= return . translate
   where
     pickResponse :: Either GH.Error GH.Repo -> IO GH.Repo
     pickResponse = \case
@@ -34,11 +40,8 @@ githubRepo owner repo = executeRequest >>= pickResponse >>= return . translate
         warnCouldNotFetchGitHubRepo e (owner, repo)
         error (show e)
       Right x -> return x
-    resolveRequestExecutionFn = do
-      token <- fmap (GH.OAuth . encodeUtf8 . T.pack) <$> lookupEnv "GITHUB_TOKEN"
-      return $ maybe GH.executeRequest' GH.executeRequest token
-    executeRequest :: IO (Either GH.Error GH.Repo)
-    executeRequest = resolveRequestExecutionFn >>= \fn -> fn (GH.repositoryR (GH.N owner) (GH.N repo)) 
+    request :: IO (Either GH.Error GH.Repo)
+    request = executeRequest (GH.repositoryR (GH.N owner) (GH.N repo))
     translate :: GH.Repo -> GithubRepo
     translate r = GithubRepo
       { repoDescription = GH.repoDescription r
@@ -119,7 +122,7 @@ githubLatestRev
   -- ^ branch
   -> IO T.Text
 githubLatestRev owner repo branch =
-    GH.executeRequest' (
+    executeRequest (
       GH.commitsWithOptionsForR (GH.N owner) (GH.N repo) (GH.FetchAtLeast 1)
       [GH.CommitQuerySha branch]
       ) >>= \case
