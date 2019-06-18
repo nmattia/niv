@@ -9,10 +9,11 @@ with rec
   haskellPackages = pkgs.haskellPackages.override
     { overrides = _: haskellPackages:
         { niv =
+            pkgs.haskell.lib.failOnAllWarnings (
             pkgs.haskell.lib.disableExecutableProfiling (
             pkgs.haskell.lib.disableLibraryProfiling (
             pkgs.haskell.lib.generateOptparseApplicativeCompletion "niv" (
-            haskellPackages.callCabal2nix "niv" niv-source {})));
+            haskellPackages.callCabal2nix "niv" niv-source {}))));
         };
     };
 
@@ -26,6 +27,7 @@ with rec
       };
     pkgs.writeScript "cabal-upload"
     ''
+      #!${pkgs.stdenv.shell}
       cabal upload "$@" "${niv-sdist}/niv-${niv-version}.tar.gz"
     '';
 
@@ -40,7 +42,7 @@ with rec
 
           repl_niv() {
             shopt -s globstar
-            ghci -Wall app/Niv.hs src/**/*.hs
+            ghci -clear-package-db -global-package-db -Wall app/Niv.hs src/**/*.hs
           }
 
           echo "To start a REPL session for the test suite, run:"
