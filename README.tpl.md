@@ -217,15 +217,6 @@ replace_niv_init_help
 replace_niv_show_help
 ```
 
-## Related
-
-* [nix-flakes]: `niv` support a subset of the Nix flakes. In particular it does
-  not perform any kind of dependency resolution.
-* [nix-path]: `niv` and `nix-path` share a similar goal and ideas tend to flow
-  back and forth freely.
-
 [Nix]: https://nixos.org/nix/
 [jq]: https://stedolan.github.io/jq/
 [GHC]: https://www.haskell.org/ghc/
-[nix-flakes]: https://gist.github.com/edolstra/40da6e3a4d4ee8fd019395365e0772e7
-[nix-path]: https://github.com/zimbatm/nix-path
