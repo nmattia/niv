@@ -1,11 +1,11 @@
 name: niv
-version: 0.1.0
+version: 0.1.1
 license: MIT
 author: Nicolas Mattia <nicolas@nmattia.com>
 maintainer: Nicolas Mattia <nicolas@nmattia.com>
 copyright: (c) 2019 Nicolas Mattia
 category: Development
-github: deckgo/wai-lambda
+github: nmattia/niv
 synopsis: Easy dependency management for Nix projects
 description: Easy dependency management for Nix projects.
 
