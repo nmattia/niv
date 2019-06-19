@@ -29,6 +29,7 @@ dependencies:
     - file-embed
     - filepath
     - github
+    - gitrev
     - hashable
     - mtl
     - optparse-applicative

@@ -17,14 +17,19 @@ import Data.FileEmbed (embedFile)
 import Data.Hashable (Hashable)
 import Data.Maybe (fromMaybe)
 import Data.String.QQ (s)
+import Data.Text (Text)
+import Data.Version (showVersion)
+import Development.GitRev (gitHash)
 import Niv.GitHub
 import Niv.Update
+import Options.Applicative
+import Paths_niv (version)
+import System.Console.Concurrent (outputConcurrent, errorConcurrent)
 import System.Exit (exitFailure)
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcess)
-import Data.Text (Text)
 import UnliftIO
-import System.Console.Concurrent (outputConcurrent, errorConcurrent)
+
 
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
@@ -40,11 +45,16 @@ import qualified System.Directory as Dir
 cli :: IO ()
 cli = join $ Opts.execParser opts
   where
-    opts = Opts.info (parseCommand <**> Opts.helper) $ mconcat desc
+    opts = Opts.info (Opts.helper <*> parseCommand <*> versionOption) $ mconcat desc
     desc =
       [ Opts.fullDesc
       , Opts.header "NIV - Version manager for Nix projects"
       ]
+    versionOption =
+            infoOption
+                (concat [showVersion version, " ", $(gitHash)])
+                (long "version" <> short 'v' <> help "Show version")
+
 
 parseCommand :: Opts.Parser (IO ())
 parseCommand = Opts.subparser (
@@ -66,7 +76,7 @@ getSources = do
 
     warnIfOutdated
     -- TODO: if doesn't exist: run niv init
-    logMsg $ "Reading sources file"
+    logMsg "Reading sources file"
     decodeFileStrict pathNixSourcesJson >>= \case
       Just (Aeson.Object obj) ->
         fmap (Sources . mconcat) $
@@ -259,7 +269,7 @@ cmdAdd mPackageName (PackageName str, cliSpec) = do
     case eFinalSpec of
       Left e -> abortUpdateFailed [(packageName', e)]
       Right finalSpec -> do
-        logMsg $ "Writing new sources file"
+        logMsg "Writing new sources file"
         setSources $ Sources $
           HMS.insert packageName' finalSpec sources
 
@@ -273,7 +283,7 @@ parseCmdShow = Opts.info (pure cmdShow <**> Opts.helper) Opts.fullDesc
 -- TODO: nicer output
 cmdShow :: IO ()
 cmdShow = do
-    logMsg $ "Showing sources file"
+    logMsg "Showing sources file"
 
     sources <- unSources <$> getSources
 
