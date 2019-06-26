@@ -15,6 +15,7 @@ import Data.String.QQ (s)
 import GHC.Exts (toList)
 import Niv.Update
 import Data.Text.Encoding (encodeUtf8)
+import qualified Data.Aeson as Aeson
 import qualified Data.Text as T
 import qualified GitHub as GH
 import qualified GitHub.Data.Name as GH
@@ -26,7 +27,8 @@ data GithubRepo = GithubRepo
   , repoDefaultBranch :: Maybe T.Text
   }
 
-executeRequest :: GH.Request 'GH.RO a -> IO (Either GH.Error a)
+executeRequest
+  :: Aeson.FromJSON a => GH.Request 'GH.RO a -> IO (Either GH.Error a)
 executeRequest req = do
   token <- fmap (GH.OAuth . encodeUtf8 . T.pack) <$> lookupEnv "GITHUB_TOKEN"
   GH.executeRequestMaybe token req
