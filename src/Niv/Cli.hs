@@ -266,22 +266,40 @@ cmdAdd mPackageName (PackageName str, cliSpec) = do
 -------------------------------------------------------------------------------
 
 parseCmdShow :: Opts.ParserInfo (IO ())
-parseCmdShow = Opts.info (pure cmdShow <**> Opts.helper) Opts.fullDesc
+parseCmdShow =
+    Opts.info
+      ((cmdShow <$> Opts.optional parsePackageName) <**> Opts.helper)
+      Opts.fullDesc
 
 -- TODO: nicer output
-cmdShow :: IO ()
-cmdShow = do
-    putStrLn $ "Showing sources file"
+cmdShow :: Maybe PackageName -> IO ()
+cmdShow = \case
+    Just packageName -> do
+      putStrLn $ "Showing package " <> T.unpack (unPackageName packageName)
 
-    sources <- unSources <$> getSources
+      sources <- unSources <$> getSources
 
-    forWithKeyM_ sources $ \key (PackageSpec spec) -> do
-      T.putStrLn $ "Package: " <> unPackageName key
-      forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
-        let attrValue = case attrValValue of
-              Aeson.String str -> str
-              _ -> "<barabajagal>"
-        putStrLn $ "  " <> T.unpack attrName <> ": " <> T.unpack attrValue
+      case HMS.lookup packageName sources of
+        Just (PackageSpec spec) -> do
+          forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
+            let attrValue = case attrValValue of
+                  Aeson.String str -> str
+                  _ -> "<barabajagal>"
+            putStrLn $ "  " <> T.unpack attrName <> ": " <> T.unpack attrValue
+        Nothing -> abortCannotShowNoSuchPackage packageName
+
+    Nothing -> do
+      putStrLn $ "Showing sources file"
+
+      sources <- unSources <$> getSources
+
+      forWithKeyM_ sources $ \key (PackageSpec spec) -> do
+        T.putStrLn $ "Package: " <> unPackageName key
+        forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
+          let attrValue = case attrValValue of
+                Aeson.String str -> str
+                _ -> "<barabajagal>"
+          putStrLn $ "  " <> T.unpack attrName <> ": " <> T.unpack attrValue
 
 -------------------------------------------------------------------------------
 -- UPDATE
@@ -632,6 +650,12 @@ abortCannotModifyNoSuchPackage (PackageName n) = abort $ T.unlines
 abortCannotDropNoSuchPackage :: PackageName -> IO a
 abortCannotDropNoSuchPackage (PackageName n) = abort $ T.unlines
     [ "Cannot drop package " <> n <> "."
+    , "The package doesn't exist."
+    ]
+
+abortCannotShowNoSuchPackage :: PackageName -> IO a
+abortCannotShowNoSuchPackage (PackageName n) = abort $ T.unlines
+    [ "Cannot show package " <> n <> "."
     , "The package doesn't exist."
     ]
 
