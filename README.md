@@ -291,7 +291,7 @@ Available options:
 #### show
 
 ```
-Usage: niv show 
+Usage: niv show [PACKAGE]
 
 Available options:
   -h,--help                Show this help text
