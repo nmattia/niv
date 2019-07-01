@@ -211,12 +211,13 @@ Examples:
   niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09
   niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
 
-Usage: niv add [-n|--name NAME] PACKAGE ([-a|--attribute KEY=VAL] |
+Usage: niv add OWNER/REPO [-n|--name NAME] ([-a|--attribute KEY=VAL] |
                [-b|--branch BRANCH] | [-o|--owner OWNER] | [-r|--repo REPO] |
                [-v|--version VERSION] | [-t|--template URL] | [-T|--type TYPE])
   Add dependency
 
 Available options:
+  OWNER/REPO               The owner and repository names
   -n,--name NAME           Set the package name to <NAME>
   -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>
   -b,--branch BRANCH       Equivalent to --attribute branch=<BRANCH>

@@ -10,6 +10,7 @@
 module Niv.Cli where
 
 import Control.Applicative
+import Data.Bifunctor
 import Control.Monad
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
 import Data.Char (isSpace)
@@ -184,12 +185,20 @@ cmdInit = do
             createFile path initNixSourcesJsonContent
             -- Imports @niv@ and @nixpkgs@ (18.09)
             putStrLn "Importing 'niv' ..."
-            cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
+            cmdAdd githubUpdate' (PackageName "niv")
+              (specToFreeAttrs $ PackageSpec $ HMS.fromList
+                [ "owner" .= ("nmattia" :: T.Text)
+                , "repo" .= ("niv" :: T.Text)
+                ]
+              )
             putStrLn "Importing 'nixpkgs' ..."
-            cmdAdd
-              (Just (PackageName "nixpkgs"))
-              ( PackageName "NixOS/nixpkgs-channels"
-              , PackageSpec (HMS.singleton "branch" "nixos-18.09"))
+            cmdAdd githubUpdate' (PackageName "nixpkgs")
+              (specToFreeAttrs $ PackageSpec $ HMS.fromList
+                [ "owner" .= ("NixOS" :: T.Text)
+                , "repo" .= ("nixpkgs-channels" :: T.Text)
+                , "branch" .= ("nixos-18.09" :: T.Text)
+                ]
+              )
         , \path _content -> dontCreateFile path)
       ] $ \(path, onCreate, onUpdate) -> do
           exists <- Dir.doesFileExist path
@@ -210,9 +219,23 @@ cmdInit = do
 
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd =
-    Opts.info ((cmdAdd <$> optName <*> parsePackage) <**> Opts.helper) $
+    Opts.info ((uncurry (cmdAdd githubUpdate') <$> parseDefinition) <**> Opts.helper) $
       mconcat desc
   where
+    parseDefinition :: Opts.Parser (PackageName, Attrs)
+    parseDefinition =
+      simplify <$>
+        parseShortcut <*>
+        optName <*>
+        parsePackageSpec
+
+    simplify :: (T.Text, T.Text) -> Maybe PackageName -> PackageSpec -> (PackageName, Attrs)
+    simplify (owner, repo) mPackageName cliSpec = do
+      let packageName = fromMaybe (PackageName repo) mPackageName
+          defaultSpec = PackageSpec $
+            HMS.fromList [ "owner" .= owner, "repo" .= repo ]
+      (packageName, specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
+
     optName :: Opts.Parser (Maybe PackageName)
     optName = Opts.optional $ PackageName <$>  Opts.strOption
       ( Opts.long "name" <>
@@ -220,6 +243,7 @@ parseCmdAdd =
         Opts.metavar "NAME" <>
         Opts.help "Set the package name to <NAME>"
       )
+
     desc =
       [ Opts.fullDesc
       , Opts.progDesc "Add dependency"
@@ -231,35 +255,38 @@ parseCmdAdd =
           "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
       ]
 
-cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
-cmdAdd mPackageName (PackageName str, cliSpec) = do
+    parseShortcut :: Opts.Parser (T.Text, T.Text)
+    parseShortcut =
+      Opts.argument
+        ( Opts.eitherReader (first T.unpack . parseShortcutStr . T.pack) )
+        ( Opts.metavar "OWNER/REPO" <>
+          Opts.help "The owner and repository names"
+        )
 
-    -- Figures out the owner and repo
-    let (packageName, defaultSpec) = case T.span (/= '/') str of
-          ( owner@(T.null -> False)
-            , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
-            (PackageName repo, HMS.fromList [ "owner" .= owner, "repo" .= repo ])
-          _ -> (PackageName str, HMS.empty)
+    -- | parses 'owner/repo'
+    parseShortcutStr :: T.Text -> Either T.Text (T.Text, T.Text)
+    parseShortcutStr str = case T.span (/= '/') str of
+      ( owner@(T.null -> False)
+        , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
+        Right (owner, repo)
+      _ -> Left ("Could not parse '" <> str <> "' as '<owner>/<repo>'")
+
+cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
+cmdAdd updt packageName attrs = do
 
     sources <- unSources <$> getSources
 
-    let packageName' = fromMaybe packageName mPackageName
+    when (HMS.member packageName sources) $
+      abortCannotAddPackageExists packageName
 
-    when (HMS.member packageName' sources) $
-      abortCannotAddPackageExists packageName'
-
-    let defaultSpec' = PackageSpec $ defaultSpec
-
-    eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate
-      (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec')
-      (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
+    eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate attrs updt
 
     case eFinalSpec of
-      Left e -> abortUpdateFailed [(packageName', e)]
+      Left e -> abortUpdateFailed [(packageName, e)]
       Right finalSpec -> do
         putStrLn $ "Writing new sources file"
         setSources $ Sources $
-          HMS.insert packageName' finalSpec sources
+          HMS.insert packageName finalSpec sources
 
 -------------------------------------------------------------------------------
 -- SHOW
@@ -582,6 +609,10 @@ pathNixSourcesJson = "nix" </> "sources.json"
 -- | Empty JSON map
 initNixSourcesJsonContent :: B.ByteString
 initNixSourcesJsonContent = "{}"
+
+-- | The IO (real) github update
+githubUpdate' :: Update () ()
+githubUpdate' = githubUpdate nixPrefetchURL githubLatestRev githubRepo
 
 -------------------------------------------------------------------------------
 -- Abort
