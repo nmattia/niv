@@ -165,17 +165,15 @@ rec
       #!${pkgs.stdenv.shell}
       set -euo pipefail
       export PATH=${haskellPackages.niv}/bin:${pkgs.nix}/bin:$PATH
+      site=$PWD/site
 
-      hash=$(${pkgs.nix}/bin/nix-hash ''${BASH_SOURCE[0]})
       pushd $(mktemp -d)
-      (tail -f /dev/null || true) | ${pkgs.termtosvg}/bin/termtosvg \
-          -g 82x26 -M 1500 -m 1500 -t window_frame \
-          -c '${niv-svg-cmds}' niv.svg
-      ${pkgs.gnused}/bin/sed -i "0,/terminal/{s/terminal/$hash/}" niv.svg
-      niv_svg=$(realpath niv.svg)
-      popd
+      ${pkgs.termtosvg}/bin/termtosvg \
+          -g 82x26 -M 500 -m 500 -t window_frame \
+          -c '${niv-svg-cmds}' $site/niv.svg
 
-      cp $niv_svg site/niv.svg
+      echo done rendering
+      popd
       '';
 
 }

@@ -1,23 +1,25 @@
 {
     "nixpkgs": {
-        "url": "https://github.com/NixOS/nixpkgs-channels/archive/8634c3b619909db7fc747faf8c03592986626e21.tar.gz",
-        "owner": "NixOS",
         "branch": "nixos-19.03",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "nixpkgs-channels",
-        "type": "tarball",
-        "sha256": "0hcpy4q64vbqmlmnfcavfxilyygyzpwdsss8g3p73ikpic0j6ziq",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
-        "rev": "8634c3b619909db7fc747faf8c03592986626e21"
+        "owner": "NixOS",
+        "repo": "nixpkgs-channels",
+        "rev": "8634c3b619909db7fc747faf8c03592986626e21",
+        "sha256": "0hcpy4q64vbqmlmnfcavfxilyygyzpwdsss8g3p73ikpic0j6ziq",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs-channels/archive/8634c3b619909db7fc747faf8c03592986626e21.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "gitignore": {
-        "url": "https://github.com/hercules-ci/gitignore/archive/4064e436313191f11969986e66b81cb6bb61bae6.tar.gz",
-        "owner": "hercules-ci",
-        "branch": "master",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "gitignore",
-        "sha256": "0358wcmgmc5mx4xfr08fxra4k05zvl2qyaix4gdlm7iwcscz609a",
-        "description": "Nix source function for gitignore that just works",
-        "rev": "4064e436313191f11969986e66b81cb6bb61bae6"
+    "termtosvg": {
+        "branch": "develop",
+        "description": "Record terminal sessions as SVG animations",
+        "homepage": "https://nbedos.github.io/termtosvg/",
+        "owner": "nbedos",
+        "repo": "termtosvg",
+        "rev": "525330d7d3d7f55b9ed2344140b9b320552a97a4",
+        "sha256": "07y39kyabsz88vrf37chcb0d4s5d6knyg95xmq5787vp987f5ii0",
+        "type": "tarball",
+        "url": "https://github.com/nbedos/termtosvg/archive/525330d7d3d7f55b9ed2344140b9b320552a97a4.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
