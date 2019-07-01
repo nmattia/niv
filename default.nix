@@ -4,8 +4,32 @@
 
 with rec
 { files = pkgs.callPackage ./nix/files.nix {};
-  gitignoreSource = (pkgs.callPackage sources.gitignore {}).gitignoreSource;
-  niv-source = gitignoreSource ./.;
+  sourceByRegex = name: src: regexes:
+    builtins.path
+      { filter =  (path: type:
+          let
+            relPath = pkgs.lib.removePrefix (toString src + "/") (toString path);
+            accept = pkgs.lib.any (re: builtins.match re relPath != null) regexes;
+          in accept);
+          inherit name;
+          path = src;
+      };
+  niv-source = sourceByRegex "niv" ./.
+    [ "^package.yaml$"
+      "^README.md$"
+      "^LICENSE$"
+      "^app$"
+      "^app.*.hs$"
+      "^src$"
+      "^src/Niv$"
+      "^src/Niv/GitHub$"
+      "^src/Niv/Update$"
+      "^src.*.hs$"
+      "^README.md$"
+      "^nix$"
+      "^nix.sources.nix$"
+    ];
+
   haskellPackages = pkgs.haskellPackages.override
     { overrides = _: haskellPackages:
         { niv =
