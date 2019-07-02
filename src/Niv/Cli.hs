@@ -35,6 +35,10 @@ import qualified Data.Text.IO as T
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import qualified System.Directory as Dir
+import qualified Options.Applicative as Opts
+import qualified Options.Applicative.Help.Pretty as Opts
+import qualified Options.Applicative.Builder.Internal as Opts
+import qualified Options.Applicative.Types as Opts
 
 cli :: IO ()
 cli = join $ Opts.execParser opts
@@ -217,20 +221,39 @@ cmdInit = do
 -- ADD
 -------------------------------------------------------------------------------
 
-parseCmdAdd :: Opts.ParserInfo (IO ())
-parseCmdAdd =
+subparserGitHubShortcut :: Opts.Parser (IO ())
+subparserGitHubShortcut = Opts.mkParser d g rdr
+  where
+    Opts.Mod f d g = Opts.metavar "PACKAGE" `mappend` m
+    rdr = Opts.CmdReader group (map fst cmds) subs
+    subs str = case parseShortcutStr (T.pack str) of
+      Right (owner, repo) -> Just $ parseCmdAddGitHub owner repo
+      Left{} -> Nothing
+    Opts.CommandFields cmds group = f (Opts.CommandFields [] Nothing)
+    m = Opts.command "foo/bar" undefined
+
+    -- | parses 'owner/repo'
+    parseShortcutStr :: T.Text -> Either T.Text (T.Text, T.Text)
+    parseShortcutStr str = case T.span (/= '/') str of
+      ( owner@(T.null -> False)
+        , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
+        Right (owner, repo)
+      _ -> Left ("Could not parse '" <> str <> "' as '<owner>/<repo>'")
+
+parseCmdAddGitHub :: T.Text -> T.Text -> Opts.ParserInfo (IO ())
+parseCmdAddGitHub owner repo =
     Opts.info ((uncurry (cmdAdd githubUpdate') <$> parseDefinition) <**> Opts.helper) $
       mconcat desc
   where
     parseDefinition :: Opts.Parser (PackageName, Attrs)
     parseDefinition =
       simplify <$>
-        parseShortcut <*>
+        -- parseShortcut <*>
         optName <*>
         parsePackageSpec
 
-    simplify :: (T.Text, T.Text) -> Maybe PackageName -> PackageSpec -> (PackageName, Attrs)
-    simplify (owner, repo) mPackageName cliSpec = do
+    simplify :: Maybe PackageName -> PackageSpec -> (PackageName, Attrs)
+    simplify mPackageName cliSpec = do
       let packageName = fromMaybe (PackageName repo) mPackageName
           defaultSpec = PackageSpec $
             HMS.fromList [ "owner" .= owner, "repo" .= repo ]
@@ -255,21 +278,70 @@ parseCmdAdd =
           "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
       ]
 
-    parseShortcut :: Opts.Parser (T.Text, T.Text)
-    parseShortcut =
-      Opts.argument
-        ( Opts.eitherReader (first T.unpack . parseShortcutStr . T.pack) )
-        ( Opts.metavar "OWNER/REPO" <>
-          Opts.help "The owner and repository names"
-        )
+    -- parseShortcut :: Opts.Parser (T.Text, T.Text)
+    -- parseShortcut =
+      -- Opts.argument
+        -- ( Opts.eitherReader (first T.unpack . parseShortcutStr . T.pack) )
+        -- ( Opts.metavar "OWNER/REPO" <>
+          -- Opts.help "The owner and repository names"
+        -- )
 
-    -- | parses 'owner/repo'
-    parseShortcutStr :: T.Text -> Either T.Text (T.Text, T.Text)
-    parseShortcutStr str = case T.span (/= '/') str of
-      ( owner@(T.null -> False)
-        , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
-        Right (owner, repo)
-      _ -> Left ("Could not parse '" <> str <> "' as '<owner>/<repo>'")
+parseCmdAdd :: Opts.ParserInfo (IO ())
+parseCmdAdd =
+    Opts.info (sp <**> Opts.helper) $ Opts.progDesc "Add dependency"
+    -- Opts.info ((uncurry (cmdAdd githubUpdate') <$> parseDefinition) <**> Opts.helper) $
+      -- mconcat desc
+  where
+    sp = subparserGitHubShortcut
+      -- ( Opts.command "github" parseCmdAddGitHub
+    -- parseDefinition :: Opts.Parser (PackageName, Attrs)
+    -- parseDefinition =
+      -- simplify <$>
+        -- parseShortcut <*>
+        -- optName <*>
+        -- parsePackageSpec
+
+    -- simplify :: (T.Text, T.Text) -> Maybe PackageName -> PackageSpec -> (PackageName, Attrs)
+    -- simplify (owner, repo) mPackageName cliSpec = do
+      -- let packageName = fromMaybe (PackageName repo) mPackageName
+          -- defaultSpec = PackageSpec $
+            -- HMS.fromList [ "owner" .= owner, "repo" .= repo ]
+      -- (packageName, specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
+
+    -- optName :: Opts.Parser (Maybe PackageName)
+    -- optName = Opts.optional $ PackageName <$>  Opts.strOption
+      -- ( Opts.long "name" <>
+        -- Opts.short 'n' <>
+        -- Opts.metavar "NAME" <>
+        -- Opts.help "Set the package name to <NAME>"
+      -- )
+
+    -- desc =
+      -- [ Opts.fullDesc
+      -- , Opts.progDesc "Add dependency"
+      -- , Opts.headerDoc $ Just $
+          -- "Examples:" Opts.<$$>
+          -- "" Opts.<$$>
+          -- "  niv add stedolan/jq" Opts.<$$>
+          -- "  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09" Opts.<$$>
+          -- "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
+      -- ]
+
+    -- parseShortcut :: Opts.Parser (T.Text, T.Text)
+    -- parseShortcut =
+      -- Opts.argument
+        -- ( Opts.eitherReader (first T.unpack . parseShortcutStr . T.pack) )
+        -- ( Opts.metavar "OWNER/REPO" <>
+          -- Opts.help "The owner and repository names"
+        -- )
+
+    -- -- | parses 'owner/repo'
+    -- parseShortcutStr :: T.Text -> Either T.Text (T.Text, T.Text)
+    -- parseShortcutStr str = case T.span (/= '/') str of
+      -- ( owner@(T.null -> False)
+        -- , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
+        -- Right (owner, repo)
+      -- _ -> Left ("Could not parse '" <> str <> "' as '<owner>/<repo>'")
 
 cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
 cmdAdd updt packageName attrs = do
