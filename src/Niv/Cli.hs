@@ -627,7 +627,7 @@ abortCannotAddPackageExists (PackageName n) = abort $ T.unlines
     , "The package already exists. Use"
     , "  niv drop " <> n
     , "and then re-add the package. Alternatively use"
-    , "  niv update " <> n <> " --attr foo=bar"
+    , "  niv update " <> n <> " --attribute foo=bar"
     , "to update the package's attributes."
     ]
 
