@@ -182,14 +182,14 @@ cmdInit = do
       , ( pathNixSourcesJson
         , \path -> do
             createFile path initNixSourcesJsonContent
-            -- Imports @niv@ and @nixpkgs@ (18.09)
+            -- Imports @niv@ and @nixpkgs@ (19.03)
             putStrLn "Importing 'niv' ..."
             cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
             putStrLn "Importing 'nixpkgs' ..."
             cmdAdd
               (Just (PackageName "nixpkgs"))
               ( PackageName "NixOS/nixpkgs-channels"
-              , PackageSpec (HMS.singleton "branch" "nixos-18.09"))
+              , PackageSpec (HMS.singleton "branch" "nixos-19.03"))
         , \path _content -> dontCreateFile path)
       ] $ \(path, onCreate, onUpdate) -> do
           exists <- Dir.doesFileExist path
@@ -227,7 +227,7 @@ parseCmdAdd =
           "Examples:" Opts.<$$>
           "" Opts.<$$>
           "  niv add stedolan/jq" Opts.<$$>
-          "  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-18.09" Opts.<$$>
+          "  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-19.03" Opts.<$$>
           "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
       ]
 
