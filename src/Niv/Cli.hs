@@ -250,8 +250,10 @@ cmdAdd mPackageName (PackageName str, cliSpec) = do
 
     let defaultSpec' = PackageSpec $ defaultSpec
 
+    let initialSpec = specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec'
+
     eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate
-      (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec')
+      initialSpec
       (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
 
     case eFinalSpec of
@@ -355,9 +357,11 @@ cmdUpdate = \case
       esources' <- forWithKeyM sources $
         \packageName defaultSpec -> do
           T.putStrLn $ "Package: " <> unPackageName packageName
-          fmap attrsToSpec <$> tryEvalUpdate
-            (specToFreeAttrs defaultSpec)
+          let initialSpec = specToFreeAttrs defaultSpec
+          finalSpec <- fmap attrsToSpec <$> tryEvalUpdate
+            initialSpec
             (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
+          pure finalSpec
 
       let (failed, sources') = partitionEithersHMS esources'
 

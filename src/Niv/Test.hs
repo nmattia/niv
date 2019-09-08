@@ -23,6 +23,7 @@ tests = Tasty.testGroup "niv"
     , Tasty.testGroup "github"
         [ Tasty.testCase "inits properly" test_githubInitsProperly
         , Tasty.testCase "updates" test_githubUpdates
+        , Tasty.testCase "updates once" test_githubUpdatesOnce
         , Tasty.testCase "doesn't override rev" test_githubDoesntOverrideRev
         , Tasty.testCase "falls back to URL" test_githubURLFallback
         ]

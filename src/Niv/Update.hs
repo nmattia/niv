@@ -209,8 +209,17 @@ runUpdate' attrs = \case
       Just (Locked, v) -> UpdateReady $ UpdateSuccess attrs v
       Just (Free, v) -> UpdateNeedMore $ \gtt -> do
         if (boxNew gtt)
-        then pure $ UpdateSuccess (HMS.insert k (Locked, gtt) attrs) gtt
-        else pure $ UpdateSuccess attrs v
+        then do
+          v' <- boxOp v
+          gtt' <- boxOp gtt
+          -- Here we compare the old and new values, flagging the new one as
+          -- "boxNew" iff they differ.
+          -- TODO: generalize this to all boxes
+          let gtt'' = if v' /= gtt' then gtt { boxNew = True, boxOp = pure gtt' }
+                else gtt { boxNew = False, boxOp = pure gtt' }
+          pure $ UpdateSuccess (HMS.insert k (Locked, gtt'') attrs) gtt''
+        else do
+          pure $ UpdateSuccess attrs v
       Nothing -> UpdateNeedMore $ \gtt -> do
         pure $ UpdateSuccess (HMS.insert k (Locked, gtt) attrs) gtt
     Compose (Compose' f g) -> runUpdate' attrs g >>= \case
