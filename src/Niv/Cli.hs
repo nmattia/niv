@@ -17,6 +17,7 @@ import Data.FileEmbed (embedFile)
 import Data.Hashable (Hashable)
 import Data.Maybe (fromMaybe)
 import Data.String.QQ (s)
+import Niv.Logger
 import Niv.GitHub
 import Niv.Update
 import System.Exit (exitFailure, ExitCode(ExitSuccess))
@@ -166,34 +167,35 @@ parseCmdInit = Opts.info (pure cmdInit <**> Opts.helper) $ mconcat desc
 
 cmdInit :: IO ()
 cmdInit = do
+    job "initializing" $ do
 
-    -- Writes all the default files
-    -- a path, a "create" function and an update function for each file.
-    forM_
-      [ ( pathNixSourcesNix
-        , (`createFile` initNixSourcesNixContent)
-        , \path content -> do
-            if shouldUpdateNixSourcesNix content
-            then do
-              putStrLn "Updating sources.nix"
-              B.writeFile path initNixSourcesNixContent
-            else putStrLn "Not updating sources.nix"
-        )
-      , ( pathNixSourcesJson
-        , \path -> do
-            createFile path initNixSourcesJsonContent
-            -- Imports @niv@ and @nixpkgs@ (19.03)
-            putStrLn "Importing 'niv' ..."
-            cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
-            putStrLn "Importing 'nixpkgs' ..."
-            cmdAdd
-              (Just (PackageName "nixpkgs"))
-              ( PackageName "NixOS/nixpkgs-channels"
-              , PackageSpec (HMS.singleton "branch" "nixos-19.03"))
-        , \path _content -> dontCreateFile path)
-      ] $ \(path, onCreate, onUpdate) -> do
-          exists <- Dir.doesFileExist path
-          if exists then B.readFile path >>= onUpdate path else onCreate path
+      -- Writes all the default files
+      -- a path, a "create" function and an update function for each file.
+      forM_
+        [ ( pathNixSourcesNix
+          , (`createFile` initNixSourcesNixContent)
+          , \path content -> do
+              if shouldUpdateNixSourcesNix content
+              then do
+                putStrLn "Updating sources.nix"
+                B.writeFile path initNixSourcesNixContent
+              else putStrLn "Not updating sources.nix"
+          )
+        , ( pathNixSourcesJson
+          , \path -> do
+              createFile path initNixSourcesJsonContent
+              -- Imports @niv@ and @nixpkgs@ (19.03)
+              putStrLn "Importing 'niv' ..."
+              cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
+              putStrLn "Importing 'nixpkgs' ..."
+              cmdAdd
+                (Just (PackageName "nixpkgs"))
+                ( PackageName "NixOS/nixpkgs-channels"
+                , PackageSpec (HMS.singleton "branch" "nixos-19.03"))
+          , \path _content -> dontCreateFile path)
+        ] $ \(path, onCreate, onUpdate) -> do
+            exists <- Dir.doesFileExist path
+            if exists then B.readFile path >>= onUpdate path else onCreate path
   where
     createFile :: FilePath -> B.ByteString -> IO ()
     createFile path content = do
@@ -333,25 +335,25 @@ specToLockedAttrs = fmap (Locked,) . unPackageSpec
 -- TODO: sexy logging + concurrent updates
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
-    Just (packageName, cliSpec) -> do
-      T.putStrLn $ "Updating single package: " <> unPackageName packageName
-      sources <- unSources <$> getSources
+    Just (packageName, cliSpec) ->
+      job ("Update " <> T.unpack (unPackageName packageName)) $ do
+        sources <- unSources <$> getSources
 
-      eFinalSpec <- case HMS.lookup packageName sources of
-        Just defaultSpec -> do
-          fmap attrsToSpec <$> tryEvalUpdate
-            (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
-            (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
+        eFinalSpec <- case HMS.lookup packageName sources of
+          Just defaultSpec -> do
+            fmap attrsToSpec <$> tryEvalUpdate
+              (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
+              (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
 
-        Nothing -> abortCannotUpdateNoSuchPackage packageName
+          Nothing -> abortCannotUpdateNoSuchPackage packageName
 
-      case eFinalSpec of
-        Left e -> abortUpdateFailed [(packageName, e)]
-        Right finalSpec ->
-          setSources $ Sources $
-            HMS.insert packageName finalSpec sources
+        case eFinalSpec of
+          Left e -> abortUpdateFailed [(packageName, e)]
+          Right finalSpec ->
+            setSources $ Sources $
+              HMS.insert packageName finalSpec sources
 
-    Nothing -> do
+    Nothing -> job "Updating all packages" $ do
       sources <- unSources <$> getSources
 
       esources' <- forWithKeyM sources $
