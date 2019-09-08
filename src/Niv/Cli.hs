@@ -65,7 +65,7 @@ getSources = do
 
     warnIfOutdated
     -- TODO: if doesn't exist: run niv init
-    putStrLn $ "Reading sources file"
+    say $ "Reading sources file"
     decodeFileStrict pathNixSourcesJson >>= \case
       Just (Aeson.Object obj) ->
         fmap (Sources . mconcat) $
@@ -167,7 +167,7 @@ parseCmdInit = Opts.info (pure cmdInit <**> Opts.helper) $ mconcat desc
 
 cmdInit :: IO ()
 cmdInit = do
-    job "initializing" $ do
+    job "Initializing" $ do
 
       -- Writes all the default files
       -- a path, a "create" function and an update function for each file.
@@ -177,17 +177,17 @@ cmdInit = do
           , \path content -> do
               if shouldUpdateNixSourcesNix content
               then do
-                putStrLn "Updating sources.nix"
+                say "Updating sources.nix"
                 B.writeFile path initNixSourcesNixContent
-              else putStrLn "Not updating sources.nix"
+              else say "Not updating sources.nix"
           )
         , ( pathNixSourcesJson
           , \path -> do
               createFile path initNixSourcesJsonContent
               -- Imports @niv@ and @nixpkgs@ (19.03)
-              putStrLn "Importing 'niv' ..."
+              say "Importing 'niv' ..."
               cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
-              putStrLn "Importing 'nixpkgs' ..."
+              say "Importing 'nixpkgs' ..."
               cmdAdd
                 (Just (PackageName "nixpkgs"))
                 ( PackageName "NixOS/nixpkgs-channels"
@@ -201,10 +201,10 @@ cmdInit = do
     createFile path content = do
       let dir = takeDirectory path
       Dir.createDirectoryIfMissing True dir
-      putStrLn $ "Creating " <> path
+      say $ "Creating " <> path
       B.writeFile path content
     dontCreateFile :: FilePath -> IO ()
-    dontCreateFile path = putStrLn $ "Not creating " <> path
+    dontCreateFile path = say $ "Not creating " <> path
 
 -------------------------------------------------------------------------------
 -- ADD
@@ -234,36 +234,37 @@ parseCmdAdd =
       ]
 
 cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
-cmdAdd mPackageName (PackageName str, cliSpec) = do
+cmdAdd mPackageName (PackageName str, cliSpec) =
+    job ("Adding package " <> T.unpack str)  $ do
 
-    -- Figures out the owner and repo
-    let (packageName, defaultSpec) = case T.span (/= '/') str of
-          ( owner@(T.null -> False)
-            , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
-            (PackageName repo, HMS.fromList [ "owner" .= owner, "repo" .= repo ])
-          _ -> (PackageName str, HMS.empty)
+      -- Figures out the owner and repo
+      let (packageName, defaultSpec) = case T.span (/= '/') str of
+            ( owner@(T.null -> False)
+              , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
+              (PackageName repo, HMS.fromList [ "owner" .= owner, "repo" .= repo ])
+            _ -> (PackageName str, HMS.empty)
 
-    sources <- unSources <$> getSources
+      sources <- unSources <$> getSources
 
-    let packageName' = fromMaybe packageName mPackageName
+      let packageName' = fromMaybe packageName mPackageName
 
-    when (HMS.member packageName' sources) $
-      abortCannotAddPackageExists packageName'
+      when (HMS.member packageName' sources) $
+        abortCannotAddPackageExists packageName'
 
-    let defaultSpec' = PackageSpec $ defaultSpec
+      let defaultSpec' = PackageSpec $ defaultSpec
 
-    let initialSpec = specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec'
+      let initialSpec = specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec'
 
-    eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate
-      initialSpec
-      (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
+      eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate
+        initialSpec
+        (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
 
-    case eFinalSpec of
-      Left e -> abortUpdateFailed [(packageName', e)]
-      Right finalSpec -> do
-        putStrLn $ "Writing new sources file"
-        setSources $ Sources $
-          HMS.insert packageName' finalSpec sources
+      case eFinalSpec of
+        Left e -> abortUpdateFailed [(packageName', e)]
+        Right finalSpec -> do
+          say $ "Writing new sources file"
+          setSources $ Sources $
+            HMS.insert packageName' finalSpec sources
 
 -------------------------------------------------------------------------------
 -- SHOW
@@ -279,7 +280,7 @@ parseCmdShow =
 cmdShow :: Maybe PackageName -> IO ()
 cmdShow = \case
     Just packageName -> do
-      putStrLn $ "Showing package " <> T.unpack (unPackageName packageName)
+      tsay $ "Showing package " <> unPackageName packageName
 
       sources <- unSources <$> getSources
 
@@ -289,21 +290,21 @@ cmdShow = \case
             let attrValue = case attrValValue of
                   Aeson.String str -> str
                   _ -> "<barabajagal>"
-            putStrLn $ "  " <> T.unpack attrName <> ": " <> T.unpack attrValue
+            tsay $ "  " <> attrName <> ": " <> attrValue
         Nothing -> abortCannotShowNoSuchPackage packageName
 
     Nothing -> do
-      putStrLn $ "Showing sources file"
+      say $ "Showing sources file"
 
       sources <- unSources <$> getSources
 
       forWithKeyM_ sources $ \key (PackageSpec spec) -> do
-        T.putStrLn $ "Package: " <> unPackageName key
+        tsay $ "Updating " <> tbold (unPackageName key)
         forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
           let attrValue = case attrValValue of
                 Aeson.String str -> str
-                _ -> "<barabajagal>"
-          putStrLn $ "  " <> T.unpack attrName <> ": " <> T.unpack attrValue
+                _ -> tfaint "<barabajagal>"
+          tsay $ "  " <> attrName <> ": " <> attrValue
 
 -------------------------------------------------------------------------------
 -- UPDATE
@@ -358,7 +359,7 @@ cmdUpdate = \case
 
       esources' <- forWithKeyM sources $
         \packageName defaultSpec -> do
-          T.putStrLn $ "Package: " <> unPackageName packageName
+          tsay $ "Package: " <> unPackageName packageName
           let initialSpec = specToFreeAttrs defaultSpec
           finalSpec <- fmap attrsToSpec <$> tryEvalUpdate
             initialSpec
@@ -402,7 +403,7 @@ parseCmdModify =
 
 cmdModify :: (PackageName, PackageSpec) -> IO ()
 cmdModify (packageName, cliSpec) = do
-    T.putStrLn $ "Modifying package: " <> unPackageName packageName
+    tsay $ "Modifying package: " <> unPackageName packageName
     sources <- unSources <$> getSources
 
     finalSpec <- case HMS.lookup packageName sources of
@@ -438,7 +439,7 @@ parseCmdDrop =
 cmdDrop :: PackageName -> [T.Text] -> IO ()
 cmdDrop packageName = \case
     [] -> do
-      T.putStrLn $ "Dropping package: " <> unPackageName packageName
+      tsay $ "Dropping package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
       when (not $ HMS.member packageName sources) $
@@ -447,9 +448,8 @@ cmdDrop packageName = \case
       setSources $ Sources $
         HMS.delete packageName sources
     attrs -> do
-      putStrLn $ "Dropping attributes :" <>
-        (T.unpack (T.intercalate " " attrs))
-      T.putStrLn $ "In package: " <> unPackageName packageName
+      tsay $ "Dropping attributes :" <> T.intercalate " " attrs
+      tsay $ "In package: " <> unPackageName packageName
       sources <- unSources <$> getSources
 
       packageSpec <- case HMS.lookup packageName sources of

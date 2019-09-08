@@ -169,7 +169,7 @@ rec
 
       pushd $(mktemp -d)
       ${pkgs.termtosvg}/bin/termtosvg \
-          -g 82x26 -M 500 -m 500 -t window_frame \
+          -g 82x26 -M 500 -m 500 -t window_frame_js \
           -c '${niv-svg-cmds}' $site/niv.svg
 
       echo done rendering

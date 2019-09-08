@@ -32,6 +32,7 @@ dependencies:
     - mtl
     - optparse-applicative
     - process
+    - profunctors
     - string-qq
     - text
     - unliftio
