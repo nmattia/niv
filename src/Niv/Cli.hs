@@ -19,9 +19,9 @@ import Data.Maybe (fromMaybe)
 import Data.String.QQ (s)
 import Niv.GitHub
 import Niv.Update
-import System.Exit (exitFailure)
+import System.Exit (exitFailure, ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory)
-import System.Process (readProcess)
+import System.Process (readProcessWithExitCode)
 import UnliftIO
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
@@ -524,12 +524,14 @@ abort msg = do
     exitFailure
 
 nixPrefetchURL :: Bool -> T.Text -> IO T.Text
-nixPrefetchURL unpack (T.unpack -> url) =
-    lines <$> readProcess "nix-prefetch-url" args "" >>=
-      \case
-        (l:_) -> pure (T.pack l)
-        _ -> abortNixPrefetchExpectedOutput
-  where args = if unpack then ["--unpack", url] else [url]
+nixPrefetchURL unpack (T.unpack -> url) = do
+    (exitCode, sout, serr) <- runNixPrefetch
+    case (exitCode, lines sout) of
+      (ExitSuccess, l:_)  -> pure $ T.pack l
+      _ -> abortNixPrefetchExpectedOutput (T.pack sout) (T.pack serr)
+  where
+    args = if unpack then ["--unpack", url] else [url]
+    runNixPrefetch = readProcessWithExitCode "nix-prefetch-url" args ""
 
 -------------------------------------------------------------------------------
 -- Files and their content
@@ -676,15 +678,15 @@ abortUpdateFailed errs = abort $ T.unlines $
       pname <> ": " <> tshow e
     ) errs
 
-abortNixPrefetchExpectedOutput :: IO a
-abortNixPrefetchExpectedOutput = abort [s|
+abortNixPrefetchExpectedOutput :: T.Text -> T.Text -> IO a
+abortNixPrefetchExpectedOutput sout serr = abort $ [s|
 Could not read the output of 'nix-prefetch-url'. This is a bug. Please create a
 ticket:
 
   https://github.com/nmattia/niv/issues/new
 
 Thanks! I'll buy you a beer.
-|]
+|] <> T.unlines ["stdout: ", sout, "stderr: ", serr]
 
 tshow :: Show a => a -> T.Text
 tshow = T.pack . show
