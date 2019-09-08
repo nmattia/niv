@@ -21,6 +21,7 @@ extra-source-files:
 dependencies:
     - aeson
     - aeson-pretty
+    - ansi-terminal
     - base < 5
     - bytestring
     - directory
@@ -31,6 +32,7 @@ dependencies:
     - mtl
     - optparse-applicative
     - process
+    - profunctors
     - string-qq
     - text
     - unliftio
