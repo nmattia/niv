@@ -37,6 +37,8 @@ import qualified Data.Text.IO as T
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import qualified System.Directory as Dir
+import qualified Options.Applicative.Builder.Internal as Opts
+import qualified Options.Applicative.Types as Opts
 
 -- I died a little
 import Paths_niv (version)
@@ -199,12 +201,20 @@ cmdInit = do
               createFile path initNixSourcesJsonContent
               -- Imports @niv@ and @nixpkgs@ (19.03)
               say "Importing 'niv' ..."
-              cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
+              cmdAdd githubUpdate' (PackageName "niv")
+                (specToFreeAttrs $ PackageSpec $ HMS.fromList
+                  [ "owner" .= ("nmattia" :: T.Text)
+                  , "repo" .= ("niv" :: T.Text)
+                  ]
+                )
               say "Importing 'nixpkgs' ..."
-              cmdAdd
-                (Just (PackageName "nixpkgs"))
-                ( PackageName "NixOS/nixpkgs-channels"
-                , PackageSpec (HMS.singleton "branch" "nixos-19.03"))
+              cmdAdd githubUpdate' (PackageName "nixpkgs")
+                (specToFreeAttrs $ PackageSpec $ HMS.fromList
+                  [ "owner" .= ("NixOS" :: T.Text)
+                  , "repo" .= ("nixpkgs-channels" :: T.Text)
+                  , "branch" .= ("nixos-19.03" :: T.Text)
+                  ]
+                )
           , \path _content -> dontCreateFile path)
         ] $ \(path, onCreate, onUpdate) -> do
             exists <- Dir.doesFileExist path
@@ -223,11 +233,43 @@ cmdInit = do
 -- ADD
 -------------------------------------------------------------------------------
 
-parseCmdAdd :: Opts.ParserInfo (IO ())
-parseCmdAdd =
-    Opts.info ((cmdAdd <$> optName <*> parsePackage) <**> Opts.helper) $
+subparserGitHubShortcut :: Opts.Parser (IO ())
+subparserGitHubShortcut = Opts.mkParser d g rdr
+  where
+    Opts.Mod f d g = Opts.metavar "PACKAGE" `mappend` m
+    rdr = Opts.CmdReader group (map fst cmds) subs
+    subs str = case parseShortcutStr (T.pack str) of
+      Right (owner, repo) -> Just $ parseCmdAddGitHub owner repo
+      Left{} -> Nothing
+    Opts.CommandFields cmds group = f (Opts.CommandFields [] Nothing)
+    m = Opts.command "foo/bar" undefined
+
+    -- | parses 'owner/repo'
+    parseShortcutStr :: T.Text -> Either T.Text (T.Text, T.Text)
+    parseShortcutStr str = case T.span (/= '/') str of
+      ( owner@(T.null -> False)
+        , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
+        Right (owner, repo)
+      _ -> Left ("Could not parse '" <> str <> "' as '<owner>/<repo>'")
+
+parseCmdAddGitHub :: T.Text -> T.Text -> Opts.ParserInfo (IO ())
+parseCmdAddGitHub owner repo =
+    Opts.info ((uncurry (cmdAdd githubUpdate') <$> parseDefinition) <**> Opts.helper) $
       mconcat desc
   where
+    parseDefinition :: Opts.Parser (PackageName, Attrs)
+    parseDefinition =
+      simplify <$>
+        optName <*>
+        parsePackageSpec
+
+    simplify :: Maybe PackageName -> PackageSpec -> (PackageName, Attrs)
+    simplify mPackageName cliSpec = do
+      let packageName = fromMaybe (PackageName repo) mPackageName
+          defaultSpec = PackageSpec $
+            HMS.fromList [ "owner" .= owner, "repo" .= repo ]
+      (packageName, specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
+
     optName :: Opts.Parser (Maybe PackageName)
     optName = Opts.optional $ PackageName <$>  Opts.strOption
       ( Opts.long "name" <>
@@ -235,6 +277,7 @@ parseCmdAdd =
         Opts.metavar "NAME" <>
         Opts.help "Set the package name to <NAME>"
       )
+
     desc =
       [ Opts.fullDesc
       , Opts.progDesc "Add dependency"
@@ -246,38 +289,28 @@ parseCmdAdd =
           "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
       ]
 
-cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
-cmdAdd mPackageName (PackageName str, cliSpec) =
-    job ("Adding package " <> T.unpack str)  $ do
+parseCmdAdd :: Opts.ParserInfo (IO ())
+parseCmdAdd =
+    Opts.info (sp <**> Opts.helper) $ Opts.progDesc "Add dependency"
+  where
+    sp = subparserGitHubShortcut
 
-      -- Figures out the owner and repo
-      let (packageName, defaultSpec) = case T.span (/= '/') str of
-            ( owner@(T.null -> False)
-              , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
-              (PackageName repo, HMS.fromList [ "owner" .= owner, "repo" .= repo ])
-            _ -> (PackageName str, HMS.empty)
-
+cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
+cmdAdd updt packageName attrs = do
+    job ("Adding package " <> T.unpack (unPackageName packageName)) $ do
       sources <- unSources <$> getSources
 
-      let packageName' = fromMaybe packageName mPackageName
+      when (HMS.member packageName sources) $
+        abortCannotAddPackageExists packageName
 
-      when (HMS.member packageName' sources) $
-        abortCannotAddPackageExists packageName'
-
-      let defaultSpec' = PackageSpec $ defaultSpec
-
-      let initialSpec = specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec'
-
-      eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate
-        initialSpec
-        (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
+      eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate attrs updt
 
       case eFinalSpec of
-        Left e -> abortUpdateFailed [(packageName', e)]
+        Left e -> abortUpdateFailed [(packageName, e)]
         Right finalSpec -> do
           say $ "Writing new sources file"
           setSources $ Sources $
-            HMS.insert packageName' finalSpec sources
+            HMS.insert packageName finalSpec sources
 
 -------------------------------------------------------------------------------
 -- SHOW
@@ -598,6 +631,10 @@ pathNixSourcesJson = "nix" </> "sources.json"
 -- | Empty JSON map
 initNixSourcesJsonContent :: B.ByteString
 initNixSourcesJsonContent = "{}"
+
+-- | The IO (real) github update
+githubUpdate' :: Update () ()
+githubUpdate' = githubUpdate nixPrefetchURL githubLatestRev githubRepo
 
 -------------------------------------------------------------------------------
 -- Abort
