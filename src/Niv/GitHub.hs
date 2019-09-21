@@ -177,8 +177,6 @@ For more information on rate-limiting, see
 
 |]
 
--- TODO: document all of these
-
 githubHost :: T.Text
 githubHost = unsafePerformIO $ do
     lookupEnv "GITHUB_HOST" >>= \case
