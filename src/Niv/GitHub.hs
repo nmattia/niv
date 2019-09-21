@@ -80,7 +80,10 @@ data GithubRepo = GithubRepo
 githubRepo :: T.Text -> T.Text -> IO GithubRepo
 githubRepo owner repo = do
     request <- defaultRequest ["repos", owner, repo]
-    resp <- HTTP.httpJSONEither request -- >>= \case
+    -- we don't use httpJSONEither because it adds an "Accept:
+    -- application/json" header that GitHub chokes on
+    resp0 <- HTTP.httpBS request
+    let resp = fmap Aeson.eitherDecodeStrict resp0
     case (HTTP.getResponseStatusCode resp, HTTP.getResponseBody resp) of
       (200, Right (Aeson.Object m)) -> do
         let lookupText k = case HMS.lookup k m of
@@ -95,12 +98,12 @@ githubRepo owner repo = do
         error $ "expected object, got " <> show v
       (200, Left e) -> do
         error $ "github didn't return JSON: " <> show e
-      _ -> abortCouldNotFetchGitHubRepo (tshow resp) (owner, repo)
+      _ -> abortCouldNotFetchGitHubRepo (tshow (request,resp0)) (owner, repo)
 
 -- | TODO: Error instead of T.Text?
 abortCouldNotFetchGitHubRepo :: T.Text -> (T.Text, T.Text) -> IO a
 abortCouldNotFetchGitHubRepo e (T.unpack -> owner, T.unpack -> repo) = do
-    putStrLn $ unlines [ line1, line2, line3 ]
+    putStrLn $ unlines [ line1, line2, T.unpack line3 ]
     exitFailure
   where
     line1 = "WARNING: Could not read from GitHub repo: " <> owner <> "/" <> repo
@@ -118,7 +121,7 @@ If not, try re-adding it:
 
 Make sure the repository exists.
 |]
-    line3 = unwords [ "(Error was:", show e, ")" ]
+    line3 = T.unwords [ "(Error was:", e, ")" ]
 
 defaultRequest :: [T.Text] -> IO HTTP.Request
 defaultRequest (map T.encodeUtf8 -> parts) = do
@@ -129,6 +132,7 @@ defaultRequest (map T.encodeUtf8 -> parts) = do
         HTTP.addRequestHeader "authorization" ("token " <> BS8.pack token)
       ) $
       HTTP.setRequestPath path $
+      HTTP.addRequestHeader "user-agent" "niv" $
       HTTP.addRequestHeader "accept" "application/vnd.github.v3+json" $
       HTTP.setRequestSecure githubSecure $
       HTTP.setRequestHost (T.encodeUtf8 githubApiHost) $
@@ -185,7 +189,7 @@ githubApiPort :: Int
 githubApiPort = unsafePerformIO $ do
     lookupEnv "GITHUB_API_PORT" >>= \case
       Just (readMaybe -> Just x) -> pure x
-      _ -> pure 80
+      _ -> pure $ if githubSecure then 443 else 80
 
 githubApiHost :: T.Text
 githubApiHost = unsafePerformIO $ do

@@ -18,15 +18,6 @@ let
   niv_HEAD = "a489b65a5c3a29983701069d1ce395b23d9bde64";
   niv_HEAD- = "abc51449406ba3279c466b4d356b4ae8522ceb58";
   nixpkgs-channels_HEAD = "571b40d3f50466d3e91c1e609d372de96d782793";
-  nivForTest = niv.overrideDerivation(old: {
-    # TODO: Remove this patch by adding an argument to the github
-    # subcommand to support GitHub entreprise.
-    prePatch = ''
-      sed 's|githubHost = "github.com"|githubHost = "localhost:3333"|' -i src/Niv/GitHub.hs
-      sed 's|githuApiHost = "github.com"|githuApiHost = "localhost:3333"|' -i src/Niv/GitHub.hs
-      sed 's|githubSecure = True|githubSecure = False|' -i src/Niv/GitHub.hs
-    '';
-  });
 in pkgs.runCommand "test"
     { buildInputs =
         [ pkgs.haskellPackages.wai-app-static
