@@ -22,16 +22,15 @@ let
     # TODO: Remove this patch by adding an argument to the github
     # subcommand to support GitHub entreprise.
     prePatch = ''
-      sed "/import Data.Text.Encoding (encodeUtf8)/d" -i src/Niv/GitHub.hs
-      sed "/import System.Environment (lookupEnv)/d" -i src/Niv/GitHub.hs
-      sed "s|token <- fmap (GH.OAuth . encodeUtf8 . T.pack) <$> lookupEnv \"GITHUB_TOKEN\"|let token = Just (GH.EnterpriseOAuth \"http://localhost:3333\" \"\")|" -i src/Niv/GitHub.hs
-      sed "s|https://github.com|http://localhost:3333|" -i src/Niv/GitHub.hs
+      sed 's|githubHost = "github.com"|githubHost = "localhost:3333"|' -i src/Niv/GitHub.hs
+      sed 's|githuApiHost = "github.com"|githuApiHost = "localhost:3333"|' -i src/Niv/GitHub.hs
+      sed 's|githubSecure = True|githubSecure = False|' -i src/Niv/GitHub.hs
     '';
   });
 in pkgs.runCommand "test"
     { buildInputs =
         [ pkgs.haskellPackages.wai-app-static
-          nivForTest
+          niv
           pkgs.nix
           pkgs.jq
           pkgs.netcat-gnu
@@ -39,6 +38,11 @@ in pkgs.runCommand "test"
     }
   ''
     set -euo pipefail
+
+    export GITHUB_HOST="localhost:3333"
+    export GITHUB_API_HOST="localhost"
+    export GITHUB_API_PORT="3333"
+    export GITHUB_INSECURE="true"
 
     echo *** Starting the webserver...
     mkdir -p mock
@@ -63,15 +67,18 @@ in pkgs.runCommand "test"
 
     mkdir -p mock/repos/nmattia/niv/
     cp  ${./data/repos/nmattia/niv/repository.json} mock/repos/nmattia/niv/index.html
+
+    mkdir -p mock/repos/nmattia/niv/commits
+    cat ${./data/repos/nmattia/niv/commits.json} | jq -j '.[0] | .sha' > mock/repos/nmattia/niv/commits/master
     # XXX: cat so we don't inherit the read-only permissions
-    cat ${./data/repos/nmattia/niv/commits.json} > mock/repos/nmattia/niv/commits
     mkdir -p mock/nmattia/niv/archive
     cp ${./data/archives + "/${niv_HEAD}.tar.gz"} \
       mock/nmattia/niv/archive/${niv_HEAD}.tar.gz
 
     mkdir -p mock/repos/NixOS/nixpkgs-channels
     cp  ${./data/repos/NixOS/nixpkgs-channels/repository.json} mock/repos/NixOS/nixpkgs-channels/index.html
-    cat ${./data/repos/NixOS/nixpkgs-channels/commits.json} > mock/repos/NixOS/nixpkgs-channels/commits
+    mkdir -p mock/repos/NixOS/nixpkgs-channels/commits
+    cat ${./data/repos/NixOS/nixpkgs-channels/commits.json} | jq -j '.[0] | .sha' > mock/repos/NixOS/nixpkgs-channels/commits/nixos-19.03
     mkdir -p mock/NixOS/nixpkgs-channels/archive
     cp ${./data/archives + "/${nixpkgs-channels_HEAD}.tar.gz"} \
       mock/NixOS/nixpkgs-channels/archive/${nixpkgs-channels_HEAD}.tar.gz
@@ -97,8 +104,8 @@ in pkgs.runCommand "test"
 
     echo -e "\n*** niv add nmattia/niv"
     # We use the HEAD~1 commit to update it in the next step
-    # (e.g. we drop the first element of the commit array)
-    cat ${./data/repos/nmattia/niv/commits.json} | jq 'del(.[0])' > mock/repos/nmattia/niv/commits
+    # (i.e. we use the second element of the commit array)
+    cat ${./data/repos/nmattia/niv/commits.json} | jq -j '.[1] | .sha' > mock/repos/nmattia/niv/commits/master
     cp ${./data/archives + "/${niv_HEAD-}.tar.gz"} \
       mock/nmattia/niv/archive/${niv_HEAD-}.tar.gz
     niv add nmattia/niv
@@ -111,7 +118,7 @@ in pkgs.runCommand "test"
     ##  - nixpkgs-channels points to HEAD
 
     echo -e "\n*** niv update niv"
-    cat ${./data/repos/nmattia/niv/commits.json} | jq '.[0] | [.]' > mock/repos/nmattia/niv/commits
+    cat ${./data/repos/nmattia/niv/commits.json} | jq -j '.[0] | .sha' > mock/repos/nmattia/niv/commits/master
     niv update niv
     echo -n "niv.rev == ${niv_HEAD} (HEAD): "
     cat nix/sources.json | jq -e '.niv | .rev == "${niv_HEAD}"'
