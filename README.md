@@ -46,6 +46,19 @@ necessary for fetching and updating the packages.
   `nix/sources.nix` file that returns the sources as a Nix object.
 * [Show](#show): shows the packages' information.
 
+### Configuration
+
+The following environment variables are read by `niv`:
+
+| Name            | Note |
+| --------------- | ---- |
+| GITHUB_TOKEN    | When set, the value is used to authenticate GitHub API requests. |
+| GITHUB_HOST     | The GitHub host to use when fetching packages. Port may be appended here. |
+| GITHUB_API_HOST | The host used when performing GitHub API requests. Use `GITHUB_API_PORT` for specifying the port. |
+| GITHUB_API_PORT | The port used when performing GitHub API requests. Defaults to `443` for secure requests. Defaults to `80` for insecure requests. See also: `GITHUB_INSECURE`. |
+| GITHUB_INSECURE | When set to anything but the empty string, requests are performed over `http` instead of `https`. |
+| GITHUB_PATH     | The base path used when performing GitHub API requests. |
+
 The next two sections cover [common use cases](#getting-started) and [full command
 description](#commands).
 

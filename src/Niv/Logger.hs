@@ -7,6 +7,7 @@ module Niv.Logger where
 
 import Control.Monad
 import Data.Profunctor
+import System.Exit (exitFailure)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Text as T
 import UnliftIO
@@ -19,7 +20,13 @@ job str act = do
     indent
     tryAny act <* deindent >>= \case
         Right () -> say $ green "Done" <> ": " <> str
-        Left e -> say $ red "ERROR" <> ":\n" <> show e
+        Left e -> do
+          -- don't wrap if the error ain't too long
+          let showErr = do
+                let se = show e
+                (if length se > 40 then ":\n" else ": ") <> se
+          say $ red "ERROR" <> showErr
+          exitFailure
   where
     indent = void $ atomicModifyIORef jobStack (\x -> (x + 1, undefined))
     deindent = void $ atomicModifyIORef jobStack (\x -> (x - 1, undefined))

@@ -27,8 +27,8 @@ dependencies:
     - directory
     - file-embed
     - filepath
-    - github
     - hashable
+    - http-conduit
     - mtl
     - optparse-applicative
     - process
@@ -43,7 +43,6 @@ library:
         - src
     dependencies:
         - aeson
-        - github
         - tasty
         - tasty-hunit
         - unordered-containers

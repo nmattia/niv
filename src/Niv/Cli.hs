@@ -20,7 +20,7 @@ import Data.String.QQ (s)
 import Niv.Logger
 import Niv.GitHub
 import Niv.Update
-import System.Exit (exitFailure, ExitCode(ExitSuccess))
+import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcessWithExitCode)
 import UnliftIO
@@ -520,11 +520,6 @@ mapWithKeyM_ f m = do
     forM_ (HMS.toList m) $ \(k, v) ->
       HMS.singleton k <$> f k v
 
-abort :: T.Text -> IO a
-abort msg = do
-    T.putStrLn msg
-    exitFailure
-
 nixPrefetchURL :: Bool -> T.Text -> IO T.Text
 nixPrefetchURL unpack (T.unpack -> url) = do
     (exitCode, sout, serr) <- runNixPrefetch
@@ -689,6 +684,3 @@ ticket:
 
 Thanks! I'll buy you a beer.
 |] <> T.unlines ["stdout: ", sout, "stderr: ", serr]
-
-tshow :: Show a => a -> T.Text
-tshow = T.pack . show
