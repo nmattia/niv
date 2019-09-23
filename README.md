@@ -197,7 +197,9 @@ $ niv update ghc -v 8.6.2
 ### Commands
 
 ```
-NIV - Version manager for Nix projects
+niv - dependency manager for Nix projects
+
+version: 0.2.0
 
 Usage: niv COMMAND
 

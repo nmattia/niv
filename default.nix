@@ -55,21 +55,109 @@ with rec
       cabal upload "$@" "${niv-sdist}/niv-${niv-version}.tar.gz"
     '';
 
+  # WARNING: extremely disgusting hack below.
+  #
+  # <rant>
+  #   I was trying to fix this issue: https://github.com/nmattia/niv/issues/109
+  #   Basically, --help should also show niv's version. As usual when trying to
+  #   lookup the documentation for `Paths_` I google "cabal Paths_ module", end
+  #   up here:
+  #   https://stackoverflow.com/questions/21588500/haskell-cabal-package-cant-find-paths-module,
+  #   click this link:
+  #   https://downloads.haskell.org/~ghc/7.0.3/docs/html/Cabal/authors.html#paths-module,
+  #   and then try to find my way to the latest doc.
+  #
+  #   (╯°□°)╯︵ ┻━┻
+  #
+  #   But now that we're using cabal Paths_, the `ghci` `repl` function won't
+  #   work! So I wonder: stack or cabal? Well, stack, it's been a while! But
+  #   _of course_ there's no way to easily tell stack to use the system GHC!
+  #   Even if there's no `stack.yaml`, stack will infer "some" LTS and
+  #   `--system-ghc` will be discarded because the GHC versions don't match!!
+  #
+  #   (╯°□°)╯︵ ┻━┻
+  #
+  #   So I give good old `cabal repl` a try and, (not much of a) surprise, it
+  #   complains that it can't start because niv contains more than one cabal
+  #   component.
+  #
+  #   (╯°□°)╯︵ ┻━┻
+  #
+  #   WTF, there's now repl, new-repl, v1-repl, v2-repl. WHAT?
+  #
+  #   (˚Õ˚)ر ~~~~╚╩╩╝
+  #
+  #   So I try `cabal new-repl`, and it doesn't load _any_ main function
+  #   (without having to actually write `main = Niv.Test.test` or doing weird
+  #   stuff to load a `Main` module).
+  #
+  #   (╯°□°)╯︵ ┻━┻
+  #
+  #   And there's no `cabal new-repl -main-is ...`
+  #
+  #   (╯°□°)╯︵ ┻━┻
+  #
+  #   The workaround here:
+  #   https://github.com/haskell/cabal/issues/5374#issuecomment-410431619
+  #   suggests using -ghci-script=foo where foo specifies `main = bar`, but, as
+  #   pointed out, the ghci script runs too early (and that's after having
+  #   tried --ghci-options which doesn't work; must use --repl-options).
+  #
+  #   (╯°□°)╯︵ ┻━┻ (˚Õ˚)ر ~~~~╚╩╩╝
+  #
+  #   But there's hope! The `cabal new-repl` doc says you can load a
+  #   "component". So I try with `cabal new-repl niv-test`. FIRST it builds
+  #   everything (actually generates `.o`s and stuff) and then loads the
+  #   _wrong_ module.  At this point I can't help thinking that a monkey
+  #   (bonobo, baboon, pick any) will still manage to pick the correct main 50%
+  #   of the time. I don't want to jump to conclusion: I only gave cabal one
+  #   chance, so I'm not sure how exactly it scores on the "pick the correct
+  #   main" game.
+  #
+  #   (゜-゜)
+  #
+  #   Well,
+  #     => rm -rf ~/.stack
+  #     => rm -rf ~/.cabal
+  #     => rm -rf dist
+  #     => rm -rf dist-newstyle
+  #
+  # </rant>
+  #
+  # In order to make `Paths_niv(version)` available in `ghci`, we parse the
+  # version from `package.yaml` and create a dummy module that we inject in the
+  # `ghci` command.
   niv-devshell = haskellPackages.shellFor
     { packages = (ps: [ ps.niv ]);
       shellHook =
         ''
-          repl() {
+          repl_for() {
+            haskell_version=$(cat ./package.yaml \
+              | grep -oP 'version: \K\d+.\d+.\d+' \
+              | sed 's/\./,/g' )
+
+            paths_niv=$(mktemp -d)/Paths_niv.hs
+
+            echo "module Paths_niv where" >> $paths_niv
+            echo "import qualified Data.Version" >> $paths_niv
+            echo "version :: Data.Version.Version" >> $paths_niv
+            echo "version = Data.Version.Version [$haskell_version] []" >> $paths_niv
+
+            niv_main=""
+
             shopt -s globstar
-            ghci -clear-package-db -global-package-db -Wall app/NivTest.hs src/**/*.hs
+            ghci -clear-package-db -global-package-db -Wall app/$1.hs src/**/*.hs $paths_niv
+          }
+
+          repl() {
+            repl_for NivTest
           }
 
           repl_niv() {
-            shopt -s globstar
-            ghci -clear-package-db -global-package-db -Wall app/Niv.hs src/**/*.hs
+            repl_for Niv
           }
 
-          echo "To start a REPL session for the test suite, run:"
+          echo "To start a REPL for the test suite, run:"
           echo "  > repl"
           echo "  > :main"
           echo "  (tests run)"

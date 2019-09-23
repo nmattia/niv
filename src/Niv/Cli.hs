@@ -24,6 +24,7 @@ import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcessWithExitCode)
 import UnliftIO
+import Data.Version (showVersion)
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
@@ -36,13 +37,19 @@ import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import qualified System.Directory as Dir
 
+-- I died a little
+import Paths_niv (version)
+
 cli :: IO ()
 cli = join $ Opts.execParser opts
   where
     opts = Opts.info (parseCommand <**> Opts.helper) $ mconcat desc
     desc =
       [ Opts.fullDesc
-      , Opts.header "NIV - Version manager for Nix projects"
+      , Opts.headerDoc $ Just $
+          "niv - dependency manager for Nix projects" Opts.<$$>
+          "" Opts.<$$>
+          "version:" Opts.<+> Opts.text (showVersion version)
       ]
 
 parseCommand :: Opts.Parser (IO ())
