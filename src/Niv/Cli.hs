@@ -299,7 +299,7 @@ cmdShow = \case
       sources <- unSources <$> getSources
 
       forWithKeyM_ sources $ \key (PackageSpec spec) -> do
-        tsay $ "Updating " <> tbold (unPackageName key)
+        tsay $ "Showing " <> tbold (unPackageName key)
         forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
           let attrValue = case attrValValue of
                 Aeson.String str -> str
