@@ -236,7 +236,7 @@ cmdInit = do
 subparserGitHubShortcut :: Opts.Parser (IO ())
 subparserGitHubShortcut = Opts.mkParser d g rdr
   where
-    Opts.Mod f d g = Opts.metavar "OWNER/REPO" -- `mappend` m
+    Opts.Mod f d g = Opts.metavar "OWNER/REPO" `mappend` m `mappend` Opts.hidden
     rdr = Opts.CmdReader group (map fst cmds) subs
     subs str = case parseShortcutStr (T.pack str) of
       Right (owner, repo) -> Just $ parseCmdAddGitHub owner repo
@@ -275,12 +275,14 @@ parseCmdAddGitHub owner repo =
       ( Opts.long "name" <>
         Opts.short 'n' <>
         Opts.metavar "NAME" <>
-        Opts.help "Set the package name to <NAME>"
+        Opts.help "Set the package name to <NAME>" <>
+        Opts.value repo <>
+        Opts.showDefault
       )
 
     desc =
       [ Opts.fullDesc
-      , Opts.progDesc "Add bar dependency"
+      , Opts.progDesc "Add a GitHub dependency"
       , Opts.headerDoc $ Just $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
@@ -291,10 +293,12 @@ parseCmdAddGitHub owner repo =
 
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd =
-    Opts.info ((sp <|> sp') <**> Opts.helper) $ Opts.progDesc "Add foo dependency"
+    Opts.info ((fooo <|> baaa <|> sp <|> sp') <**> Opts.helper) $ Opts.progDesc "Add foo dependency"
   where
     sp = subparserGitHubShortcut
     sp' = subparserGitHubShortcut
+    fooo = Opts.subparser (Opts.commandGroup "Shortcuts:" <> Opts.metavar "SHORTCUT" <> Opts.command "<owner>/<repo>" parseCmdInit)
+    baaa = Opts.subparser (Opts.commandGroup "Fetch:" <> Opts.metavar "FETCH" <> Opts.command "github" parseCmdInit)
 
 cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
 cmdAdd updt packageName attrs = do

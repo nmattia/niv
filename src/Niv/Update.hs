@@ -18,6 +18,7 @@ import UnliftIO
 import qualified Control.Category as Cat
 import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HMS
+import qualified Data.HashSet as HS
 import qualified Data.Text as T
 
 type Attrs = HMS.HashMap T.Text (Freedom, Value)
@@ -242,6 +243,22 @@ runUpdate' attrs = \case
               HMS.lookup k attrs) v' of
         Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
         Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
+
+updateKeys :: Update a b -> HS.HashSet T.Text
+updateKeys x = HS.unions (case x of
+    Id -> []
+    Compose (Compose' u1 u2)-> [updateKeys u1, updateKeys u2]
+    First u -> [updateKeys u]
+    Arr _f -> []
+    Zero -> []
+    Plus u1 u2 -> [updateKeys u1, updateKeys u2]
+    Check _f -> []
+    Load t -> [HS.singleton t]
+    UseOrSet t -> [HS.singleton t]
+    Update t -> [HS.singleton t]
+    Run _f -> []
+    Template -> []
+    )
 
 decodeBox :: FromJSON a => T.Text -> Box Value -> Box a
 decodeBox msg v = v { boxOp = boxOp v >>= decodeValue msg }
