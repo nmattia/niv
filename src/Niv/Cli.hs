@@ -18,7 +18,7 @@ import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
 import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
 import Data.Hashable (Hashable)
-import Data.Maybe (fromMaybe, catMaybes)
+import Data.Maybe (fromMaybe)
 import Data.String.QQ (s)
 import Niv.Logger
 import Niv.GitHub
@@ -168,21 +168,46 @@ parsePackageSpec =
     fixupAttributes (k, v) = (k, Aeson.String v)
 
 attributeParser :: Update () () -> Opts.Parser [(T.Text, T.Text)]
-attributeParser up0 = catMaybes <$> (updateParser up0) <|> many anyAttr
+attributeParser up0 =
+    liftA2 (<>)
+      (parseMandatory up0)
+      (many (parseOptional up0 <|> anyAttr))
   where
-    updateParser :: Update a b -> Opts.Parser [Maybe (T.Text, T.Text)]
-    updateParser = \case
+    parseOptional :: Update a b -> Opts.Parser (T.Text, T.Text)
+    parseOptional = \case
       Id -> empty
-      Compose (Compose' u1 u2) -> liftA2 (<>) (updateParser u1) (updateParser u2)
-      First u -> updateParser u
+      Run _ -> empty
+      Template -> empty
+      Compose (Compose' u1 u2) -> parseOptional u1 <|> parseOptional u2
+      First u -> parseOptional u
       Arr _f -> empty
       Zero -> empty
-      Plus u1 u2 -> updateParser u1 <|> updateParser u2
+      Plus u1 u2 -> parseOptional u1 <|> parseOptional u2
       Check _f -> empty
-      Load t -> empty -- TODO (+ add default)
-      UseOrSet t -> Opts.optional $ strOption t
-      Arr _f -> empty
-    strOption t = ((t,) . T.pack) <$> Opts.strOption ( Opts.long (T.unpack t))
+      Load _ -> empty
+      Update t ->
+        (t,) <$> Opts.strOption
+          ( Opts.long (T.unpack t) {- TODO: short, METAVAR, etc -} )
+      UseOrSet t ->
+        (t,) <$> Opts.strOption
+          ( Opts.long (T.unpack t) {- TODO: short, METAVAR, etc -} )
+    parseMandatory :: Update a b -> Opts.Parser [(T.Text, T.Text)]
+    parseMandatory = \case
+      Id -> pure []
+      Run _ -> pure []
+      Template -> pure []
+      Compose (Compose' u1 u2) ->
+        liftA2 (<>) (parseMandatory u1) (parseMandatory u2)
+      First u -> parseMandatory u
+      Arr _f -> pure []
+      Zero -> pure []
+      Plus u1 u2 -> parseMandatory u1 <|> parseMandatory u2
+      Check _f -> pure []
+      Load t ->
+        (pure . (t,)) <$> Opts.strOption
+          ( Opts.long (T.unpack t) {- TODO: short, METAVAR, etc -} )
+      Update _t -> pure []
+      UseOrSet _t -> pure []
     anyAttr =
       Opts.option (Opts.maybeReader parseKeyVal)
         ( Opts.long "attribute" <>
@@ -202,6 +227,7 @@ testFoo = sequence_
     [ test_anyAttr
     , test_useOrSetOptional
     , test_useOrSetIsSet
+    , test_loadIsSet
     ]
 
 test_anyAttr :: IO ()
@@ -215,11 +241,12 @@ test_useOrSetIsSet :: IO ()
 test_useOrSetIsSet = do
     testAttributeParser
       (proc () -> do
-        useOrSet "foo" -< pure ("bar" :: T.Text)
+        useOrSet "foo" -< pure ()
+        useOrSet "hello" -< pure ()
         returnA -< ()
       )
-      ["--foo", "bar"]
-      (Right [("foo","bar")])
+      ["--foo", "bar", "--hello", "world"]
+      (Right [("foo","bar"), ("hello", "world")])
 
 test_useOrSetOptional :: IO ()
 test_useOrSetOptional = do
@@ -230,6 +257,43 @@ test_useOrSetOptional = do
       )
       []
       (Right [])
+
+test_loadIsSet :: IO ()
+test_loadIsSet = do
+    testAttributeParser
+      (proc () -> do
+        (load "foo" :: Update () (Box ())) -< ()
+        returnA -< ()
+      )
+      ["--foo", "bar"]
+      (Right [("foo", "bar")])
+
+test_loadIsMandatory :: IO ()
+test_loadIsMandatory = do
+    testAttributeParser
+      (proc () -> do
+        (load "foo" :: Update () (Box ())) -< ()
+        returnA -< ()
+      )
+      []
+      (Left ())
+
+test_loadForks :: IO ()
+test_loadForks = do
+    testAttributeParser
+      (proc () -> do
+        ((load "foo") <+> (load "bar") :: Update () (Box ())) -< ()
+        returnA -< ()
+      )
+      ["--foo", "aaa"]
+      (Right [("foo", "aaa")])
+    testAttributeParser
+      (proc () -> do
+        ((load "foo") <+> (load "bar") :: Update () (Box ())) -< ()
+        returnA -< ()
+      )
+      ["--bar", "aaa"]
+      (Right [("bar", "aaa")])
 
 testAttributeParser :: Update () () -> [String] -> Either () [(T.Text, T.Text)] -> IO ()
 testAttributeParser up args res = do
@@ -328,7 +392,7 @@ subparserGitHubShortcut = Opts.mkParser d g rdr
       Left{} -> Nothing
 
     -- unused
-    Opts.CommandFields cmds group = f (Opts.CommandFields [] Nothing)
+    Opts.CommandFields _cmds _group = f (Opts.CommandFields [] Nothing)
 
     -- | parses 'owner/repo'
     parseShortcutStr :: T.Text -> Either T.Text (T.Text, T.Text)
@@ -383,8 +447,8 @@ parseCmdAdd =
     Opts.info (sp <**> Opts.helper) (Opts.progDesc "Add foo dependency")
   where
     sp = subparserGitHubShortcut
-    shortcut = Opts.subparser (Opts.commandGroup "Shortcuts:" <> Opts.metavar "SHORTCUT" <> Opts.command "<owner>/<repo>" parseCmdInit)
-    fetchTy = Opts.subparser (Opts.commandGroup "Dependency type:" <> Opts.metavar "TYPE" <> Opts.command "github" parseCmdInit)
+    -- shortcut = Opts.subparser (Opts.commandGroup "Shortcuts:" <> Opts.metavar "SHORTCUT" <> Opts.command "<owner>/<repo>" parseCmdInit)
+    -- fetchTy = Opts.subparser (Opts.commandGroup "Dependency type:" <> Opts.metavar "TYPE" <> Opts.command "github" parseCmdInit)
 
 cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
 cmdAdd updt packageName attrs = do
