@@ -42,20 +42,22 @@ githubUpdate
   -> Update () ()
 githubUpdate prefetch latestRev ghRepo = proc () -> do
     urlTemplate <- template <<<
-      (useOrSet urlTemplateF <<< completeSpec) <+> (load urlTemplateF) -<
-      ()
-    url <- update "url" -< urlTemplate
+      -- we hide the "less important" occurrence to avoid showing it twice in
+      -- the CLI args
+      (useOrSet urlTemplateF { hidden = True } <<< completeSpec) <+>
+        (load urlTemplateF) -< ()
+    url <- update urlF -< urlTemplate
     let isTar = ("tar.gz" `T.isSuffixOf`) <$> url
     useOrSet typeF -< bool "file" "tarball" <$> isTar :: Box T.Text
     let doUnpack = isTar
-    _sha256 <- update "sha256" <<< run (\(up, u) -> prefetch up u) -< (,) <$> doUnpack <*> url
+    _sha256 <- update sha256F <<< run (\(up, u) -> prefetch up u) -< (,) <$> doUnpack <*> url
     returnA -< ()
   where
 
     completeSpec :: Update () (Box T.Text)
     completeSpec = proc () -> do
-      owner <- load "owner" -< ()
-      repo <- load "repo" -< ()
+      owner <- load ownerF -< ()
+      repo <- load repoF -< ()
       repoInfo <- run (\(a, b) -> ghRepo a b) -< (,) <$> owner <*> repo
       branch <- useOrSet branchF <<< arr (fmap $ fromMaybe "master") -<
         repoDefaultBranch <$> repoInfo
@@ -65,21 +67,25 @@ githubUpdate prefetch latestRev ghRepo = proc () -> do
         (,,) <$> owner <*> repo <*> branch
       returnA -< pure githubURLTemplate
 
-    descriptionF = "description" { metavar = "TEXT" }
-    homepageF = "homepage" { metavar = "TEXT" }
+    descriptionF = "description" { hidden = True }
+    homepageF = "homepage" { hidden = True }
     branchF = "branch" { metavar = "REF" }
+    sha256F = "sha256" { hidden = True }
+    urlF = "url" { hidden = True }
 
+    ownerF = "owner" { help = const "The owner of the GitHub repository" }
+    repoF = "repo" { help = const "The name of the GitHub repository" }
     urlTemplateF = "url_template"
       { short = 't'
       , metavar = "URL"
-      , help = T.unwords
+      , help = const $ T.unwords
           [ "Used during update when building 'url'."
           , "Occurrences of <var> are replaced with attribute 'var'."
           ]
       }
     typeF = "type"
       { short = 'T'
-      , help = T.unwords
+      , help = const $ T.unwords
           [ "The type of the URL target."
           , "The value can be either 'file' or 'tarball'."
           , "If not set, the value is inferred from the suffix of the URL."

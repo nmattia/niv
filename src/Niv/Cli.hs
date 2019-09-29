@@ -116,55 +116,7 @@ parsePackageSpec :: Opts.Parser PackageSpec
 parsePackageSpec =
     (PackageSpec . HMS.fromList . fmap fixupAttributes) <$>
       (attributeParser githubUpdate')
-      -- many parseAttribute
   where
-    parseAttribute :: Opts.Parser (T.Text, T.Text)
-    parseAttribute =
-      Opts.option (Opts.maybeReader parseKeyVal)
-        ( Opts.long "attribute" <>
-          Opts.short 'a' <>
-          Opts.metavar "KEY=VAL" <>
-          Opts.help "Set the package spec attribute <KEY> to <VAL>"
-        ) <|> shortcutAttributes <|>
-      (("url_template",) <$> Opts.strOption
-        ( Opts.long "template" <>
-          Opts.short 't' <>
-          Opts.metavar "URL" <>
-          Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
-        )) <|>
-      (("type",) <$> Opts.strOption
-        ( Opts.long "type" <>
-          Opts.short 'T' <>
-          Opts.metavar "TYPE" <>
-          Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
-        ))
-
-    -- Parse "key=val" into ("key", "val")
-    parseKeyVal :: String -> Maybe (T.Text, T.Text)
-    parseKeyVal str = case span (/= '=') str of
-      (key, '=':val) -> Just (T.pack key, T.pack val)
-      _ -> Nothing
-
-    -- Shortcuts for common attributes
-    shortcutAttributes :: Opts.Parser (T.Text, T.Text)
-    shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
-      [ "branch", "owner", "repo", "version" ]
-
-    -- TODO: infer those shortcuts from 'Update' keys
-    mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, T.Text)
-    mkShortcutAttribute = \case
-      attr@(T.uncons -> Just (c,_)) -> (attr,) <$> Opts.strOption
-        ( Opts.long (T.unpack attr) <>
-          Opts.short c <>
-          Opts.metavar (T.unpack $ T.toUpper attr) <>
-          Opts.help
-            ( T.unpack $
-              "Equivalent to --attribute " <>
-              attr <> "=<" <> (T.toUpper attr) <> ">"
-            )
-        )
-      _ -> empty
-
     fixupAttributes :: (T.Text, T.Text) -> (T.Text, Aeson.Value)
     fixupAttributes (k, v) = (k, Aeson.String v)
 
@@ -174,6 +126,12 @@ attributeParser up0 =
       (parseMandatory up0)
       (many (parseOptional up0 <|> anyAttr))
   where
+    fieldOpts f =
+      ( Opts.long (T.unpack (name f)) <>
+        Opts.short (short f) <>
+        Opts.metavar (T.unpack (metavar f)) <>
+        Opts.help (T.unpack (help f (metavar f)))
+      )
     parseOptional :: Update a b -> Opts.Parser (T.Text, T.Text)
     parseOptional = \case
       Id -> empty
@@ -186,23 +144,10 @@ attributeParser up0 =
       Plus u1 u2 -> parseOptional u1 <|> parseOptional u2
       Check _f -> empty
       Load _ -> empty
-      Update t ->
-        (name t,) <$> Opts.strOption
-          ( Opts.long (T.unpack (name t)) <>
-            Opts.short (short t) <>
-            Opts.metavar (T.unpack (metavar t)) <>
-            Opts.help (T.unpack (help t))
-          )
-
-      UseOrSet t ->
-        (name t,) <$> Opts.strOption
-          ( Opts.long (T.unpack (name t)) <>
-            Opts.short (short t) <>
-            Opts.metavar (T.unpack (metavar t)) <>
-            Opts.help (T.unpack (help t))
-          )
-        -- (name t,) <$> Opts.strOption
-          -- ( Opts.long (T.unpack (name t)) {- TODO: short, METAVAR, etc -} )
+      Update t -> if hidden t then empty else
+        (name t,) <$> Opts.strOption (fieldOpts t <> Opts.hidden)
+      UseOrSet t -> if hidden t then empty else
+        (name t,) <$> Opts.strOption (fieldOpts t <> Opts.hidden)
     parseMandatory :: Update a b -> Opts.Parser [(T.Text, T.Text)]
     parseMandatory = \case
       Id -> pure []
@@ -215,15 +160,8 @@ attributeParser up0 =
       Zero -> pure []
       Plus u1 u2 -> parseMandatory u1 <|> parseMandatory u2
       Check _f -> pure []
-      Load t -> fmap pure $
-        (name t,) <$> Opts.strOption
-          ( Opts.long (T.unpack (name t)) <>
-            Opts.short (short t) <>
-            Opts.metavar (T.unpack (metavar t)) <>
-            Opts.help (T.unpack (help t))
-          )
-        -- (pure . (name t,)) <$> Opts.strOption
-          -- ( Opts.long (T.unpack (name t)) {- TODO: short, METAVAR, etc -} )
+      Load t -> if hidden t then pure [] else fmap pure $
+        (name t,) <$> Opts.strOption (fieldOpts t)
       Update _t -> pure []
       UseOrSet _t -> pure []
     anyAttr =

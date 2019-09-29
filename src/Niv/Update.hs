@@ -27,7 +27,8 @@ data Field = Field
   { name :: T.Text
   , short :: Char
   , metavar :: T.Text
-  , help :: T.Text
+  , help :: T.Text -> T.Text
+  , hidden :: Bool
   }
 
 instance IsString Field where
@@ -38,7 +39,8 @@ instance IsString Field where
       { name = t
       , short = T.head t
       , metavar = mv
-      , help = "Equivalent to --attribute " <> t <> "=" <> mv
+      , help = \mv' -> "Equivalent to --attribute " <> t <> "=" <> mv'
+      , hidden = False
       }
 
 data Update b c where
