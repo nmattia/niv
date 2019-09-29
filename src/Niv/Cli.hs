@@ -1,4 +1,6 @@
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GADTs #-} -- TODO remove
+{-# LANGUAGE Arrows #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -10,12 +12,13 @@
 module Niv.Cli where
 
 import Control.Applicative
+import Control.Arrow
 import Control.Monad
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
 import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
 import Data.Hashable (Hashable)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, catMaybes)
 import Data.String.QQ (s)
 import Niv.Logger
 import Niv.GitHub
@@ -164,6 +167,83 @@ parsePackageSpec =
     fixupAttributes :: (T.Text, T.Text) -> (T.Text, Aeson.Value)
     fixupAttributes (k, v) = (k, Aeson.String v)
 
+attributeParser :: Update () () -> Opts.Parser [(T.Text, T.Text)]
+attributeParser up0 = catMaybes <$> (updateParser up0) <|> many anyAttr
+  where
+    updateParser :: Update a b -> Opts.Parser [Maybe (T.Text, T.Text)]
+    updateParser = \case
+      Id -> empty
+      Compose (Compose' u1 u2) -> liftA2 (<>) (updateParser u1) (updateParser u2)
+      First u -> updateParser u
+      Arr _f -> empty
+      Zero -> empty
+      Plus u1 u2 -> updateParser u1 <|> updateParser u2
+      Check _f -> empty
+      Load t -> empty -- TODO (+ add default)
+      UseOrSet t -> Opts.optional $ strOption t
+      Arr _f -> empty
+    strOption t = ((t,) . T.pack) <$> Opts.strOption ( Opts.long (T.unpack t))
+    anyAttr =
+      Opts.option (Opts.maybeReader parseKeyVal)
+        ( Opts.long "attribute" <>
+          Opts.short 'a' <>
+          Opts.metavar "KEY=VAL" <>
+          Opts.help "Set the package spec attribute <KEY> to <VAL>"
+        )
+
+    -- Parse "key=val" into ("key", "val")
+    parseKeyVal :: String -> Maybe (T.Text, T.Text)
+    parseKeyVal str = case span (/= '=') str of
+      (key, '=':val) -> Just (T.pack key, T.pack val)
+      _ -> Nothing
+
+testFoo :: IO ()
+testFoo = sequence_
+    [ test_anyAttr
+    , test_useOrSetOptional
+    , test_useOrSetIsSet
+    ]
+
+test_anyAttr :: IO ()
+test_anyAttr = do
+    testAttributeParser
+      (proc () -> do returnA -< ())
+      ["-a", "foo=bar", "-a", "baz=quux"]
+      (Right [("foo", "bar"),("baz","quux")])
+
+test_useOrSetIsSet :: IO ()
+test_useOrSetIsSet = do
+    testAttributeParser
+      (proc () -> do
+        useOrSet "foo" -< pure ("bar" :: T.Text)
+        returnA -< ()
+      )
+      ["--foo", "bar"]
+      (Right [("foo","bar")])
+
+test_useOrSetOptional :: IO ()
+test_useOrSetOptional = do
+    testAttributeParser
+      (proc () -> do
+        useOrSet "foo" -< pure ("bar" :: T.Text)
+        returnA -< ()
+      )
+      []
+      (Right [])
+
+testAttributeParser :: Update () () -> [String] -> Either () [(T.Text, T.Text)] -> IO ()
+testAttributeParser up args res = do
+    let parseResult = Opts.execParserPure
+          Opts.defaultPrefs
+          (Opts.info (attributeParser up) mempty)
+          args
+    let toEither (Opts.Success r) = Right r
+        toEither _  = Left ()
+    let res' = toEither parseResult
+    unless (res' == res) $
+      error $ unwords $ ["Bad parse:", show res', "is not", show res]
+
+
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
 parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
 
@@ -233,16 +313,22 @@ cmdInit = do
 -- ADD
 -------------------------------------------------------------------------------
 
+-- hidden :: Mod f a
+-- hidden = optionMod $ \p ->
+  -- p { propVisibility = min Hidden (propVisibility p) }
+
+
 subparserGitHubShortcut :: Opts.Parser (IO ())
 subparserGitHubShortcut = Opts.mkParser d g rdr
   where
-    Opts.Mod f d g = Opts.metavar "OWNER/REPO" `mappend` m `mappend` Opts.hidden
-    rdr = Opts.CmdReader group (map fst cmds) subs
+    Opts.Mod f d g =  Opts.metavar "OWNER/REPO" -- <> (Opts.optionMod $ \p -> p { Opts.propDescMod = Nothing })
+    rdr = Opts.CmdReader (Just "Hello") ["<owner>/<repo>"] subs
     subs str = case parseShortcutStr (T.pack str) of
       Right (owner, repo) -> Just $ parseCmdAddGitHub owner repo
       Left{} -> Nothing
+
+    -- unused
     Opts.CommandFields cmds group = f (Opts.CommandFields [] Nothing)
-    m = Opts.command "<owner>/<repo>" undefined
 
     -- | parses 'owner/repo'
     parseShortcutStr :: T.Text -> Either T.Text (T.Text, T.Text)
@@ -293,12 +379,12 @@ parseCmdAddGitHub owner repo =
 
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd =
-    Opts.info ((fooo <|> baaa <|> sp <|> sp') <**> Opts.helper) $ Opts.progDesc "Add foo dependency"
+    -- Opts.info ((fetchTy <|> shortcut <|> sp) <**> Opts.helper) $ Opts.progDesc "Add foo dependency"
+    Opts.info (sp <**> Opts.helper) (Opts.progDesc "Add foo dependency")
   where
     sp = subparserGitHubShortcut
-    sp' = subparserGitHubShortcut
-    fooo = Opts.subparser (Opts.commandGroup "Shortcuts:" <> Opts.metavar "SHORTCUT" <> Opts.command "<owner>/<repo>" parseCmdInit)
-    baaa = Opts.subparser (Opts.commandGroup "Fetch:" <> Opts.metavar "FETCH" <> Opts.command "github" parseCmdInit)
+    shortcut = Opts.subparser (Opts.commandGroup "Shortcuts:" <> Opts.metavar "SHORTCUT" <> Opts.command "<owner>/<repo>" parseCmdInit)
+    fetchTy = Opts.subparser (Opts.commandGroup "Dependency type:" <> Opts.metavar "TYPE" <> Opts.command "github" parseCmdInit)
 
 cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
 cmdAdd updt packageName attrs = do

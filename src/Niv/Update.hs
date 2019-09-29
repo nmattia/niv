@@ -244,6 +244,8 @@ runUpdate' attrs = \case
         Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
         Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
 
+data ArgTy = Needed T.Text | Optional T.Text
+
 updateKeys :: Update a b -> HS.HashSet T.Text
 updateKeys x = HS.unions (case x of
     Id -> []
