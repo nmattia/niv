@@ -18,10 +18,28 @@ import UnliftIO
 import qualified Control.Category as Cat
 import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HMS
-import qualified Data.HashSet as HS
+-- import qualified Data.HashSet as HS
 import qualified Data.Text as T
 
 type Attrs = HMS.HashMap T.Text (Freedom, Value)
+
+data Field = Field
+  { name :: T.Text
+  , short :: Char
+  , metavar :: T.Text
+  , help :: T.Text
+  }
+
+instance IsString Field where
+  fromString str = do
+    let t = T.pack str
+        mv = T.toUpper t
+    Field
+      { name = t
+      , short = T.head t
+      , metavar = mv
+      , help = "Equivalent to --attribute " <> t <> "=" <> mv
+      }
 
 data Update b c where
   Id :: Update a a
@@ -31,9 +49,9 @@ data Update b c where
   Zero :: Update b c
   Plus :: Update b c -> Update b c -> Update b c
   Check :: (a -> Bool) -> Update (Box a) ()
-  Load :: T.Text -> Update () (Box Value)
-  UseOrSet :: T.Text -> Update (Box Value) (Box Value)
-  Update :: T.Text -> Update (Box Value) (Box Value)
+  Load :: Field -> Update () (Box Value)
+  UseOrSet :: Field -> Update (Box Value) (Box Value)
+  Update :: Field -> Update (Box Value) (Box Value)
   Run :: (a -> IO b)  -> Update (Box a) (Box b)
   Template :: Update (Box T.Text) (Box T.Text)
 
@@ -60,9 +78,9 @@ instance Show (Update b c) where
     Zero -> "Zero"
     Plus l r -> "(" <> show l <> " + " <> show r <> ")"
     Check _ch -> "Check"
-    Load k -> "Load " <> T.unpack k
-    UseOrSet k -> "UseOrSet " <> T.unpack k
-    Update k -> "Update " <> T.unpack k
+    Load k -> "Load " <> T.unpack (name k)
+    UseOrSet k -> "UseOrSet " <> T.unpack (name k)
+    Update k -> "Update " <> T.unpack (name k)
     Run _act -> "Io"
     Template -> "Template"
 
@@ -180,9 +198,9 @@ runUpdate' attrs = \case
           UpdateReady res -> pure res
           UpdateNeedMore next' -> next' v
     Load k -> pure $ UpdateReady $ do
-      case HMS.lookup k attrs of
+      case HMS.lookup (name k) attrs of
         Just (_, v') -> UpdateSuccess attrs v'
-        Nothing -> UpdateFailed $ FailNoSuchKey k
+        Nothing -> UpdateFailed $ FailNoSuchKey (name k)
     First a -> do
       runUpdate' attrs a >>= \case
         UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
@@ -200,13 +218,13 @@ runUpdate' attrs = \case
       if ch v
       then pure $ UpdateSuccess attrs ()
       else pure $ UpdateFailed FailCheck)
-    UseOrSet k -> pure $ case HMS.lookup k attrs of
+    UseOrSet k -> pure $ case HMS.lookup (name k) attrs of
       Just (Locked, v) -> UpdateReady $ UpdateSuccess attrs v
       Just (Free, v) -> UpdateReady $ UpdateSuccess attrs v
       Nothing -> UpdateNeedMore $ \gtt -> do
-        let attrs' = HMS.singleton k (Locked, gtt) <> attrs
+        let attrs' = HMS.singleton (name k) (Locked, gtt) <> attrs
         pure $ UpdateSuccess attrs' gtt
-    Update k -> pure $ case HMS.lookup k attrs of
+    Update k -> pure $ case HMS.lookup (name k) attrs of
       Just (Locked, v) -> UpdateReady $ UpdateSuccess attrs v
       Just (Free, v) -> UpdateNeedMore $ \gtt -> do
         if (boxNew gtt)
@@ -218,11 +236,11 @@ runUpdate' attrs = \case
           -- TODO: generalize this to all boxes
           let gtt'' = if v' /= gtt' then gtt { boxNew = True, boxOp = pure gtt' }
                 else gtt { boxNew = False, boxOp = pure gtt' }
-          pure $ UpdateSuccess (HMS.insert k (Locked, gtt'') attrs) gtt''
+          pure $ UpdateSuccess (HMS.insert (name k) (Locked, gtt'') attrs) gtt''
         else do
           pure $ UpdateSuccess attrs v
       Nothing -> UpdateNeedMore $ \gtt -> do
-        pure $ UpdateSuccess (HMS.insert k (Locked, gtt) attrs) gtt
+        pure $ UpdateSuccess (HMS.insert (name k) (Locked, gtt) attrs) gtt
     Compose (Compose' f g) -> runUpdate' attrs g >>= \case
       UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
       UpdateReady (UpdateSuccess attrs' act) -> runUpdate' attrs' f >>= \case
@@ -244,23 +262,23 @@ runUpdate' attrs = \case
         Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
         Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
 
-data ArgTy = Needed T.Text | Optional T.Text
+-- data ArgTy = Needed T.Text | Optional T.Text
 
-updateKeys :: Update a b -> HS.HashSet T.Text
-updateKeys x = HS.unions (case x of
-    Id -> []
-    Compose (Compose' u1 u2)-> [updateKeys u1, updateKeys u2]
-    First u -> [updateKeys u]
-    Arr _f -> []
-    Zero -> []
-    Plus u1 u2 -> [updateKeys u1, updateKeys u2]
-    Check _f -> []
-    Load t -> [HS.singleton t]
-    UseOrSet t -> [HS.singleton t]
-    Update t -> [HS.singleton t]
-    Run _f -> []
-    Template -> []
-    )
+-- updateKeys :: Update a b -> HS.HashSet T.Text
+-- updateKeys x = HS.unions (case x of
+    -- Id -> []
+    -- Compose (Compose' u1 u2)-> [updateKeys u1, updateKeys u2]
+    -- First u -> [updateKeys u]
+    -- Arr _f -> []
+    -- Zero -> []
+    -- Plus u1 u2 -> [updateKeys u1, updateKeys u2]
+    -- Check _f -> []
+    -- Load t -> [HS.singleton t]
+    -- UseOrSet t -> [HS.singleton t]
+    -- Update t -> [HS.singleton t]
+    -- Run _f -> []
+    -- Template -> []
+    -- )
 
 decodeBox :: FromJSON a => T.Text -> Box Value -> Box a
 decodeBox msg v = v { boxOp = boxOp v >>= decodeValue msg }
@@ -294,21 +312,21 @@ template = Template
 check :: (a -> Bool) -> Update (Box a) ()
 check = Check
 
-load :: FromJSON a => T.Text -> Update () (Box a)
-load k = Load k >>> arr (decodeBox $ "When loading key " <> k)
+load :: FromJSON a => Field -> Update () (Box a)
+load k = Load k >>> arr (decodeBox $ "When loading key " <> name k)
 
 -- TODO: should input really be Box?
-useOrSet :: JSON a => T.Text -> Update (Box a) (Box a)
+useOrSet :: JSON a => Field -> Update (Box a) (Box a)
 useOrSet k =
     arr (fmap Aeson.toJSON) >>>
     UseOrSet k >>>
-    arr (decodeBox $ "When trying to use or set key " <> k)
+    arr (decodeBox $ "When trying to use or set key " <> name k)
 
-update :: JSON a => T.Text -> Update (Box a) (Box a)
+update :: JSON a => Field -> Update (Box a) (Box a)
 update k =
     arr (fmap Aeson.toJSON) >>>
     Update k >>>
-    arr (decodeBox $ "When updating key " <> k)
+    arr (decodeBox $ "When updating key " <> name k)
 
 run :: (a -> IO b) -> Update (Box a) (Box b)
 run = Run

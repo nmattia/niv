@@ -115,7 +115,8 @@ attrsToSpec = PackageSpec . fmap snd
 parsePackageSpec :: Opts.Parser PackageSpec
 parsePackageSpec =
     (PackageSpec . HMS.fromList . fmap fixupAttributes) <$>
-      many parseAttribute
+      (attributeParser githubUpdate')
+      -- many parseAttribute
   where
     parseAttribute :: Opts.Parser (T.Text, T.Text)
     parseAttribute =
@@ -186,11 +187,22 @@ attributeParser up0 =
       Check _f -> empty
       Load _ -> empty
       Update t ->
-        (t,) <$> Opts.strOption
-          ( Opts.long (T.unpack t) {- TODO: short, METAVAR, etc -} )
+        (name t,) <$> Opts.strOption
+          ( Opts.long (T.unpack (name t)) <>
+            Opts.short (short t) <>
+            Opts.metavar (T.unpack (metavar t)) <>
+            Opts.help (T.unpack (help t))
+          )
+
       UseOrSet t ->
-        (t,) <$> Opts.strOption
-          ( Opts.long (T.unpack t) {- TODO: short, METAVAR, etc -} )
+        (name t,) <$> Opts.strOption
+          ( Opts.long (T.unpack (name t)) <>
+            Opts.short (short t) <>
+            Opts.metavar (T.unpack (metavar t)) <>
+            Opts.help (T.unpack (help t))
+          )
+        -- (name t,) <$> Opts.strOption
+          -- ( Opts.long (T.unpack (name t)) {- TODO: short, METAVAR, etc -} )
     parseMandatory :: Update a b -> Opts.Parser [(T.Text, T.Text)]
     parseMandatory = \case
       Id -> pure []
@@ -203,9 +215,15 @@ attributeParser up0 =
       Zero -> pure []
       Plus u1 u2 -> parseMandatory u1 <|> parseMandatory u2
       Check _f -> pure []
-      Load t ->
-        (pure . (t,)) <$> Opts.strOption
-          ( Opts.long (T.unpack t) {- TODO: short, METAVAR, etc -} )
+      Load t -> fmap pure $
+        (name t,) <$> Opts.strOption
+          ( Opts.long (T.unpack (name t)) <>
+            Opts.short (short t) <>
+            Opts.metavar (T.unpack (metavar t)) <>
+            Opts.help (T.unpack (help t))
+          )
+        -- (pure . (name t,)) <$> Opts.strOption
+          -- ( Opts.long (T.unpack (name t)) {- TODO: short, METAVAR, etc -} )
       Update _t -> pure []
       UseOrSet _t -> pure []
     anyAttr =

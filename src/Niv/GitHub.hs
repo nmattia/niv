@@ -42,27 +42,49 @@ githubUpdate
   -> Update () ()
 githubUpdate prefetch latestRev ghRepo = proc () -> do
     urlTemplate <- template <<<
-      (useOrSet "url_template" <<< completeSpec) <+> (load "url_template") -<
+      (useOrSet urlTemplateF <<< completeSpec) <+> (load urlTemplateF) -<
       ()
     url <- update "url" -< urlTemplate
     let isTar = ("tar.gz" `T.isSuffixOf`) <$> url
-    useOrSet "type" -< bool "file" "tarball" <$> isTar :: Box T.Text
+    useOrSet typeF -< bool "file" "tarball" <$> isTar :: Box T.Text
     let doUnpack = isTar
     _sha256 <- update "sha256" <<< run (\(up, u) -> prefetch up u) -< (,) <$> doUnpack <*> url
     returnA -< ()
   where
+
     completeSpec :: Update () (Box T.Text)
     completeSpec = proc () -> do
       owner <- load "owner" -< ()
       repo <- load "repo" -< ()
       repoInfo <- run (\(a, b) -> ghRepo a b) -< (,) <$> owner <*> repo
-      branch <- useOrSet "branch" <<< arr (fmap $ fromMaybe "master") -<
+      branch <- useOrSet branchF <<< arr (fmap $ fromMaybe "master") -<
         repoDefaultBranch <$> repoInfo
-      _description <- useOrSet "description" -< repoDescription <$> repoInfo
-      _homepage <- useOrSet "homepage" -< repoHomepage <$> repoInfo
+      _description <- useOrSet descriptionF -< repoDescription <$> repoInfo
+      _homepage <- useOrSet homepageF -< repoHomepage <$> repoInfo
       _ <- update "rev" <<< run' (\(a,b,c) -> latestRev a b c) -<
         (,,) <$> owner <*> repo <*> branch
       returnA -< pure githubURLTemplate
+
+    descriptionF = "description" { metavar = "TEXT" }
+    homepageF = "homepage" { metavar = "TEXT" }
+    branchF = "branch" { metavar = "REF" }
+
+    urlTemplateF = "url_template"
+      { short = 't'
+      , metavar = "URL"
+      , help = T.unwords
+          [ "Used during update when building 'url'."
+          , "Occurrences of <var> are replaced with attribute 'var'."
+          ]
+      }
+    typeF = "type"
+      { short = 'T'
+      , help = T.unwords
+          [ "The type of the URL target."
+          , "The value can be either 'file' or 'tarball'."
+          , "If not set, the value is inferred from the suffix of the URL."
+          ]
+      }
 
 githubURLTemplate :: T.Text
 githubURLTemplate =
