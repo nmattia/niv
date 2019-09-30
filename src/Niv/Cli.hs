@@ -76,14 +76,35 @@ newtype Sources = Sources
   { unSources :: HMS.HashMap PackageName PackageSpec }
   deriving newtype (FromJSON, ToJSON)
 
+getSourcesEither :: IO (Either (IO ()) Sources)
+getSourcesEither = do
+    Dir.doesFileExist pathNixSourcesJson >>= \case
+      False -> pure $ Left abortSourcesDoesntExist
+      True ->
+        decodeFileStrict pathNixSourcesJson >>= \case
+          Just value -> case valueToSources value of
+            Nothing -> pure $ Left abortAttributeIsntAMap
+            Just srcs -> pure $ Right srcs
+          Nothing -> pure $ Left abortSourcesIsntJSON
+  where
+    valueToSources :: Aeson.Value -> Maybe Sources
+    valueToSources = \case
+        Aeson.Object obj -> fmap (Sources . mapKeys PackageName) $ traverse
+          (\case
+            Aeson.Object obj' -> Just (PackageSpec obj')
+            _ -> Nothing
+          ) obj
+        _ -> Nothing
+    mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
+    mapKeys f = HMS.fromList . map (first f) . HMS.toList
+
+-- TODO: use getSourcesEither, and plug into parser for "update"
 getSources :: IO Sources
 getSources = do
     exists <- Dir.doesFileExist pathNixSourcesJson
     unless exists abortSourcesDoesntExist
 
     warnIfOutdated
-    -- TODO: if doesn't exist: run niv init
-    say $ "Reading sources file"
     decodeFileStrict pathNixSourcesJson >>= \case
       Just (Aeson.Object obj) ->
         fmap (Sources . mconcat) $
@@ -463,31 +484,25 @@ parseCmdShow =
 cmdShow :: Maybe PackageName -> IO ()
 cmdShow = \case
     Just packageName -> do
-      tsay $ "Showing package " <> unPackageName packageName
-
       sources <- unSources <$> getSources
 
       case HMS.lookup packageName sources of
-        Just (PackageSpec spec) -> do
-          forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
-            let attrValue = case attrValValue of
-                  Aeson.String str -> str
-                  _ -> "<barabajagal>"
-            tsay $ "  " <> attrName <> ": " <> attrValue
+        Just pspec -> showPackage packageName pspec
         Nothing -> abortCannotShowNoSuchPackage packageName
 
     Nothing -> do
-      say $ "Showing sources file"
-
       sources <- unSources <$> getSources
+      forWithKeyM_ sources $ showPackage
 
-      forWithKeyM_ sources $ \key (PackageSpec spec) -> do
-        tsay $ "Showing " <> tbold (unPackageName key)
-        forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
-          let attrValue = case attrValValue of
-                Aeson.String str -> str
-                _ -> tfaint "<barabajagal>"
-          tsay $ "  " <> attrName <> ": " <> attrValue
+showPackage :: PackageName -> PackageSpec -> IO ()
+showPackage (PackageName pname) (PackageSpec spec) = do
+    tsay $ tbold pname
+    forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
+      let attrValue = case attrValValue of
+            Aeson.String str -> str
+            _ -> tfaint "<barabajagal>"
+      tsay $ "  " <> attrName <> ": " <> attrValue
+
 
 -------------------------------------------------------------------------------
 -- UPDATE
