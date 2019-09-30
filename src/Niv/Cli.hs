@@ -112,16 +112,24 @@ newtype PackageSpec = PackageSpec { unPackageSpec :: Aeson.Object }
 attrsToSpec :: Attrs -> PackageSpec
 attrsToSpec = PackageSpec . fmap snd
 
-parsePackageSpec :: Opts.Parser PackageSpec
-parsePackageSpec =
+parsePackageSpec' :: HMS.HashMap T.Text T.Text -> Opts.Parser PackageSpec
+parsePackageSpec' defaults =
     (PackageSpec . HMS.fromList . fmap fixupAttributes) <$>
-      (attributeParser githubUpdate')
+      (attributeParser defaults githubUpdate') -- TODO: pass defaults
   where
     fixupAttributes :: (T.Text, T.Text) -> (T.Text, Aeson.Value)
     fixupAttributes (k, v) = (k, Aeson.String v)
 
-attributeParser :: Update () () -> Opts.Parser [(T.Text, T.Text)]
-attributeParser up0 =
+parsePackageSpec :: Opts.Parser PackageSpec
+parsePackageSpec =
+    (PackageSpec . HMS.fromList . fmap fixupAttributes) <$>
+      (attributeParser HMS.empty githubUpdate') -- TODO: pass defaults
+  where
+    fixupAttributes :: (T.Text, T.Text) -> (T.Text, Aeson.Value)
+    fixupAttributes (k, v) = (k, Aeson.String v)
+
+attributeParser :: HMS.HashMap T.Text T.Text -> Update () () -> Opts.Parser [(T.Text, T.Text)]
+attributeParser defaults up0 =
     liftA2 (<>)
       (parseMandatory up0)
       (many (parseOptional up0 <|> anyAttr))
@@ -144,10 +152,20 @@ attributeParser up0 =
       Plus u1 u2 -> parseOptional u1 <|> parseOptional u2
       Check _f -> empty
       Load _ -> empty
-      Update t -> if hidden t then empty else
-        (name t,) <$> Opts.strOption (fieldOpts t <> Opts.hidden)
-      UseOrSet t -> if hidden t then empty else
-        (name t,) <$> Opts.strOption (fieldOpts t <> Opts.hidden)
+      Update t ->
+        if hidden t then empty else
+        let def =
+              case HMS.lookup (name t) defaults of
+                Just val -> Opts.value val <> Opts.showDefault
+                Nothing -> mempty
+        in (name t,) <$> Opts.strOption (fieldOpts t <> def <> Opts.hidden)
+      UseOrSet t ->
+        if hidden t then empty else
+        let def =
+              case HMS.lookup (name t) defaults of
+                Just val -> Opts.value val <> Opts.showDefault
+                Nothing -> mempty
+        in (name t,) <$> Opts.strOption (fieldOpts t <> def <> Opts.hidden)
     parseMandatory :: Update a b -> Opts.Parser [(T.Text, T.Text)]
     parseMandatory = \case
       Id -> pure []
@@ -160,8 +178,13 @@ attributeParser up0 =
       Zero -> pure []
       Plus u1 u2 -> parseMandatory u1 <|> parseMandatory u2
       Check _f -> pure []
-      Load t -> if hidden t then pure [] else fmap pure $
-        (name t,) <$> Opts.strOption (fieldOpts t)
+      Load t ->
+        if hidden t then pure [] else fmap pure $
+        let def =
+              case HMS.lookup (name t) defaults of
+                Just val -> Opts.value val <> Opts.showDefault
+                Nothing -> mempty
+        in (name t,) <$> Opts.strOption (fieldOpts t <> def)
       Update _t -> pure []
       UseOrSet _t -> pure []
     anyAttr =
@@ -251,11 +274,15 @@ test_loadForks = do
       ["--bar", "aaa"]
       (Right [("bar", "aaa")])
 
-testAttributeParser :: Update () () -> [String] -> Either () [(T.Text, T.Text)] -> IO ()
+testAttributeParser
+  :: Update () ()
+  -> [String]
+  -> Either () [(T.Text, T.Text)]
+  -> IO ()
 testAttributeParser up args res = do
     let parseResult = Opts.execParserPure
           Opts.defaultPrefs
-          (Opts.info (attributeParser up) mempty)
+          (Opts.info (attributeParser HMS.empty up) mempty)
           args
     let toEither (Opts.Success r) = Right r
         toEither _  = Left ()
@@ -367,14 +394,13 @@ parseCmdAddGitHub owner repo =
     parseDefinition =
       simplify <$>
         optName <*>
-        parsePackageSpec
+        (parsePackageSpec' $
+            HMS.fromList [ ("owner",owner),  ("repo",repo) ])
 
     simplify :: Maybe PackageName -> PackageSpec -> (PackageName, Attrs)
     simplify mPackageName cliSpec = do
       let packageName = fromMaybe (PackageName repo) mPackageName
-          defaultSpec = PackageSpec $
-            HMS.fromList [ "owner" .= owner, "repo" .= repo ]
-      (packageName, specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
+      (packageName, specToLockedAttrs cliSpec)
 
     optName :: Opts.Parser (Maybe PackageName)
     optName = Opts.optional $ PackageName <$>  Opts.strOption
