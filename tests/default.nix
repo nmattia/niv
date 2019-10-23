@@ -122,4 +122,13 @@ in pkgs.runCommand "test"
     cat nix/sources.json | jq -e '.foo | .url == "localhost:3333/foo-v1"'
     echo "*** ok."
     cp nix/sources.json $out
+
+    echo -e "\n*** NIV_DIR=nix2 niv init"
+    NIV_DIR=nix2 niv init
+    diff -h ${./expected/niv-init.json} nix2/sources.json || \
+      (echo "Mismatched sources.json"; \
+      echo "Reference: tests/expected/niv-init.json"; \
+      exit 1)
+
+    echo "*** ok."
   ''

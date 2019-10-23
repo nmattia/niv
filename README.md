@@ -52,6 +52,7 @@ The following environment variables are read by `niv`:
 
 | Name            | Note |
 | --------------- | ---- |
+| NIV_DIR    | Directory where sources.nix and sources.json will be located, defaults to "nix". |
 | GITHUB_TOKEN    | When set, the value is used to authenticate GitHub API requests. |
 | GITHUB_HOST     | The GitHub host to use when fetching packages. Port may be appended here. |
 | GITHUB_API_HOST | The host used when performing GitHub API requests. Use `GITHUB_API_PORT` for specifying the port. |
