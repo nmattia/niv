@@ -46,6 +46,7 @@ cli = join $ Opts.execParser opts
     opts = Opts.info (parseCommand <**> Opts.helper) $ mconcat desc
     desc =
       [ Opts.fullDesc
+      -- , Opts.progDesc "FOOO"
       , Opts.headerDoc $ Just $
           "niv - dependency manager for Nix projects" Opts.<$$>
           "" Opts.<$$>
@@ -59,7 +60,8 @@ parseCommand = Opts.subparser (
     Opts.command "show"  parseCmdShow <>
     Opts.command "update"  parseCmdUpdate <>
     Opts.command "modify"  parseCmdModify <>
-    Opts.command "drop"  parseCmdDrop )
+    Opts.command "drop"  parseCmdDrop ) <|>
+  (pure () <$ Opts.abortOption Opts.ShowHelpText (Opts.helpDoc (Just "foo")))
 
 newtype Sources = Sources
   { unSources :: HMS.HashMap PackageName PackageSpec }
