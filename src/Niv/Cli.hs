@@ -23,6 +23,7 @@ import Niv.Update
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcessWithExitCode)
+import System.Environment (getArgs)
 import UnliftIO
 import Data.Version (showVersion)
 import qualified Data.Aeson as Aeson
@@ -41,9 +42,14 @@ import qualified System.Directory as Dir
 import Paths_niv (version)
 
 cli :: IO ()
-cli = join $ Opts.execParser opts
+cli = join $
+    execParserPure' Opts.defaultPrefs opts <$> getArgs
+      >>= Opts.handleParseResult
   where
-    opts = Opts.info (parseCommand <**> Opts.helper) $ mconcat desc
+    execParserPure' pprefs pinfo [] = Opts.Failure $
+      Opts.parserFailure pprefs pinfo Opts.ShowHelpText mempty
+    execParserPure' pprefs pinfo args = Opts.execParserPure pprefs pinfo args
+    opts = Opts.info (parseCommand <**> Opts.helper ) $ mconcat desc
     desc =
       [ Opts.fullDesc
       , Opts.headerDoc $ Just $
