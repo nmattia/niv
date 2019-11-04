@@ -1,13 +1,8 @@
-{ sources ? import ./sources.nix }:
+{ sources ? import ./sources.nix {} }:
 import sources.nixpkgs
   { overlays =
-    [ (_: pkgs:
-        { inherit sources; }
-      )
-      (_: pkgs:
-        { termtosvg = pkgs.callPackage ./termtosvg.nix {}; }
-      )
-
+    [ (_: _: { inherit sources; })
+      (_: super: { termtosvg = super.callPackage ./termtosvg.nix {}; })
     ];
     config = {};
   }

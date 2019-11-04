@@ -7,7 +7,7 @@
         "repo": "nixpkgs-channels",
         "rev": "5b0b58685d68b9c9c12132f7b392c9dcdecc5931",
         "sha256": "1fy1ghl79p3w1vg0hnakvrb1lqic4mjrwmylcgqa5bd4ilfrirzf",
-        "type": "tarball",
+        "type": "builtin-tarball",
         "url": "https://github.com/NixOS/nixpkgs-channels/archive/5b0b58685d68b9c9c12132f7b392c9dcdecc5931.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
