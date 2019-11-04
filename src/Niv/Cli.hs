@@ -46,15 +46,25 @@ import qualified Options.Applicative.Types as Opts
 -- I died a little
 import Paths_niv (version)
 
+-- | returns the value iff there was no error and the function took fewer than
+-- 100ms to run
+completelyOptional :: IO a -> IO (Maybe a)
+completelyOptional io = fmap join $ timeout 100000 $ e2m <$> tryAny io
+
+e2m :: Either a b -> Maybe b
+e2m = \case { Right a -> Just a; Left{} -> Nothing }
+
 cli :: IO ()
-cli = join $
-    execParserPure' Opts.defaultPrefs opts <$> getArgs
-      >>= Opts.handleParseResult
+cli = do
+    msources <- fmap join $ completelyOptional $ e2m <$> getSourcesEither
+    join $
+      execParserPure' Opts.defaultPrefs (opts msources) <$> getArgs
+        >>= Opts.handleParseResult
   where
     execParserPure' pprefs pinfo [] = Opts.Failure $
       Opts.parserFailure pprefs pinfo Opts.ShowHelpText mempty
     execParserPure' pprefs pinfo args = Opts.execParserPure pprefs pinfo args
-    opts = Opts.info (parseCommand <**> Opts.helper ) $ mconcat desc
+    opts msources = Opts.info (parseCommand msources <**> Opts.helper ) $ mconcat desc
     desc =
       [ Opts.fullDesc
       , Opts.headerDoc $ Just $
@@ -63,8 +73,8 @@ cli = join $
           "version:" Opts.<+> Opts.text (showVersion version)
       ]
 
-parseCommand :: Opts.Parser (IO ())
-parseCommand = Opts.subparser (
+parseCommand :: Maybe Sources -> Opts.Parser (IO ())
+parseCommand msources = Opts.subparser (
     Opts.command "init" parseCmdInit <>
     Opts.command "add"  parseCmdAdd <>
     Opts.command "show"  parseCmdShow <>
@@ -76,16 +86,21 @@ newtype Sources = Sources
   { unSources :: HMS.HashMap PackageName PackageSpec }
   deriving newtype (FromJSON, ToJSON)
 
-getSourcesEither :: IO (Either (IO ()) Sources)
+data SourcesError
+  = SourcesDoesntExist
+  | SourceIsntJSON
+  | SpecIsntAMap
+
+getSourcesEither :: IO (Either SourcesError Sources)
 getSourcesEither = do
     Dir.doesFileExist pathNixSourcesJson >>= \case
-      False -> pure $ Left abortSourcesDoesntExist
+      False -> pure $ Left SourcesDoesntExist
       True ->
         decodeFileStrict pathNixSourcesJson >>= \case
           Just value -> case valueToSources value of
-            Nothing -> pure $ Left abortAttributeIsntAMap
+            Nothing -> pure $ Left SpecIsntAMap
             Just srcs -> pure $ Right srcs
-          Nothing -> pure $ Left abortSourcesIsntJSON
+          Nothing -> pure $ Left SourceIsntJSON
   where
     valueToSources :: Aeson.Value -> Maybe Sources
     valueToSources = \case
@@ -100,21 +115,13 @@ getSourcesEither = do
 
 -- TODO: use getSourcesEither, and plug into parser for "update"
 getSources :: IO Sources
-getSources = do
-    exists <- Dir.doesFileExist pathNixSourcesJson
-    unless exists abortSourcesDoesntExist
-
-    warnIfOutdated
-    decodeFileStrict pathNixSourcesJson >>= \case
-      Just (Aeson.Object obj) ->
-        fmap (Sources . mconcat) $
-          forM (HMS.toList obj) $ \(k, v) ->
-            case v of
-              Aeson.Object v' ->
-                pure $ HMS.singleton (PackageName k) (PackageSpec v')
-              _ -> abortAttributeIsntAMap
-      Just _ -> abortSourcesIsntAMap
-      Nothing -> abortSourcesIsntJSON
+getSources =
+    getSourcesEither >>= either
+      (\case
+        SourcesDoesntExist -> abortSourcesDoesntExist
+        SourceIsntJSON -> abortSourcesIsntJSON
+        SpecIsntAMap -> abortSpecIsntAMap
+      ) pure
 
 setSources :: Sources -> IO ()
 setSources sources = encodeFile pathNixSourcesJson sources
@@ -508,6 +515,7 @@ showPackage (PackageName pname) (PackageSpec spec) = do
 -- UPDATE
 -------------------------------------------------------------------------------
 
+-- add has defaults, update has none
 parseCmdUpdate :: Opts.ParserInfo (IO ())
 parseCmdUpdate =
     Opts.info
@@ -517,12 +525,14 @@ parseCmdUpdate =
     desc =
       [ Opts.fullDesc
       , Opts.progDesc "Update dependencies"
-      , Opts.headerDoc $ Just $
+      , Opts.headerDoc $ Just $ Opts.nest 2 $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
-          "  niv update" Opts.<$$>
-          "  niv update nixpkgs" Opts.<$$>
-          "  niv update my-package -v beta-0.2"
+          Opts.vcat
+            [ Opts.fill 30 "niv update" Opts.<+> "# update all packages",
+              Opts.fill 30 "niv update nixpkgs" Opts.<+> "# update nixpkgs",
+              Opts.fill 30 "niv update my-package -v beta-0.2" Opts.<+> "# update my-package to version \"beta-0.2\""
+            ]
       ]
 
 specToFreeAttrs :: PackageSpec -> Attrs
@@ -531,7 +541,6 @@ specToFreeAttrs = fmap (Free,) . unPackageSpec
 specToLockedAttrs :: PackageSpec -> Attrs
 specToLockedAttrs = fmap (Locked,) . unPackageSpec
 
--- TODO: sexy logging + concurrent updates
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
     Just (packageName, cliSpec) ->
@@ -810,8 +819,8 @@ specification, e.g.:
   { ... }
 |]
 
-abortAttributeIsntAMap :: IO a
-abortAttributeIsntAMap = abort $ T.unlines [ line1, line2 ]
+abortSpecIsntAMap :: IO a
+abortSpecIsntAMap = abort $ T.unlines [ line1, line2 ]
   where
     line1 = "Cannot use " <> T.pack pathNixSourcesJson
     line2 = [s|
