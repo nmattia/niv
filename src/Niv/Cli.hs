@@ -142,7 +142,7 @@ parsePackageSpec =
     -- Shortcuts for common attributes
     shortcutAttributes :: Opts.Parser (T.Text, T.Text)
     shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
-      [ "branch", "owner", "repo", "version" ]
+      [ "branch", "owner", "repo", "version", "rev" ]
 
     -- TODO: infer those shortcuts from 'Update' keys
     mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, T.Text)
