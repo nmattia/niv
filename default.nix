@@ -1,4 +1,12 @@
-{ sources ? import ./nix/sources.nix {}
+let 
+  overlay = self: super: {
+    nixpkgs = super.nixpkgs-renamed;
+    __fetchers = super.__fetchers // {
+      fetchgit = {url, sha256}@attrs: (import self.nixpkgs {}).fetchgit attrs;
+    };
+  };
+in
+{ sources ? import ./nix/sources.nix { overlays = [overlay]; }
 , pkgs ? import ./nix { inherit sources; }
 }:
 

@@ -1,5 +1,5 @@
 {
-    "nixpkgs": {
+    "nixpkgs-renamed": {
         "branch": "nixos-19.03",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
         "homepage": "https://github.com/NixOS/nixpkgs",
@@ -19,8 +19,7 @@
         "repo": "termtosvg",
         "rev": "b97cc0132073111cec37f64c95539e869202ff99",
         "sha256": "1c86622sda98zm3q3dzwmm37i09yca661kn860svl191nqbh2l68",
-        "type": "tarball",
-        "url": "https://github.com/nbedos/termtosvg/archive/b97cc0132073111cec37f64c95539e869202ff99.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+        "type": "fetchgit",
+        "url": "https://github.com/nbedos/termtosvg.git"
     }
 }
