@@ -20,7 +20,9 @@ import Data.String.QQ (s)
 import Niv.Logger
 import Niv.GitHub
 import Niv.Update
+import System.Environment (lookupEnv)
 import System.Exit (ExitCode(ExitSuccess))
+import System.IO.Unsafe (unsafePerformIO)
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcessWithExitCode)
 import System.Environment (getArgs)
@@ -585,7 +587,9 @@ warnIfOutdated = do
 
 -- | @nix/sources.nix@
 pathNixSourcesNix :: FilePath
-pathNixSourcesNix = "nix" </> "sources.nix"
+pathNixSourcesNix = unsafePerformIO $ do
+    nivPath <- lookupEnv "NIV_DIR"
+    pure $ maybe "nix" id nivPath </> "sources.nix"
 
 -- | Glue code between nix and sources.json
 initNixSourcesNixContent :: B.ByteString
@@ -593,7 +597,9 @@ initNixSourcesNixContent = $(embedFile "nix/sources.nix")
 
 -- | @nix/sources.json"
 pathNixSourcesJson :: FilePath
-pathNixSourcesJson = "nix" </> "sources.json"
+pathNixSourcesJson = unsafePerformIO $ do
+    nivPath <- lookupEnv "NIV_DIR"
+    pure $ maybe "nix" id nivPath </> "sources.json"
 
 -- | Empty JSON map
 initNixSourcesJsonContent :: B.ByteString
