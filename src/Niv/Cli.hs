@@ -12,7 +12,7 @@
 module Niv.Cli where
 
 import Control.Applicative
-import Control.Arrow
+import Control.Arrow hiding (first)
 import Control.Monad
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
 import Data.Bifunctor (first)
