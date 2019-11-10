@@ -360,7 +360,6 @@ specToFreeAttrs = fmap (Free,) . unPackageSpec
 specToLockedAttrs :: PackageSpec -> Attrs
 specToLockedAttrs = fmap (Locked,) . unPackageSpec
 
--- TODO: sexy logging + concurrent updates
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
     Just (packageName, cliSpec) ->
