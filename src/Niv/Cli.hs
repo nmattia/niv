@@ -12,6 +12,7 @@ module Niv.Cli where
 import Control.Applicative
 import Control.Monad
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
+import Data.Bifunctor (first)
 import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
 import Data.Hashable (Hashable)
@@ -71,24 +72,41 @@ newtype Sources = Sources
   { unSources :: HMS.HashMap PackageName PackageSpec }
   deriving newtype (FromJSON, ToJSON)
 
-getSources :: IO Sources
-getSources = do
-    exists <- Dir.doesFileExist pathNixSourcesJson
-    unless exists abortSourcesDoesntExist
+data SourcesError
+  = SourcesDoesntExist
+  | SourceIsntJSON
+  | SpecIsntAMap
 
-    warnIfOutdated
-    -- TODO: if doesn't exist: run niv init
-    say $ "Reading sources file"
-    decodeFileStrict pathNixSourcesJson >>= \case
-      Just (Aeson.Object obj) ->
-        fmap (Sources . mconcat) $
-          forM (HMS.toList obj) $ \(k, v) ->
-            case v of
-              Aeson.Object v' ->
-                pure $ HMS.singleton (PackageName k) (PackageSpec v')
-              _ -> abortAttributeIsntAMap
-      Just _ -> abortSourcesIsntAMap
-      Nothing -> abortSourcesIsntJSON
+getSourcesEither :: IO (Either SourcesError Sources)
+getSourcesEither = do
+    Dir.doesFileExist pathNixSourcesJson >>= \case
+      False -> pure $ Left SourcesDoesntExist
+      True ->
+        decodeFileStrict pathNixSourcesJson >>= \case
+          Just value -> case valueToSources value of
+            Nothing -> pure $ Left SpecIsntAMap
+            Just srcs -> pure $ Right srcs
+          Nothing -> pure $ Left SourceIsntJSON
+  where
+    valueToSources :: Aeson.Value -> Maybe Sources
+    valueToSources = \case
+        Aeson.Object obj -> fmap (Sources . mapKeys PackageName) $ traverse
+          (\case
+            Aeson.Object obj' -> Just (PackageSpec obj')
+            _ -> Nothing
+          ) obj
+        _ -> Nothing
+    mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
+    mapKeys f = HMS.fromList . map (first f) . HMS.toList
+
+getSources :: IO Sources
+getSources =
+    getSourcesEither >>= either
+      (\case
+        SourcesDoesntExist -> abortSourcesDoesntExist
+        SourceIsntJSON -> abortSourcesIsntJSON
+        SpecIsntAMap -> abortSpecIsntAMap
+      ) pure
 
 setSources :: Sources -> IO ()
 setSources sources = encodeFile pathNixSourcesJson sources
@@ -615,8 +633,8 @@ specification, e.g.:
   { ... }
 |]
 
-abortAttributeIsntAMap :: IO a
-abortAttributeIsntAMap = abort $ T.unlines [ line1, line2 ]
+abortSpecIsntAMap :: IO a
+abortSpecIsntAMap = abort $ T.unlines [ line1, line2 ]
   where
     line1 = "Cannot use " <> T.pack pathNixSourcesJson
     line2 = [s|
