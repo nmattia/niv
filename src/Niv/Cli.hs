@@ -15,6 +15,7 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
+import Data.Bifunctor (first)
 import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
 import Data.Hashable (Hashable)
@@ -113,7 +114,6 @@ getSourcesEither = do
     mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
     mapKeys f = HMS.fromList . map (first f) . HMS.toList
 
--- TODO: use getSourcesEither, and plug into parser for "update"
 getSources :: IO Sources
 getSources =
     getSourcesEither >>= either
