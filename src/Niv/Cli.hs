@@ -12,6 +12,7 @@ module Niv.Cli where
 import Control.Applicative
 import Control.Monad
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
+import Data.Bifunctor (first)
 import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
 import Data.Hashable (Hashable)
@@ -71,24 +72,41 @@ newtype Sources = Sources
   { unSources :: HMS.HashMap PackageName PackageSpec }
   deriving newtype (FromJSON, ToJSON)
 
-getSources :: IO Sources
-getSources = do
-    exists <- Dir.doesFileExist pathNixSourcesJson
-    unless exists abortSourcesDoesntExist
+data SourcesError
+  = SourcesDoesntExist
+  | SourceIsntJSON
+  | SpecIsntAMap
 
-    warnIfOutdated
-    -- TODO: if doesn't exist: run niv init
-    say $ "Reading sources file"
-    decodeFileStrict pathNixSourcesJson >>= \case
-      Just (Aeson.Object obj) ->
-        fmap (Sources . mconcat) $
-          forM (HMS.toList obj) $ \(k, v) ->
-            case v of
-              Aeson.Object v' ->
-                pure $ HMS.singleton (PackageName k) (PackageSpec v')
-              _ -> abortAttributeIsntAMap
-      Just _ -> abortSourcesIsntAMap
-      Nothing -> abortSourcesIsntJSON
+getSourcesEither :: IO (Either SourcesError Sources)
+getSourcesEither = do
+    Dir.doesFileExist pathNixSourcesJson >>= \case
+      False -> pure $ Left SourcesDoesntExist
+      True ->
+        decodeFileStrict pathNixSourcesJson >>= \case
+          Just value -> case valueToSources value of
+            Nothing -> pure $ Left SpecIsntAMap
+            Just srcs -> pure $ Right srcs
+          Nothing -> pure $ Left SourceIsntJSON
+  where
+    valueToSources :: Aeson.Value -> Maybe Sources
+    valueToSources = \case
+        Aeson.Object obj -> fmap (Sources . mapKeys PackageName) $ traverse
+          (\case
+            Aeson.Object obj' -> Just (PackageSpec obj')
+            _ -> Nothing
+          ) obj
+        _ -> Nothing
+    mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
+    mapKeys f = HMS.fromList . map (first f) . HMS.toList
+
+getSources :: IO Sources
+getSources =
+    getSourcesEither >>= either
+      (\case
+        SourcesDoesntExist -> abortSourcesDoesntExist
+        SourceIsntJSON -> abortSourcesIsntJSON
+        SpecIsntAMap -> abortSpecIsntAMap
+      ) pure
 
 setSources :: Sources -> IO ()
 setSources sources = encodeFile pathNixSourcesJson sources
@@ -293,31 +311,25 @@ parseCmdShow =
 cmdShow :: Maybe PackageName -> IO ()
 cmdShow = \case
     Just packageName -> do
-      tsay $ "Showing package " <> unPackageName packageName
-
       sources <- unSources <$> getSources
 
       case HMS.lookup packageName sources of
-        Just (PackageSpec spec) -> do
-          forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
-            let attrValue = case attrValValue of
-                  Aeson.String str -> str
-                  _ -> "<barabajagal>"
-            tsay $ "  " <> attrName <> ": " <> attrValue
+        Just pspec -> showPackage packageName pspec
         Nothing -> abortCannotShowNoSuchPackage packageName
 
     Nothing -> do
-      say $ "Showing sources file"
-
       sources <- unSources <$> getSources
+      forWithKeyM_ sources $ showPackage
 
-      forWithKeyM_ sources $ \key (PackageSpec spec) -> do
-        tsay $ "Showing " <> tbold (unPackageName key)
-        forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
-          let attrValue = case attrValValue of
-                Aeson.String str -> str
-                _ -> tfaint "<barabajagal>"
-          tsay $ "  " <> attrName <> ": " <> attrValue
+showPackage :: PackageName -> PackageSpec -> IO ()
+showPackage (PackageName pname) (PackageSpec spec) = do
+    tsay $ tbold pname
+    forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
+      let attrValue = case attrValValue of
+            Aeson.String str -> str
+            _ -> tfaint "<barabajagal>"
+      tsay $ "  " <> attrName <> ": " <> attrValue
+
 
 -------------------------------------------------------------------------------
 -- UPDATE
@@ -332,12 +344,14 @@ parseCmdUpdate =
     desc =
       [ Opts.fullDesc
       , Opts.progDesc "Update dependencies"
-      , Opts.headerDoc $ Just $
+      , Opts.headerDoc $ Just $ Opts.nest 2 $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
-          "  niv update" Opts.<$$>
-          "  niv update nixpkgs" Opts.<$$>
-          "  niv update my-package -v beta-0.2"
+          Opts.vcat
+            [ Opts.fill 30 "niv update" Opts.<+> "# update all packages",
+              Opts.fill 30 "niv update nixpkgs" Opts.<+> "# update nixpkgs",
+              Opts.fill 30 "niv update my-package -v beta-0.2" Opts.<+> "# update my-package to version \"beta-0.2\""
+            ]
       ]
 
 specToFreeAttrs :: PackageSpec -> Attrs
@@ -346,7 +360,6 @@ specToFreeAttrs = fmap (Free,) . unPackageSpec
 specToLockedAttrs :: PackageSpec -> Attrs
 specToLockedAttrs = fmap (Locked,) . unPackageSpec
 
--- TODO: sexy logging + concurrent updates
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
 cmdUpdate = \case
     Just (packageName, cliSpec) ->
@@ -621,8 +634,8 @@ specification, e.g.:
   { ... }
 |]
 
-abortAttributeIsntAMap :: IO a
-abortAttributeIsntAMap = abort $ T.unlines [ line1, line2 ]
+abortSpecIsntAMap :: IO a
+abortSpecIsntAMap = abort $ T.unlines [ line1, line2 ]
   where
     line1 = "Cannot use " <> T.pack pathNixSourcesJson
     line2 = [s|
