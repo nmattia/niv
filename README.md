@@ -251,10 +251,10 @@ Available options:
 
 ```
 Examples:
-
-  niv update
-  niv update nixpkgs
-  niv update my-package -v beta-0.2
+  
+  niv update                     # update all packages
+  niv update nixpkgs             # update nixpkgs
+  niv update my-package -v beta-0.2 # update my-package to version "beta-0.2"
 
 Usage: niv update [PACKAGE] ([-a|--attribute KEY=VAL] | [-b|--branch BRANCH] |
                   [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION]
