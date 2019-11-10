@@ -293,31 +293,25 @@ parseCmdShow =
 cmdShow :: Maybe PackageName -> IO ()
 cmdShow = \case
     Just packageName -> do
-      tsay $ "Showing package " <> unPackageName packageName
-
       sources <- unSources <$> getSources
 
       case HMS.lookup packageName sources of
-        Just (PackageSpec spec) -> do
-          forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
-            let attrValue = case attrValValue of
-                  Aeson.String str -> str
-                  _ -> "<barabajagal>"
-            tsay $ "  " <> attrName <> ": " <> attrValue
+        Just pspec -> showPackage packageName pspec
         Nothing -> abortCannotShowNoSuchPackage packageName
 
     Nothing -> do
-      say $ "Showing sources file"
-
       sources <- unSources <$> getSources
+      forWithKeyM_ sources $ showPackage
 
-      forWithKeyM_ sources $ \key (PackageSpec spec) -> do
-        tsay $ "Showing " <> tbold (unPackageName key)
-        forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
-          let attrValue = case attrValValue of
-                Aeson.String str -> str
-                _ -> tfaint "<barabajagal>"
-          tsay $ "  " <> attrName <> ": " <> attrValue
+showPackage :: PackageName -> PackageSpec -> IO ()
+showPackage (PackageName pname) (PackageSpec spec) = do
+    tsay $ tbold pname
+    forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
+      let attrValue = case attrValValue of
+            Aeson.String str -> str
+            _ -> tfaint "<barabajagal>"
+      tsay $ "  " <> attrName <> ": " <> attrValue
+
 
 -------------------------------------------------------------------------------
 -- UPDATE
