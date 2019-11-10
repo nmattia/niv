@@ -344,12 +344,14 @@ parseCmdUpdate =
     desc =
       [ Opts.fullDesc
       , Opts.progDesc "Update dependencies"
-      , Opts.headerDoc $ Just $
+      , Opts.headerDoc $ Just $ Opts.nest 2 $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
-          "  niv update" Opts.<$$>
-          "  niv update nixpkgs" Opts.<$$>
-          "  niv update my-package -v beta-0.2"
+          Opts.vcat
+            [ Opts.fill 30 "niv update" Opts.<+> "# update all packages",
+              Opts.fill 30 "niv update nixpkgs" Opts.<+> "# update nixpkgs",
+              Opts.fill 30 "niv update my-package -v beta-0.2" Opts.<+> "# update my-package to version \"beta-0.2\""
+            ]
       ]
 
 specToFreeAttrs :: PackageSpec -> Attrs
