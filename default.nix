@@ -3,57 +3,67 @@
 }:
 
 with rec
-{ files = pkgs.callPackage ./nix/files.nix {};
+{
+  files = pkgs.callPackage ./nix/files.nix {};
+
   sourceByRegex = name: src: regexes:
-    builtins.path
-      { filter =  (path: type:
+    builtins.path {
+      filter = (
+        path: type:
           let
             relPath = pkgs.lib.removePrefix (toString src + "/") (toString path);
             accept = pkgs.lib.any (re: builtins.match re relPath != null) regexes;
-          in accept);
-          inherit name;
-          path = src;
-      };
-  niv-source = sourceByRegex "niv" ./.
-    [ "^package.yaml$"
-      "^README.md$"
-      "^LICENSE$"
-      "^app$"
-      "^app.*.hs$"
-      "^src$"
-      "^src/Niv$"
-      "^src/Niv/GitHub$"
-      "^src/Niv/Update$"
-      "^src.*.hs$"
-      "^README.md$"
-      "^nix$"
-      "^nix.sources.nix$"
-    ];
-
-  haskellPackages = pkgs.haskellPackages.override
-    { overrides = _: haskellPackages:
-        { niv =
-            pkgs.haskell.lib.failOnAllWarnings (
-            pkgs.haskell.lib.disableExecutableProfiling (
-            pkgs.haskell.lib.disableLibraryProfiling (
-            pkgs.haskell.lib.generateOptparseApplicativeCompletion "niv" (
-            haskellPackages.callCabal2nix "niv" niv-source {}))));
-        };
+          in
+            accept
+      );
+      inherit name;
+      path = src;
     };
+
+  niv-source = sourceByRegex "niv" ./. [
+    "^package.yaml$"
+    "^README.md$"
+    "^LICENSE$"
+    "^app$"
+    "^app.*.hs$"
+    "^src$"
+    "^src/Niv$"
+    "^src/Niv/GitHub$"
+    "^src/Niv/Update$"
+    "^src.*.hs$"
+    "^README.md$"
+    "^nix$"
+    "^nix.sources.nix$"
+  ];
+
+  haskellPackages = pkgs.haskellPackages.override {
+    overrides = _: haskellPackages: {
+      niv =
+        pkgs.haskell.lib.failOnAllWarnings (
+          pkgs.haskell.lib.disableExecutableProfiling (
+            pkgs.haskell.lib.disableLibraryProfiling (
+              pkgs.haskell.lib.generateOptparseApplicativeCompletion "niv" (
+                haskellPackages.callCabal2nix "niv" niv-source {}
+              )
+            )
+          )
+        );
+    };
+  };
 
   niv = haskellPackages.niv;
 
   niv-sdist = pkgs.haskell.lib.sdistTarball niv;
 
   niv-cabal-upload =
-    with
-      {  niv-version = niv.version;
-      };
-    pkgs.writeScript "cabal-upload"
-    ''
-      #!${pkgs.stdenv.shell}
-      cabal upload "$@" "${niv-sdist}/niv-${niv-version}.tar.gz"
-    '';
+    let
+      niv-version = niv.version;
+    in
+      pkgs.writeScript "cabal-upload"
+        ''
+          #!${pkgs.stdenv.shell}
+          cabal upload "$@" "${niv-sdist}/niv-${niv-version}.tar.gz"
+        '';
 
   # WARNING: extremely disgusting hack below.
   #
@@ -127,76 +137,76 @@ with rec
   # In order to make `Paths_niv(version)` available in `ghci`, we parse the
   # version from `package.yaml` and create a dummy module that we inject in the
   # `ghci` command.
-  niv-devshell = haskellPackages.shellFor
-    { packages = (ps: [ ps.niv ]);
-      shellHook =
-        ''
-          repl_for() {
-            haskell_version=$(cat ./package.yaml \
-              | grep -oP 'version: \K\d+.\d+.\d+' \
-              | sed 's/\./,/g' )
+  niv-devshell = haskellPackages.shellFor {
+    packages = ps: [ ps.niv ];
+    shellHook = ''
+      repl_for() {
+        haskell_version=$(cat ./package.yaml \
+          | grep -oP 'version: \K\d+.\d+.\d+' \
+          | sed 's/\./,/g' )
 
-            paths_niv=$(mktemp -d)/Paths_niv.hs
+        paths_niv=$(mktemp -d)/Paths_niv.hs
 
-            echo "module Paths_niv where" >> $paths_niv
-            echo "import qualified Data.Version" >> $paths_niv
-            echo "version :: Data.Version.Version" >> $paths_niv
-            echo "version = Data.Version.Version [$haskell_version] []" >> $paths_niv
+        echo "module Paths_niv where" >> $paths_niv
+        echo "import qualified Data.Version" >> $paths_niv
+        echo "version :: Data.Version.Version" >> $paths_niv
+        echo "version = Data.Version.Version [$haskell_version] []" >> $paths_niv
 
-            niv_main=""
+        niv_main=""
 
-            shopt -s globstar
-            ghci -clear-package-db -global-package-db -Wall app/$1.hs src/**/*.hs $paths_niv
-          }
+        shopt -s globstar
+        ghci -clear-package-db -global-package-db -Wall app/$1.hs src/**/*.hs $paths_niv
+      }
 
-          repl() {
-            repl_for NivTest
-          }
+      repl() {
+        repl_for NivTest
+      }
 
-          repl_niv() {
-            repl_for Niv
-          }
+      repl_niv() {
+        repl_for Niv
+      }
 
-          echo "To start a REPL for the test suite, run:"
-          echo "  > repl"
-          echo "  > :main"
-          echo "  (tests run)"
-          echo
-          echo "To start a REPL session emulating the niv executable, run:"
-          echo "  > repl_niv"
-          echo "  > :main --help ..."
-          echo "  NIV - Version manager for Nix projects"
-          echo "  ..."
-        '';
-    };
-
+      echo "To start a REPL for the test suite, run:"
+      echo "  > repl"
+      echo "  > :main"
+      echo "  (tests run)"
+      echo
+      echo "To start a REPL session emulating the niv executable, run:"
+      echo "  > repl_niv"
+      echo "  > :main --help ..."
+      echo "  NIV - Version manager for Nix projects"
+      echo "  ..."
+    '';
+  };
 };
 rec
-{ inherit niv niv-sdist niv-source niv-devshell niv-cabal-upload;
+{
+  inherit niv niv-sdist niv-source niv-devshell niv-cabal-upload;
 
   tests = pkgs.callPackage ./tests { inherit niv; };
 
-  niv-test = pkgs.runCommand "niv-test" { buildInputs = [ niv ] ; }
+  niv-test = pkgs.runCommand "niv-test" { buildInputs = [ niv ]; }
     "niv-test && touch $out";
 
-  readme = pkgs.writeText "README.md"
-    (with
-      { template = builtins.readFile ./README.tpl.md;
-        niv_help = builtins.readFile
-          (pkgs.runCommand "niv_help" { buildInputs = [ niv ]; }
-            "niv --help > $out"
-          );
-        niv_cmd_help = cmd: builtins.readFile
-          (pkgs.runCommand "niv_${cmd}_help" { buildInputs = [ niv ]; }
-            "niv ${cmd} --help > $out"
-          );
-        cmds = [ "add" "update" "drop" "init" "show" ];
-      };
-    pkgs.lib.replaceStrings
-      ([ "replace_niv_help" ] ++ (map (cmd: "replace_niv_${cmd}_help") cmds))
-      ([ niv_help ] ++ (map niv_cmd_help cmds))
-      template
-    );
+  readme = pkgs.writeText "README.md" (
+    let
+      template = builtins.readFile ./README.tpl.md;
+      niv_help = builtins.readFile (
+        pkgs.runCommand "niv_help" { buildInputs = [ niv ]; }
+          "niv --help > $out"
+      );
+      niv_cmd_help = cmd: builtins.readFile (
+        pkgs.runCommand "niv_${cmd}_help" { buildInputs = [ niv ]; }
+          "niv ${cmd} --help > $out"
+      );
+      cmds = [ "add" "update" "drop" "init" "show" ];
+    in
+      pkgs.lib.replaceStrings
+        ([ "replace_niv_help" ] ++ (map (cmd: "replace_niv_${cmd}_help") cmds))
+        ([ niv_help ] ++ (map niv_cmd_help cmds))
+        template
+  );
+
   readme-test = pkgs.runCommand "README-test" {}
     ''
       err() {
@@ -235,21 +245,20 @@ rec
       [ $expected_hash == $actual_hash ] && echo dymmy > $out || err
     '';
 
-
   # TODO: use nivForTest for this one
   niv-svg-cmds = pkgs.writeScript "niv-svg-cmds"
-      ''
-        #!${pkgs.stdenv.shell}
-        set -euo pipefail
-        echo '$ niv init'
-        niv init
-        echo
-        echo '$ niv add stedolan/jq'
-        niv add stedolan/jq
-      '';
+    ''
+      #!${pkgs.stdenv.shell}
+      set -euo pipefail
+      echo '$ niv init'
+      niv init
+      echo
+      echo '$ niv add stedolan/jq'
+      niv add stedolan/jq
+    '';
 
   niv-svg-gen = pkgs.writeScript "niv-svg-gen"
-      ''
+    ''
       #!${pkgs.stdenv.shell}
       set -euo pipefail
       export PATH=${haskellPackages.niv}/bin:${pkgs.nix}/bin:$PATH
@@ -262,6 +271,5 @@ rec
 
       echo done rendering
       popd
-      '';
-
+    '';
 }
