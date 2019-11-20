@@ -15,18 +15,18 @@ import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
 import Data.Bifunctor (first)
 import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
+import Data.Functor
 import Data.Hashable (Hashable)
-import Data.Maybe (fromMaybe)
 import Data.String.QQ (s)
-import Niv.Logger
+import Data.Version (showVersion)
 import Niv.GitHub
+import Niv.Logger
 import Niv.Update
+import System.Environment (getArgs)
 import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcessWithExitCode)
-import System.Environment (getArgs)
 import UnliftIO
-import Data.Version (showVersion)
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
@@ -217,12 +217,20 @@ cmdInit = do
               createFile path initNixSourcesJsonContent
               -- Imports @niv@ and @nixpkgs@ (19.03)
               say "Importing 'niv' ..."
-              cmdAdd Nothing (PackageName "nmattia/niv", PackageSpec HMS.empty)
+              cmdAdd githubUpdate' (PackageName "niv")
+                (specToFreeAttrs $ PackageSpec $ HMS.fromList
+                  [ "owner" .= ("nmattia" :: T.Text)
+                  , "repo" .= ("niv" :: T.Text)
+                  ]
+                )
               say "Importing 'nixpkgs' ..."
-              cmdAdd
-                (Just (PackageName "nixpkgs"))
-                ( PackageName "NixOS/nixpkgs-channels"
-                , PackageSpec (HMS.singleton "branch" "nixos-19.03"))
+              cmdAdd githubUpdate' (PackageName "nixpkgs")
+                (specToFreeAttrs $ PackageSpec $ HMS.fromList
+                  [ "owner" .= ("NixOS" :: T.Text)
+                  , "repo" .= ("nixpkgs-channels" :: T.Text)
+                  , "branch" .= ("nixos-19.03" :: T.Text)
+                  ]
+                )
           , \path _content -> dontCreateFile path)
         ] $ \(path, onCreate, onUpdate) -> do
             exists <- Dir.doesFileExist path
@@ -243,16 +251,37 @@ cmdInit = do
 
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd =
-    Opts.info ((cmdAdd <$> optName <*> parsePackage) <**> Opts.helper) $
+    Opts.info
+      ((uncurry (cmdAdd githubUpdate') <$> parseArgs) <**> Opts.helper) $
       mconcat desc
   where
-    optName :: Opts.Parser (Maybe PackageName)
-    optName = Opts.optional $ PackageName <$>  Opts.strOption
+    parseArgs :: Opts.Parser (PackageName, Attrs)
+    parseArgs = collapse <$> parseNameAndGHShortcut <*> parsePackageSpec
+    parseNameAndGHShortcut = (,) <$> optName <*> parseGitHubShortcut
+    -- collaspe a "name or shortcut" with package spec
+    collapse nameAndSpec pspec = (pname, specToLockedAttrs $ pspec <> repoAndOwner)
+      where
+        (pname, repoAndOwner) = case nameAndSpec of
+          (Just pname', (_, spec)) -> (pname', PackageSpec spec)
+          (Nothing, (pname', spec)) -> (pname', PackageSpec spec)
+    optName = Opts.optional $ PackageName <$> Opts.strOption
       ( Opts.long "name" <>
         Opts.short 'n' <>
         Opts.metavar "NAME" <>
         Opts.help "Set the package name to <NAME>"
       )
+
+    -- parse a github shortcut of the form "owner/repo"
+    parseGitHubShortcut = Opts.strArgument (Opts.metavar "PACKAGE") <&>
+          -- parses a string "owner/repo" into package name (repo) and spec (owner +
+          -- repo)
+          \(T.pack -> str) ->
+            case T.span (/= '/') str of
+              (owner@(T.null -> False)
+                , T.uncons -> Just ('/', repo@(T.null -> False))) ->
+                  ( PackageName repo
+                  , HMS.fromList [ "owner" .= owner, "repo" .= repo ])
+              _ -> (PackageName str, HMS.empty)
     desc =
       [ Opts.fullDesc
       , Opts.progDesc "Add dependency"
@@ -264,38 +293,22 @@ parseCmdAdd =
           "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
       ]
 
-cmdAdd :: Maybe PackageName -> (PackageName, PackageSpec) -> IO ()
-cmdAdd mPackageName (PackageName str, cliSpec) =
-    job ("Adding package " <> T.unpack str)  $ do
-
-      -- Figures out the owner and repo
-      let (packageName, defaultSpec) = case T.span (/= '/') str of
-            ( owner@(T.null -> False)
-              , T.uncons -> Just ('/', repo@(T.null -> False))) -> do
-              (PackageName repo, HMS.fromList [ "owner" .= owner, "repo" .= repo ])
-            _ -> (PackageName str, HMS.empty)
-
+cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
+cmdAdd updateFunc packageName attrs = do
+    job ("Adding package " <> T.unpack (unPackageName packageName)) $ do
       sources <- unSources <$> getSources
 
-      let packageName' = fromMaybe packageName mPackageName
+      when (HMS.member packageName sources) $
+        abortCannotAddPackageExists packageName
 
-      when (HMS.member packageName' sources) $
-        abortCannotAddPackageExists packageName'
-
-      let defaultSpec' = PackageSpec $ defaultSpec
-
-      let initialSpec = specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec'
-
-      eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate
-        initialSpec
-        (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
+      eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate attrs updateFunc
 
       case eFinalSpec of
-        Left e -> abortUpdateFailed [(packageName', e)]
+        Left e -> abortUpdateFailed [(packageName, e)]
         Right finalSpec -> do
           say $ "Writing new sources file"
           setSources $ Sources $
-            HMS.insert packageName' finalSpec sources
+            HMS.insert packageName finalSpec sources
 
 -------------------------------------------------------------------------------
 -- SHOW
@@ -611,6 +624,10 @@ pathNixSourcesJson = "nix" </> "sources.json"
 -- | Empty JSON map
 initNixSourcesJsonContent :: B.ByteString
 initNixSourcesJsonContent = "{}"
+
+-- | The IO (real) github update
+githubUpdate' :: Update () ()
+githubUpdate' = githubUpdate nixPrefetchURL githubLatestRev githubRepo
 
 -------------------------------------------------------------------------------
 -- Abort
