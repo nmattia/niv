@@ -11,16 +11,17 @@ module Niv.Cli where
 
 import Control.Applicative
 import Control.Monad
-import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey, (.=))
-import Data.Bifunctor (first)
+import Data.Aeson ((.=))
 import Data.Char (isSpace)
 import Data.FileEmbed (embedFile)
 import Data.Functor
+import Data.HashMap.Strict.Extended
 import Data.Hashable (Hashable)
 import Data.String.QQ (s)
 import Data.Version (showVersion)
 import Niv.GitHub
 import Niv.Logger
+import Niv.Sources
 import Niv.Update
 import System.Environment (getArgs)
 import System.Exit (ExitCode(ExitSuccess))
@@ -28,10 +29,8 @@ import System.FilePath ((</>), takeDirectory)
 import System.Process (readProcessWithExitCode)
 import UnliftIO
 import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Encode.Pretty as AesonPretty
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
-import qualified Data.ByteString.Lazy as L
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -68,62 +67,9 @@ parseCommand = Opts.subparser (
     Opts.command "modify"  parseCmdModify <>
     Opts.command "drop"  parseCmdDrop )
 
-newtype Sources = Sources
-  { unSources :: HMS.HashMap PackageName PackageSpec }
-  deriving newtype (FromJSON, ToJSON)
-
-data SourcesError
-  = SourcesDoesntExist
-  | SourceIsntJSON
-  | SpecIsntAMap
-
-getSourcesEither :: IO (Either SourcesError Sources)
-getSourcesEither = do
-    Dir.doesFileExist pathNixSourcesJson >>= \case
-      False -> pure $ Left SourcesDoesntExist
-      True ->
-        decodeFileStrict pathNixSourcesJson >>= \case
-          Just value -> case valueToSources value of
-            Nothing -> pure $ Left SpecIsntAMap
-            Just srcs -> pure $ Right srcs
-          Nothing -> pure $ Left SourceIsntJSON
-  where
-    valueToSources :: Aeson.Value -> Maybe Sources
-    valueToSources = \case
-        Aeson.Object obj -> fmap (Sources . mapKeys PackageName) $ traverse
-          (\case
-            Aeson.Object obj' -> Just (PackageSpec obj')
-            _ -> Nothing
-          ) obj
-        _ -> Nothing
-    mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
-    mapKeys f = HMS.fromList . map (first f) . HMS.toList
-
-getSources :: IO Sources
-getSources =
-    getSourcesEither >>= either
-      (\case
-        SourcesDoesntExist -> abortSourcesDoesntExist
-        SourceIsntJSON -> abortSourcesIsntJSON
-        SpecIsntAMap -> abortSpecIsntAMap
-      ) pure
-
-setSources :: Sources -> IO ()
-setSources sources = encodeFile pathNixSourcesJson sources
-
-newtype PackageName = PackageName { unPackageName :: T.Text }
-  deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)
-
 parsePackageName :: Opts.Parser PackageName
 parsePackageName = PackageName <$>
     Opts.argument Opts.str (Opts.metavar "PACKAGE")
-
-newtype PackageSpec = PackageSpec { unPackageSpec :: Aeson.Object }
-  deriving newtype (FromJSON, ToJSON, Show, Semigroup, Monoid)
-
--- | Simply discards the 'Freedom'
-attrsToSpec :: Attrs -> PackageSpec
-attrsToSpec = PackageSpec . fmap snd
 
 parsePackageSpec :: Opts.Parser PackageSpec
 parsePackageSpec =
@@ -505,60 +451,6 @@ cmdDrop packageName = \case
 -- Aux
 -------------------------------------------------------------------------------
 
---- Aeson
-
--- | Efficiently deserialize a JSON value from a file.
--- If this fails due to incomplete or invalid input, 'Nothing' is
--- returned.
---
--- The input file's content must consist solely of a JSON document,
--- with no trailing data except for whitespace.
---
--- This function parses immediately, but defers conversion.  See
--- 'json' for details.
-decodeFileStrict :: (FromJSON a) => FilePath -> IO (Maybe a)
-decodeFileStrict = fmap Aeson.decodeStrict . B.readFile
-
--- | Efficiently serialize a JSON value as a lazy 'L.ByteString' and write it to a file.
-encodeFile :: (ToJSON a) => FilePath -> a -> IO ()
-encodeFile fp = L.writeFile fp . AesonPretty.encodePretty' config
-  where
-    config =  AesonPretty.defConfig { AesonPretty.confTrailingNewline = True, AesonPretty.confCompare = compare }
-
---- HashMap
-
-forWithKeyM
-  :: (Eq k, Hashable k, Monad m)
-  => HMS.HashMap k v1
-  -> (k -> v1 -> m v2)
-  -> m (HMS.HashMap k v2)
-forWithKeyM = flip mapWithKeyM
-
-forWithKeyM_
-  :: (Eq k, Hashable k, Monad m)
-  => HMS.HashMap k v1
-  -> (k -> v1 -> m ())
-  -> m ()
-forWithKeyM_ = flip mapWithKeyM_
-
-mapWithKeyM
-  :: (Eq k, Hashable k, Monad m)
-  => (k -> v1 -> m v2)
-  -> HMS.HashMap k v1
-  -> m (HMS.HashMap k v2)
-mapWithKeyM f m = do
-    fmap mconcat $ forM (HMS.toList m) $ \(k, v) ->
-      HMS.singleton k <$> f k v
-
-mapWithKeyM_
-  :: (Eq k, Hashable k, Monad m)
-  => (k -> v1 -> m ())
-  -> HMS.HashMap k v1
-  -> m ()
-mapWithKeyM_ f m = do
-    forM_ (HMS.toList m) $ \(k, v) ->
-      HMS.singleton k <$> f k v
-
 nixPrefetchURL :: Bool -> T.Text -> IO T.Text
 nixPrefetchURL unpack (T.unpack -> url) = do
     (exitCode, sout, serr) <- runNixPrefetch
@@ -617,10 +509,6 @@ pathNixSourcesNix = "nix" </> "sources.nix"
 initNixSourcesNixContent :: B.ByteString
 initNixSourcesNixContent = $(embedFile "nix/sources.nix")
 
--- | @nix/sources.json"
-pathNixSourcesJson :: FilePath
-pathNixSourcesJson = "nix" </> "sources.json"
-
 -- | Empty JSON map
 initNixSourcesJsonContent :: B.ByteString
 initNixSourcesJsonContent = "{}"
@@ -633,14 +521,6 @@ githubUpdate' = githubUpdate nixPrefetchURL githubLatestRev githubRepo
 -- Abort
 -------------------------------------------------------------------------------
 
-abortSourcesDoesntExist :: IO a
-abortSourcesDoesntExist = abort $ T.unlines [ line1, line2 ]
-  where
-    line1 = "Cannot use " <> T.pack pathNixSourcesJson
-    line2 = [s|
-The sources file does not exist! You may need to run 'niv init'.
-|]
-
 abortSourcesIsntAMap :: IO a
 abortSourcesIsntAMap = abort $ T.unlines [ line1, line2 ]
   where
@@ -650,22 +530,6 @@ The sources file should be a JSON map from package name to package
 specification, e.g.:
   { ... }
 |]
-
-abortSpecIsntAMap :: IO a
-abortSpecIsntAMap = abort $ T.unlines [ line1, line2 ]
-  where
-    line1 = "Cannot use " <> T.pack pathNixSourcesJson
-    line2 = [s|
-The package specifications in the sources file should be JSON maps from
-attribute name to attribute value, e.g.:
-  { "nixpkgs": { "foo": "bar" } }
-|]
-
-abortSourcesIsntJSON :: IO a
-abortSourcesIsntJSON = abort $ T.unlines [ line1, line2 ]
-  where
-    line1 = "Cannot use " <> T.pack pathNixSourcesJson
-    line2 = "The sources file should be JSON."
 
 abortCannotAddPackageExists :: PackageName -> IO a
 abortCannotAddPackageExists (PackageName n) = abort $ T.unlines
