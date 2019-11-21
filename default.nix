@@ -31,6 +31,7 @@ with rec
     "^src/Data/Aeson$"
     "^src/Data/HashMap$"
     "^src/Data/HashMap/Strict$"
+    "^src/Data/Text$"
     "^src/Niv$"
     "^src/Niv/GitHub$"
     "^src/Niv/Sources$"

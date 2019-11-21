@@ -13,7 +13,7 @@ import Data.Bifunctor (first)
 import Data.Hashable (Hashable)
 import Data.List
 import Data.String.QQ (s)
-import Niv.GitHub
+import Data.Text.Extended
 import Niv.Logger
 import Niv.Update
 import System.FilePath ((</>))

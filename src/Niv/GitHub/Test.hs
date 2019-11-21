@@ -8,6 +8,7 @@ import Control.Monad
 import Data.IORef
 import Data.Bifunctor
 import Niv.GitHub
+import Niv.GitHub.API
 import Niv.Update
 import qualified Data.HashMap.Strict as HMS
 

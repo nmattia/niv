@@ -18,8 +18,10 @@ import Data.Functor
 import Data.HashMap.Strict.Extended
 import Data.Hashable (Hashable)
 import Data.String.QQ (s)
+import Data.Text.Extended
 import Data.Version (showVersion)
 import Niv.GitHub
+import Niv.GitHub.API
 import Niv.Logger
 import Niv.Sources
 import Niv.Update
