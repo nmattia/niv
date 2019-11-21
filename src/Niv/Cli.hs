@@ -337,7 +337,7 @@ cmdUpdate = \case
           Just defaultSpec -> do
             fmap attrsToSpec <$> tryEvalUpdate
               (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
-              (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
+              githubUpdate'
 
           Nothing -> abortCannotUpdateNoSuchPackage packageName
 
@@ -356,7 +356,7 @@ cmdUpdate = \case
           let initialSpec = specToFreeAttrs defaultSpec
           finalSpec <- fmap attrsToSpec <$> tryEvalUpdate
             initialSpec
-            (githubUpdate nixPrefetchURL githubLatestRev githubRepo)
+            githubUpdate'
           pure finalSpec
 
       let (failed, sources') = partitionEithersHMS esources'
