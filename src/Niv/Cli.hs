@@ -208,9 +208,10 @@ cmdInit = do
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd =
     Opts.info
-      ((uncurry (cmdAdd githubUpdate') <$> parseArgs) <**> Opts.helper) $
+      ((sp <|> (uncurry (cmdAdd githubUpdate') <$> parseArgs)) <**> Opts.helper) $
       mconcat desc
   where
+    sp = Opts.subparser (Opts.hidden <> Opts.commandGroup "Experimental commands:" <> Opts.command "git" parseCmdAddGit)
     parseArgs :: Opts.Parser (PackageName, Attrs)
     parseArgs = collapse <$> parseNameAndGHShortcut <*> parsePackageSpec
     parseNameAndGHShortcut = (,) <$> optName <*> parseGitHubShortcut
@@ -248,6 +249,15 @@ parseCmdAdd =
           "  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-19.03" Opts.<$$>
           "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
       ]
+
+parseCmdAddGit :: Opts.ParserInfo (IO ())
+parseCmdAddGit =
+    Opts.info
+      (putStrLn <$> parseArgs <**> Opts.helper) $
+      mconcat desc
+  where
+    parseArgs = Opts.strOption (Opts.long "message")
+    desc = [ Opts.progDesc "This echoes \"message\" back." ]
 
 cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
 cmdAdd updateFunc packageName attrs = do
