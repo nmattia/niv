@@ -25,7 +25,7 @@ let
           The niv type "builtin-tarball" will soon be deprecated. You should
           instead use `builtin = true`.
 
-          $ niv modify <package> -a type=tarball -a builtins=true
+          $ niv modify <package> -a type=tarball -a builtin=true
       ''
       builtins_fetchTarball { inherit (spec) url sha256; };
 
@@ -36,7 +36,7 @@ let
           The niv type "builtin-url" will soon be deprecated. You should
           instead use `builtin = true`.
 
-          $ niv modify <package> -a type=file -a builtins=true
+          $ niv modify <package> -a type=file -a builtin=true
       ''
       (builtins_fetchurl { inherit (spec) url sha256; });
 
