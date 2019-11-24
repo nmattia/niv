@@ -85,7 +85,7 @@ let
     else
       abort "ERROR: niv spec ${name} has unknown type ${builtins.fromJSON spec.type}";
 
-  # Ports of functions for previous nix versions
+  # Ports of functions for older nix versions
 
   # a Nix version of mapAttrs if the built-in doesn't exist
   mapAttrs = builtins.mapAttrs or (
