@@ -12,7 +12,6 @@ import Control.Applicative
 import Control.Monad
 import Data.Aeson ((.=))
 import Data.Char (isSpace)
-import Data.Functor
 import Data.HashMap.Strict.Extended
 import Data.Hashable (Hashable)
 import Data.String.QQ (s)
@@ -141,38 +140,67 @@ cmdInit = do
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd =
     Opts.info
-      ((sp <|> shortcutGitHub) <**> Opts.helper) $
+      ((parseCommands <|> parseShortcuts) <**> Opts.helper) $
       (description githubCmd)
   where
-    shortcutGitHub = uncurry (cmdAdd (updateCmd githubCmd)) <$> parseArgs
+    -- XXX: this should parse many shortcuts (github, git). Right now we only
+    -- parse GitHub because the git interface is still experimental.  note to
+    -- implementer: it'll be tricky to have the correct arguments show up
+    -- without repeating "PACKAGE PACKAGE PACKAGE" for every package type.
+    parseShortcuts = parseShortcut githubCmd
+    parseShortcut cmd = uncurry (cmdAdd (updateCmd cmd)) <$> (parseShortcutArgs cmd)
+    parseCmd cmd = uncurry (cmdAdd (updateCmd cmd)) <$> (parseCmdArgs cmd)
     parseCmdAddGit =
-      Opts.info
-        (uncurry (cmdAdd (updateCmd gitCmd)) <$> parseArgs <**> Opts.helper) $
-        (description gitCmd)
+      Opts.info (parseCmd gitCmd <**> Opts.helper) (description gitCmd)
     parseCmdAddGitHub =
-      Opts.info
-        (uncurry (cmdAdd (updateCmd githubCmd)) <$> parseArgs <**> Opts.helper) $
-        (description githubCmd)
-
-    sp = Opts.subparser
+      Opts.info (parseCmd githubCmd <**> Opts.helper) (description githubCmd)
+    parseCommands = Opts.subparser
         ( Opts.hidden <>
           Opts.commandGroup "Experimental commands:" <>
           Opts.command "git" parseCmdAddGit <>
           Opts.command "github" parseCmdAddGitHub
         )
 
-    parseArgs :: Opts.Parser (PackageName, Attrs)
-    parseArgs = collapse <$> parseNameAndShortcut <*> (parsePackageSpec githubCmd)
+-- | only used in shortcuts (niv add foo/bar ...) because PACKAGE is NOT
+-- optional
+parseShortcutArgs :: Cmd -> Opts.Parser (PackageName, Attrs)
+parseShortcutArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
+  where
+    collapse specAndName pspec = (pname, specToLockedAttrs $ pspec <> baseSpec)
+      where
+        (pname, baseSpec) = case specAndName of
+          ((_, spec), Just pname') -> (pname', PackageSpec spec)
+          ((pname', spec), Nothing) -> (pname', PackageSpec spec)
     parseNameAndShortcut =
       (,) <$>
-        optName <*>
-        (Opts.strArgument (Opts.metavar "PACKAGE") <&> (parseShortcut githubCmd))
-    -- collaspe a "name or shortcut" with package spec
-    collapse nameAndSpec pspec = (pname, specToLockedAttrs $ pspec <> baseSpec)
+        Opts.argument
+          (Opts.maybeReader (parseCmdShortcut cmd . T.pack))
+          (Opts.metavar "PACKAGE") <*>
+        optName
+    optName = Opts.optional $ PackageName <$> Opts.strOption
+      ( Opts.long "name" <>
+        Opts.short 'n' <>
+        Opts.metavar "NAME" <>
+        Opts.help "Set the package name to <NAME>"
+      )
+
+-- | only used in command (niv add <cmd> ...) because PACKAGE is optional
+parseCmdArgs :: Cmd -> Opts.Parser (PackageName, Attrs)
+parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
+  where
+    collapse specAndName pspec = (pname, specToLockedAttrs $ pspec <> baseSpec)
       where
-        (pname, baseSpec) = case nameAndSpec of
-          (Just pname', (_, spec)) -> (pname', PackageSpec spec)
-          (Nothing, (pname', spec)) -> (pname', PackageSpec spec)
+        (pname, baseSpec) = case specAndName of
+          (Just (_, spec), Just pname') -> (pname', PackageSpec spec)
+          (Just (pname', spec), Nothing) -> (pname', PackageSpec spec)
+          (Nothing, Just pname') -> (pname', PackageSpec HMS.empty)
+          (Nothing, Nothing) -> (PackageName "unnamed", PackageSpec HMS.empty)
+    parseNameAndShortcut =
+      (,) <$>
+        Opts.optional (Opts.argument
+          (Opts.maybeReader (parseCmdShortcut cmd . T.pack))
+          (Opts.metavar "PACKAGE")) <*>
+        optName
     optName = Opts.optional $ PackageName <$> Opts.strOption
       ( Opts.long "name" <>
         Opts.short 'n' <>

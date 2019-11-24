@@ -30,7 +30,7 @@ import qualified Options.Applicative.Help.Pretty as Opts
 githubCmd :: Cmd
 githubCmd = Cmd
   { description = describeGitHub
-  , parseShortcut = parseAddShortcutGitHub
+  , parseCmdShortcut = parseAddShortcutGitHub
   , parsePackageSpec = parseGitHubPackageSpec
   , updateCmd = githubUpdate'
   , name = "github"
@@ -104,7 +104,7 @@ parseGitHubPackageSpec =
 describeGitHub :: Opts.InfoMod a
 describeGitHub = mconcat
   [ Opts.fullDesc
-  , Opts.progDesc "Add dependency"
+  , Opts.progDesc "Add a GitHub dependency"
   , Opts.headerDoc $ Just $
       "Examples:" Opts.<$$>
       "" Opts.<$$>
@@ -114,17 +114,19 @@ describeGitHub = mconcat
   ]
 
 -- parse a github shortcut of the form "owner/repo"
-parseAddShortcutGitHub :: T.Text -> (PackageName, Aeson.Object)
-parseAddShortcutGitHub str = -- Opts.strArgument (Opts.metavar "PACKAGE") <&>
+parseAddShortcutGitHub :: T.Text -> Maybe (PackageName, Aeson.Object)
+parseAddShortcutGitHub str =
       -- parses a string "owner/repo" into package name (repo) and spec (owner +
       -- repo)
         case T.span (/= '/') str of
           (owner@(T.null -> False)
-            , T.uncons -> Just ('/', repo@(T.null -> False))) ->
+            , T.uncons -> Just ('/', repo@(T.null -> False))) -> Just
               ( PackageName repo
               , HMS.fromList [ "owner" .= owner, "repo" .= repo ])
-          _ -> (PackageName str, HMS.empty)
-
+          -- XXX: this should be "Nothing" but for the time being we keep
+          -- backwards compatibility with "niv add foo" adding "foo" as a
+          -- package name.
+          _ -> Just (PackageName str, HMS.empty)
 
 -- | The IO (real) github update
 githubUpdate' :: Update () ()

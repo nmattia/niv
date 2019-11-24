@@ -4,20 +4,27 @@ module Niv.Git.Cmd (gitCmd) where
 
 import Niv.Cmd
 import qualified Options.Applicative as Opts
+import qualified Options.Applicative.Help.Pretty as Opts
 
 gitCmd :: Cmd
 gitCmd = Cmd
   { description = describeGit
-  , parseShortcut = error "no parse for git"
+  , parseCmdShortcut = pure Nothing
   , parsePackageSpec = pure mempty
-  , updateCmd = undefined
+  , updateCmd = error "git update is not implemented yet"
   , name = "git"
   }
 
 describeGit :: Opts.InfoMod a
 describeGit = mconcat
   [ Opts.fullDesc
-  , Opts.progDesc "Echo a message back"
+  , Opts.progDesc "Add a git dependency. Experimental."
+  , Opts.headerDoc $ Just $
+      "Examples:" Opts.<$$>
+      "" Opts.<$$>
+      "  niv add git@github.com:stedolan/jq" Opts.<$$>
+      "  niv add ssh://git@github.com/stedolan/jq" Opts.<$$>
+      "  niv add https://github.com/stedolan/jq.git"
   ]
 
 -- for git:

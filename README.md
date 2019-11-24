@@ -209,7 +209,7 @@ Available options:
 Available commands:
   init                     Initialize a Nix project. Existing files won't be
                            modified.
-  add                      Add dependency
+  add                      Add a GitHub dependency
   show                     
   update                   Update dependencies
   modify                   Modify dependency
@@ -226,11 +226,11 @@ Examples:
   niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-19.03
   niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
 
-Usage: niv add [-n|--name NAME] PACKAGE ([-a|--attribute KEY=VAL] |
+Usage: niv add PACKAGE [-n|--name NAME] ([-a|--attribute KEY=VAL] |
                [-s|--string-attribute KEY=VAL] | [-b|--branch BRANCH] |
                [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION] |
                [-t|--template URL] | [-T|--type TYPE])
-  Add dependency
+  Add a GitHub dependency
 
 Available options:
   -n,--name NAME           Set the package name to <NAME>
@@ -250,8 +250,8 @@ Available options:
   -h,--help                Show this help text
 
 Experimental commands:
-  git                      Echo a message back
-  github                   Add dependency
+  git                      Add a git dependency. Experimental.
+  github                   Add a GitHub dependency
 
 ```
 
