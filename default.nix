@@ -33,6 +33,7 @@ with rec
     "^src/Data/HashMap/Strict$"
     "^src/Data/Text$"
     "^src/Niv$"
+    "^src/Niv/Git$"
     "^src/Niv/GitHub$"
     "^src/Niv/Sources$"
     "^src/Niv/Update$"

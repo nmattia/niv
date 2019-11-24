@@ -249,6 +249,10 @@ Available options:
                            inferred from the suffix of the URL.
   -h,--help                Show this help text
 
+Experimental commands:
+  git                      Echo a message back
+  github                   Add dependency
+
 ```
 
 #### Update

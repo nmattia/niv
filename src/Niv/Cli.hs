@@ -11,8 +11,6 @@ module Niv.Cli where
 import Control.Applicative
 import Control.Monad
 import Data.Aeson ((.=))
-import Data.Bifunctor
-import Data.Maybe
 import Data.Char (isSpace)
 import Data.Functor
 import Data.HashMap.Strict.Extended
@@ -20,15 +18,14 @@ import Data.Hashable (Hashable)
 import Data.String.QQ (s)
 import Data.Text.Extended
 import Data.Version (showVersion)
-import Niv.GitHub
-import Niv.GitHub.API
+import Niv.Cmd
+import Niv.Git.Cmd
+import Niv.GitHub.Cmd
 import Niv.Logger
 import Niv.Sources
 import Niv.Update
 import System.Environment (getArgs)
-import System.Exit (ExitCode(ExitSuccess))
 import System.FilePath (takeDirectory)
-import System.Process (readProcessWithExitCode)
 import UnliftIO
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as B
@@ -72,72 +69,8 @@ parsePackageName :: Opts.Parser PackageName
 parsePackageName = PackageName <$>
     Opts.argument Opts.str (Opts.metavar "PACKAGE")
 
-parsePackageSpec :: Opts.Parser PackageSpec
-parsePackageSpec =
-    (PackageSpec . HMS.fromList) <$>
-      many parseAttribute
-  where
-    parseAttribute :: Opts.Parser (T.Text, Aeson.Value)
-    parseAttribute =
-      Opts.option (Opts.maybeReader parseKeyValJSON)
-        ( Opts.long "attribute" <>
-          Opts.short 'a' <>
-          Opts.metavar "KEY=VAL" <>
-          Opts.help "Set the package spec attribute <KEY> to <VAL>, where <VAL> may be JSON."
-        ) <|>
-      Opts.option (Opts.maybeReader (parseKeyVal Aeson.toJSON))
-        ( Opts.long "string-attribute" <>
-          Opts.short 's' <>
-          Opts.metavar "KEY=VAL" <>
-          Opts.help "Set the package spec attribute <KEY> to <VAL>."
-        ) <|>
-      shortcutAttributes <|>
-      ((("url_template",) . Aeson.String) <$> Opts.strOption
-        ( Opts.long "template" <>
-          Opts.short 't' <>
-          Opts.metavar "URL" <>
-          Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
-        )) <|>
-      ((("type",) . Aeson.String) <$> Opts.strOption
-        ( Opts.long "type" <>
-          Opts.short 'T' <>
-          Opts.metavar "TYPE" <>
-          Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
-        ))
-
-    parseKeyValJSON = parseKeyVal $ \x ->
-      fromMaybe (Aeson.toJSON x) (Aeson.decodeStrict (B8.pack x))
-
-    -- Parse "key=val" into ("key", val)
-    parseKeyVal
-      :: (String -> Aeson.Value)  -- ^ how to convert to JSON
-      -> String -> Maybe (T.Text, Aeson.Value)
-    parseKeyVal toJSON str = case span (/= '=') str of
-      (key, '=':val) -> Just (T.pack key, toJSON val)
-      _ -> Nothing
-
-    -- Shortcuts for common attributes
-    shortcutAttributes :: Opts.Parser (T.Text, Aeson.Value)
-    shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
-      [ "branch", "owner", "repo", "version" ]
-
-    -- TODO: infer those shortcuts from 'Update' keys
-    mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, Aeson.Value)
-    mkShortcutAttribute = \case
-      attr@(T.uncons -> Just (c,_)) -> fmap (second Aeson.String) $ (attr,) <$> Opts.strOption
-        ( Opts.long (T.unpack attr) <>
-          Opts.short c <>
-          Opts.metavar (T.unpack $ T.toUpper attr) <>
-          Opts.help
-            ( T.unpack $
-              "Equivalent to --attribute " <>
-              attr <> "=<" <> (T.toUpper attr) <> ">"
-            )
-        )
-      _ -> empty
-
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
-parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
+parsePackage = (,) <$> parsePackageName <*> (parsePackageSpec githubCmd)
 
 -------------------------------------------------------------------------------
 -- INIT
@@ -173,14 +106,14 @@ cmdInit = do
               createFile path initNixSourcesJsonContent
               -- Imports @niv@ and @nixpkgs@ (19.03)
               say "Importing 'niv' ..."
-              cmdAdd githubUpdate' (PackageName "niv")
+              cmdAdd (updateCmd githubCmd) (PackageName "niv")
                 (specToFreeAttrs $ PackageSpec $ HMS.fromList
                   [ "owner" .= ("nmattia" :: T.Text)
                   , "repo" .= ("niv" :: T.Text)
                   ]
                 )
               say "Importing 'nixpkgs' ..."
-              cmdAdd githubUpdate' (PackageName "nixpkgs")
+              cmdAdd (updateCmd githubCmd) (PackageName "nixpkgs")
                 (specToFreeAttrs $ PackageSpec $ HMS.fromList
                   [ "owner" .= ("NixOS" :: T.Text)
                   , "repo" .= ("nixpkgs-channels" :: T.Text)
@@ -208,17 +141,36 @@ cmdInit = do
 parseCmdAdd :: Opts.ParserInfo (IO ())
 parseCmdAdd =
     Opts.info
-      ((sp <|> (uncurry (cmdAdd githubUpdate') <$> parseArgs)) <**> Opts.helper) $
-      mconcat desc
+      ((sp <|> shortcutGitHub) <**> Opts.helper) $
+      (description githubCmd)
   where
-    sp = Opts.subparser (Opts.hidden <> Opts.commandGroup "Experimental commands:" <> Opts.command "git" parseCmdAddGit)
+    shortcutGitHub = uncurry (cmdAdd (updateCmd githubCmd)) <$> parseArgs
+    parseCmdAddGit =
+      Opts.info
+        (uncurry (cmdAdd (updateCmd gitCmd)) <$> parseArgs <**> Opts.helper) $
+        (description gitCmd)
+    parseCmdAddGitHub =
+      Opts.info
+        (uncurry (cmdAdd (updateCmd githubCmd)) <$> parseArgs <**> Opts.helper) $
+        (description githubCmd)
+
+    sp = Opts.subparser
+        ( Opts.hidden <>
+          Opts.commandGroup "Experimental commands:" <>
+          Opts.command "git" parseCmdAddGit <>
+          Opts.command "github" parseCmdAddGitHub
+        )
+
     parseArgs :: Opts.Parser (PackageName, Attrs)
-    parseArgs = collapse <$> parseNameAndGHShortcut <*> parsePackageSpec
-    parseNameAndGHShortcut = (,) <$> optName <*> parseGitHubShortcut
+    parseArgs = collapse <$> parseNameAndShortcut <*> (parsePackageSpec githubCmd)
+    parseNameAndShortcut =
+      (,) <$>
+        optName <*>
+        (Opts.strArgument (Opts.metavar "PACKAGE") <&> (parseShortcut githubCmd))
     -- collaspe a "name or shortcut" with package spec
-    collapse nameAndSpec pspec = (pname, specToLockedAttrs $ pspec <> repoAndOwner)
+    collapse nameAndSpec pspec = (pname, specToLockedAttrs $ pspec <> baseSpec)
       where
-        (pname, repoAndOwner) = case nameAndSpec of
+        (pname, baseSpec) = case nameAndSpec of
           (Just pname', (_, spec)) -> (pname', PackageSpec spec)
           (Nothing, (pname', spec)) -> (pname', PackageSpec spec)
     optName = Opts.optional $ PackageName <$> Opts.strOption
@@ -227,37 +179,6 @@ parseCmdAdd =
         Opts.metavar "NAME" <>
         Opts.help "Set the package name to <NAME>"
       )
-
-    -- parse a github shortcut of the form "owner/repo"
-    parseGitHubShortcut = Opts.strArgument (Opts.metavar "PACKAGE") <&>
-          -- parses a string "owner/repo" into package name (repo) and spec (owner +
-          -- repo)
-          \(T.pack -> str) ->
-            case T.span (/= '/') str of
-              (owner@(T.null -> False)
-                , T.uncons -> Just ('/', repo@(T.null -> False))) ->
-                  ( PackageName repo
-                  , HMS.fromList [ "owner" .= owner, "repo" .= repo ])
-              _ -> (PackageName str, HMS.empty)
-    desc =
-      [ Opts.fullDesc
-      , Opts.progDesc "Add dependency"
-      , Opts.headerDoc $ Just $
-          "Examples:" Opts.<$$>
-          "" Opts.<$$>
-          "  niv add stedolan/jq" Opts.<$$>
-          "  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-19.03" Opts.<$$>
-          "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
-      ]
-
-parseCmdAddGit :: Opts.ParserInfo (IO ())
-parseCmdAddGit =
-    Opts.info
-      (putStrLn <$> parseArgs <**> Opts.helper) $
-      mconcat desc
-  where
-    parseArgs = Opts.strOption (Opts.long "message")
-    desc = [ Opts.progDesc "This echoes \"message\" back." ]
 
 cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
 cmdAdd updateFunc packageName attrs = do
@@ -309,7 +230,6 @@ showPackage (PackageName pname) (PackageSpec spec) = do
             _ -> tfaint "<barabajagal>"
       tsay $ "  " <> attrName <> ": " <> attrValue
 
-
 -------------------------------------------------------------------------------
 -- UPDATE
 -------------------------------------------------------------------------------
@@ -349,7 +269,7 @@ cmdUpdate = \case
           Just defaultSpec -> do
             fmap attrsToSpec <$> tryEvalUpdate
               (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
-              githubUpdate'
+              (updateCmd githubCmd)
 
           Nothing -> abortCannotUpdateNoSuchPackage packageName
 
@@ -368,7 +288,7 @@ cmdUpdate = \case
           let initialSpec = specToFreeAttrs defaultSpec
           finalSpec <- fmap attrsToSpec <$> tryEvalUpdate
             initialSpec
-            githubUpdate'
+            (updateCmd githubCmd)
           pure finalSpec
 
       let (failed, sources') = partitionEithersHMS esources'
@@ -468,20 +388,6 @@ cmdDrop packageName = \case
         HMS.insert packageName packageSpec sources
 
 -------------------------------------------------------------------------------
--- Aux
--------------------------------------------------------------------------------
-
-nixPrefetchURL :: Bool -> T.Text -> IO T.Text
-nixPrefetchURL unpack (T.unpack -> url) = do
-    (exitCode, sout, serr) <- runNixPrefetch
-    case (exitCode, lines sout) of
-      (ExitSuccess, l:_)  -> pure $ T.pack l
-      _ -> abortNixPrefetchExpectedOutput (T.pack sout) (T.pack serr)
-  where
-    args = if unpack then ["--unpack", url] else [url]
-    runNixPrefetch = readProcessWithExitCode "nix-prefetch-url" args ""
-
--------------------------------------------------------------------------------
 -- Files and their content
 -------------------------------------------------------------------------------
 
@@ -501,10 +407,6 @@ shouldUpdateNixSourcesNix content =
             _ -> False
           _ -> False
         _ -> False
-
--- | The IO (real) github update
-githubUpdate' :: Update () ()
-githubUpdate' = githubUpdate nixPrefetchURL githubLatestRev githubRepo
 
 -------------------------------------------------------------------------------
 -- Abort
@@ -571,12 +473,3 @@ abortUpdateFailed errs = abort $ T.unlines $
       pname <> ": " <> tshow e
     ) errs
 
-abortNixPrefetchExpectedOutput :: T.Text -> T.Text -> IO a
-abortNixPrefetchExpectedOutput sout serr = abort $ [s|
-Could not read the output of 'nix-prefetch-url'. This is a bug. Please create a
-ticket:
-
-  https://github.com/nmattia/niv/issues/new
-
-Thanks! I'll buy you a beer.
-|] <> T.unlines ["stdout: ", sout, "stderr: ", serr]
