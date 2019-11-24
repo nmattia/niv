@@ -132,7 +132,6 @@ parseAddShortcutGitHub str =
 githubUpdate' :: Update () ()
 githubUpdate' = githubUpdate nixPrefetchURL githubLatestRev githubRepo
 
--- TODO: dedup
 nixPrefetchURL :: Bool -> T.Text -> IO T.Text
 nixPrefetchURL unpack (T.unpack -> url) = do
     (exitCode, sout, serr) <- runNixPrefetch
