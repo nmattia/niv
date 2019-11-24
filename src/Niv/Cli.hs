@@ -83,20 +83,20 @@ parsePackageSpec =
           Opts.metavar "KEY=VAL" <>
           Opts.help "Set the package spec attribute <KEY> to <VAL>, where <VAL> may be JSON."
         ) <|>
-      Opts.option (Opts.maybeReader (parseKeyVal (Aeson.String . T.pack)))
+      Opts.option (Opts.maybeReader (parseKeyVal Aeson.toJSON))
         ( Opts.long "string-attribute" <>
           Opts.short 's' <>
           Opts.metavar "KEY=VAL" <>
           Opts.help "Set the package spec attribute <KEY> to <VAL>."
         ) <|>
       shortcutAttributes <|>
-      ((\x -> ("url_template",Aeson.String x)) <$> Opts.strOption
+      ((("url_template",) . Aeson.String) <$> Opts.strOption
         ( Opts.long "template" <>
           Opts.short 't' <>
           Opts.metavar "URL" <>
           Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
         )) <|>
-      ((\x -> ("type", Aeson.String x)) <$> Opts.strOption
+      ((("type",) . Aeson.String) <$> Opts.strOption
         ( Opts.long "type" <>
           Opts.short 'T' <>
           Opts.metavar "TYPE" <>
@@ -104,7 +104,7 @@ parsePackageSpec =
         ))
 
     parseKeyValJSON = parseKeyVal $ \x ->
-      fromMaybe (Aeson.String $ T.pack x) (Aeson.decodeStrict (B8.pack x))
+      fromMaybe (Aeson.toJSON x) (Aeson.decodeStrict (B8.pack x))
 
     -- Parse "key=val" into ("key", val)
     parseKeyVal
