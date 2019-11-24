@@ -26,7 +26,7 @@ let
           instead use `builtin = true`.
 
           $ niv modify <package> -a type=tarball -a builtins=true
-      '' # TODO: attribute as JSON
+      ''
       builtins_fetchTarball { inherit (spec) url sha256; };
 
   fetch_builtin-url = spec:
@@ -37,8 +37,7 @@ let
           instead use `builtin = true`.
 
           $ niv modify <package> -a type=file -a builtins=true
-      '' # TODO: attribute as JSON
-
+      ''
       (builtins_fetchurl { inherit (spec) url sha256; });
 
   #
