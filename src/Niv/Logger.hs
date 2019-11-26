@@ -53,6 +53,24 @@ green str =
     ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Green] <>
     str <> ANSI.setSGRCode [ANSI.Reset]
 
+yellow :: String -> String
+yellow str =
+    ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity] <>
+    ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Yellow] <>
+    str <> ANSI.setSGRCode [ANSI.Reset]
+
+tyellow :: T.Text -> T.Text
+tyellow = dimap T.unpack T.pack yellow
+
+blue :: String -> String
+blue str =
+    ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity] <>
+    ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue] <>
+    str <> ANSI.setSGRCode [ANSI.Reset]
+
+tblue :: T.Text -> T.Text
+tblue = dimap T.unpack T.pack blue
+
 red :: String -> String
 red str =
     ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red] <>

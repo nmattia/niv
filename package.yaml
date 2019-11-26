@@ -36,6 +36,7 @@ dependencies:
     - optparse-applicative
     - process
     - profunctors
+    - pureMD5
     - string-qq
     - text
     - unliftio

@@ -33,6 +33,7 @@ with rec
     "^src/Data/HashMap/Strict$"
     "^src/Niv$"
     "^src/Niv/GitHub$"
+    "^src/Niv/Sources$"
     "^src/Niv/Update$"
     "^src.*.hs$"
     "^README.md$"

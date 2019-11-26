@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -13,7 +12,6 @@ import Control.Applicative
 import Control.Monad
 import Data.Aeson ((.=))
 import Data.Char (isSpace)
-import Data.FileEmbed (embedFile)
 import Data.Functor
 import Data.HashMap.Strict.Extended
 import Data.Hashable (Hashable)
@@ -25,7 +23,7 @@ import Niv.Sources
 import Niv.Update
 import System.Environment (getArgs)
 import System.Exit (ExitCode(ExitSuccess))
-import System.FilePath ((</>), takeDirectory)
+import System.FilePath (takeDirectory)
 import System.Process (readProcessWithExitCode)
 import UnliftIO
 import qualified Data.Aeson as Aeson
@@ -33,7 +31,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import qualified System.Directory as Dir
@@ -481,37 +478,6 @@ shouldUpdateNixSourcesNix content =
             _ -> False
           _ -> False
         _ -> False
-
-warnIfOutdated :: IO ()
-warnIfOutdated = do
-    tryAny (B.readFile pathNixSourcesNix) >>= \case
-      Left e -> T.putStrLn $ T.unlines
-        [ "Could not read " <> T.pack pathNixSourcesNix
-        , "Error: " <> tshow e
-        ]
-      Right content ->
-        if shouldUpdateNixSourcesNix content
-        then
-          T.putStrLn $ T.unlines
-            [ "WARNING: " <> T.pack pathNixSourcesNix <> " is out of date."
-            , "Please run"
-            , "  niv init"
-            , "or add the following line in the " <> T.pack pathNixSourcesNix <> "  file:"
-            , "  # niv: no_update"
-            ]
-        else pure ()
-
--- | @nix/sources.nix@
-pathNixSourcesNix :: FilePath
-pathNixSourcesNix = "nix" </> "sources.nix"
-
--- | Glue code between nix and sources.json
-initNixSourcesNixContent :: B.ByteString
-initNixSourcesNixContent = $(embedFile "nix/sources.nix")
-
--- | Empty JSON map
-initNixSourcesJsonContent :: B.ByteString
-initNixSourcesJsonContent = "{}"
 
 -- | The IO (real) github update
 githubUpdate' :: Update () ()
