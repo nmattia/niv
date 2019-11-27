@@ -189,11 +189,12 @@ warnIfOutdated = do
         ]
       Right content -> do
         case md5ToSourcesVersion (T.pack $ show $ MD5.md5 content) of
-          -- This is a custom version, we don't do anything
+          -- This is a custom or newer version, we don't do anything
           Nothing -> pure ()
           Just v
             -- The file is the latest
             | v == maxBound -> pure ()
+            -- The file is older than than latest
             | otherwise -> do
                 tsay $ T.unlines
                   [ T.unwords
