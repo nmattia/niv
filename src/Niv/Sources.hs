@@ -25,7 +25,6 @@ import qualified Data.ByteString.Lazy.Char8 as BL8
 import qualified Data.Digest.Pure.MD5 as MD5
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import qualified System.Directory as Dir
 
 -------------------------------------------------------------------------------
@@ -184,9 +183,9 @@ pathNixSourcesNix = "nix" </> "sources.nix"
 warnIfOutdated :: IO ()
 warnIfOutdated = do
     tryAny (BL8.readFile pathNixSourcesNix) >>= \case
-      Left e -> T.putStrLn $ T.unlines -- warn with tsay
-        [ "Could not read " <> T.pack pathNixSourcesNix
-        , "Error: " <> tshow e
+      Left e -> tsay $ T.unlines -- warn with tsay
+        [ T.unwords [ tyellow "WARNING:",  "Could not read" , T.pack pathNixSourcesNix ]
+        , T.unwords [ "  ", "(", tshow e, ")" ]
         ]
       Right content -> do
         case md5ToSourcesVersion (T.pack $ show $ MD5.md5 content) of
