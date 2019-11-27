@@ -1,5 +1,6 @@
 module Niv.Test (tests, test) where
 
+import Niv.Sources.Test
 import Niv.GitHub.Test
 import Niv.Update.Test
 import qualified Test.Tasty as Tasty
@@ -26,5 +27,8 @@ tests = Tasty.testGroup "niv"
         , Tasty.testCase "updates once" test_githubUpdatesOnce
         , Tasty.testCase "doesn't override rev" test_githubDoesntOverrideRev
         , Tasty.testCase "falls back to URL" test_githubURLFallback
+        ]
+    , Tasty.testGroup "sources.nix"
+        [ Tasty.testCase "has latest version" test_shippedSourcesNixIsLatest
         ]
     ]
