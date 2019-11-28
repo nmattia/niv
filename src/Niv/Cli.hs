@@ -11,6 +11,8 @@ module Niv.Cli where
 import Control.Applicative
 import Control.Monad
 import Data.Aeson ((.=))
+import Data.Bifunctor
+import Data.Maybe
 import Data.Char (isSpace)
 import Data.Functor
 import Data.HashMap.Strict.Extended
@@ -70,45 +72,57 @@ parsePackageName = PackageName <$>
 
 parsePackageSpec :: Opts.Parser PackageSpec
 parsePackageSpec =
-    (PackageSpec . HMS.fromList . fmap fixupAttributes) <$>
+    (PackageSpec . HMS.fromList) <$>
       many parseAttribute
   where
-    parseAttribute :: Opts.Parser (T.Text, T.Text)
+    parseAttribute :: Opts.Parser (T.Text, Aeson.Value)
     parseAttribute =
-      Opts.option (Opts.maybeReader parseKeyVal)
+      Opts.option (Opts.maybeReader parseKeyValJSON)
         ( Opts.long "attribute" <>
           Opts.short 'a' <>
           Opts.metavar "KEY=VAL" <>
-          Opts.help "Set the package spec attribute <KEY> to <VAL>"
-        ) <|> shortcutAttributes <|>
-      (("url_template",) <$> Opts.strOption
+          Opts.help "Set the package spec attribute <KEY> to <VAL>, where <VAL> may be JSON."
+        ) <|>
+      Opts.option (Opts.maybeReader (parseKeyVal Aeson.toJSON))
+        ( Opts.long "string-attribute" <>
+          Opts.short 's' <>
+          Opts.metavar "KEY=VAL" <>
+          Opts.help "Set the package spec attribute <KEY> to <VAL>."
+        ) <|>
+      shortcutAttributes <|>
+      ((("url_template",) . Aeson.String) <$> Opts.strOption
         ( Opts.long "template" <>
           Opts.short 't' <>
           Opts.metavar "URL" <>
           Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
         )) <|>
-      (("type",) <$> Opts.strOption
+      ((("type",) . Aeson.String) <$> Opts.strOption
         ( Opts.long "type" <>
           Opts.short 'T' <>
           Opts.metavar "TYPE" <>
           Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
         ))
 
-    -- Parse "key=val" into ("key", "val")
-    parseKeyVal :: String -> Maybe (T.Text, T.Text)
-    parseKeyVal str = case span (/= '=') str of
-      (key, '=':val) -> Just (T.pack key, T.pack val)
+    parseKeyValJSON = parseKeyVal $ \x ->
+      fromMaybe (Aeson.toJSON x) (Aeson.decodeStrict (B8.pack x))
+
+    -- Parse "key=val" into ("key", val)
+    parseKeyVal
+      :: (String -> Aeson.Value)  -- ^ how to convert to JSON
+      -> String -> Maybe (T.Text, Aeson.Value)
+    parseKeyVal toJSON str = case span (/= '=') str of
+      (key, '=':val) -> Just (T.pack key, toJSON val)
       _ -> Nothing
 
     -- Shortcuts for common attributes
-    shortcutAttributes :: Opts.Parser (T.Text, T.Text)
+    shortcutAttributes :: Opts.Parser (T.Text, Aeson.Value)
     shortcutAttributes = foldr (<|>) empty $ mkShortcutAttribute <$>
       [ "branch", "owner", "repo", "version" ]
 
     -- TODO: infer those shortcuts from 'Update' keys
-    mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, T.Text)
+    mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, Aeson.Value)
     mkShortcutAttribute = \case
-      attr@(T.uncons -> Just (c,_)) -> (attr,) <$> Opts.strOption
+      attr@(T.uncons -> Just (c,_)) -> fmap (second Aeson.String) $ (attr,) <$> Opts.strOption
         ( Opts.long (T.unpack attr) <>
           Opts.short c <>
           Opts.metavar (T.unpack $ T.toUpper attr) <>
@@ -119,9 +133,6 @@ parsePackageSpec =
             )
         )
       _ -> empty
-
-    fixupAttributes :: (T.Text, T.Text) -> (T.Text, Aeson.Value)
-    fixupAttributes (k, v) = (k, Aeson.String v)
 
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
 parsePackage = (,) <$> parsePackageName <*> parsePackageSpec
