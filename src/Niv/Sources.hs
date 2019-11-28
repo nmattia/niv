@@ -134,6 +134,7 @@ data SourcesNixVersion
   | V8
   | V9
   | V10
+  | V11
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -149,6 +150,7 @@ sourcesVersionToText = \case
     V8 -> "8"
     V9 -> "9"
     V10 -> "10"
+    V11 -> "11"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -171,6 +173,7 @@ sourcesVersionToMD5 = \case
     V8 -> "e8b860753dd7fa1fd7b805dd836eb607"
     V9 -> "87149616c1b3b1e5aa73178f91c20b53"
     V10 -> "d8625c0a03dd935e1c79f46407faa8d3"
+    V11 -> "8a95b7d93b16f7c7515d98f49b0ec741"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text
