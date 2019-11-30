@@ -190,7 +190,7 @@ rec
 {
   inherit niv niv-sdist niv-source niv-devshell niv-cabal-upload;
 
-  tests = pkgs.callPackage ./tests { inherit niv; };
+  tests-github = pkgs.callPackage ./tests/github { inherit niv; };
 
   niv-test = pkgs.runCommand "niv-test" { buildInputs = [ niv ]; }
     "niv-test && touch $out";
