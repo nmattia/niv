@@ -7,6 +7,7 @@
 module Niv.Git.Cmd (gitCmd) where
 
 import Control.Arrow
+import Control.Applicative
 import Data.String.QQ (s)
 import Data.Text.Extended as T
 import Niv.Cmd
@@ -32,13 +33,23 @@ gitCmd = Cmd
 -- TODO: don't hardcode here
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec =
-    (PackageSpec . HMS.singleton "repo") <$>
-      parseRepo
+    (PackageSpec . HMS.fromList) <$>
+      many (parseRepo <|> parseRef <|> parseRev)
   where
     parseRepo =
-      Aeson.String <$> Opts.strOption
+      ("repo", ) . Aeson.String <$> Opts.strOption
         ( Opts.long "repo" <>
           Opts.metavar "URL"
+        )
+    parseRev =
+      ("rev", ) . Aeson.String <$> Opts.strOption
+        ( Opts.long "rev" <>
+          Opts.metavar "SHA"
+        )
+    parseRef =
+      ("ref", ) . Aeson.String <$> Opts.strOption
+        ( Opts.long "ref" <>
+          Opts.metavar "REF"
         )
 
 describeGit :: Opts.InfoMod a
