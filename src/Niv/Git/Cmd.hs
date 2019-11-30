@@ -1,10 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Arrows #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Niv.Git.Cmd (gitCmd) where
+module Niv.Git.Cmd where
 
 import Control.Arrow
 import Control.Applicative
@@ -24,13 +25,28 @@ import qualified Options.Applicative.Help.Pretty as Opts
 gitCmd :: Cmd
 gitCmd = Cmd
   { description = describeGit
-  , parseCmdShortcut = pure Nothing
+  , parseCmdShortcut = parseGitShortcut
   , parsePackageSpec = parseGitPackageSpec
   , updateCmd = gitUpdate
   , name = "git"
   }
 
--- TODO: don't hardcode here
+parseGitShortcut :: T.Text -> Maybe (PackageName, Aeson.Object)
+parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
+    -- basic heuristics for figuring out if something is a git repo
+    if isGitURL
+    then case T.splitOn "/" txt of
+      [] -> Nothing
+      (last -> w) -> case T.stripSuffix ".git" w of
+        Nothing -> Just (PackageName w, HMS.singleton "repo" (Aeson.String txt'))
+        Just w' -> Just (PackageName w', HMS.singleton "repo" (Aeson.String txt'))
+    else Nothing
+  where
+    isGitURL =
+        ".git" `T.isSuffixOf` txt ||
+        "git@" `T.isPrefixOf` txt ||
+        "ssh://" `T.isPrefixOf` txt
+
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec =
     (PackageSpec . HMS.fromList) <$>
@@ -59,9 +75,10 @@ describeGit = mconcat
   , Opts.headerDoc $ Just $
       "Examples:" Opts.<$$>
       "" Opts.<$$>
-      "  niv add git@github.com:stedolan/jq" Opts.<$$>
-      "  niv add ssh://git@github.com/stedolan/jq" Opts.<$$>
-      "  niv add https://github.com/stedolan/jq.git"
+      "  niv add git git@github.com:stedolan/jq" Opts.<$$>
+      "  niv add git ssh://git@github.com/stedolan/jq --rev deadb33f" Opts.<$$>
+      "  niv add git https://github.com/stedolan/jq.git" Opts.<$$>
+      "  niv add git --repo /my/custom/repo --name custom --ref foobar"
   ]
 
 gitUpdate :: Update () ()
