@@ -3,7 +3,17 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Niv.Logger where
+module Niv.Logger
+  ( job
+  , tsay
+  , say
+  , green, tgreen
+  , red, tred
+  , blue, tblue
+  , yellow, tyellow
+  , bold, tbold
+  , faint, tfaint
+  ) where
 
 import Control.Monad
 import Data.Profunctor
@@ -12,6 +22,9 @@ import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Text as T
 import UnliftIO
 import qualified System.Console.ANSI as ANSI
+
+type S = String -> String
+type T = T.Text -> T.Text
 
 -- XXX: this assumes as single thread
 job :: String -> IO () -> IO ()
@@ -45,51 +58,60 @@ say :: String -> IO ()
 say msg = do
     stackSize <- jobStackSize
     let indent = replicate (stackSize * 2) ' '
-    putStrLn $ indent <> msg
+    putStrLn $ unlines $ (indent <>) <$> lines msg
 
-green :: String -> String
+green :: S
 green str =
     ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity] <>
     ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Green] <>
     str <> ANSI.setSGRCode [ANSI.Reset]
 
-yellow :: String -> String
+tgreen :: T
+tgreen = t green
+
+yellow :: S
 yellow str =
     ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity] <>
     ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Yellow] <>
     str <> ANSI.setSGRCode [ANSI.Reset]
 
-tyellow :: T.Text -> T.Text
-tyellow = dimap T.unpack T.pack yellow
+tyellow :: T
+tyellow = t yellow
 
-blue :: String -> String
+blue :: S
 blue str =
     ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity] <>
     ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue] <>
     str <> ANSI.setSGRCode [ANSI.Reset]
 
-tblue :: T.Text -> T.Text
-tblue = dimap T.unpack T.pack blue
+tblue :: T
+tblue = t blue
 
-red :: String -> String
+red :: S
 red str =
     ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red] <>
     str <> ANSI.setSGRCode [ANSI.Reset]
 
-tbold :: T.Text -> T.Text
-tbold = dimap T.unpack T.pack bold
+tred :: T
+tred = t red
 
-bold :: String -> String
+bold :: S
 bold str =
     ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity] <>
     ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.White] <>
     str <> ANSI.setSGRCode [ANSI.Reset]
 
-tfaint :: T.Text -> T.Text
-tfaint = dimap T.unpack T.pack faint
+tbold :: T
+tbold = t bold
 
 faint :: String -> String
 faint str =
     ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.FaintIntensity] <>
     ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.White] <>
     str <> ANSI.setSGRCode [ANSI.Reset]
+
+tfaint :: T
+tfaint = t faint
+
+t :: (String -> String) -> T.Text -> T.Text
+t = dimap T.unpack T.pack
