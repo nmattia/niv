@@ -14,6 +14,7 @@ import Control.Applicative
 import Control.Arrow
 import Data.Aeson (FromJSON, ToJSON, Value)
 import Data.String
+import Niv.Logger
 import UnliftIO
 import qualified Control.Category as Cat
 import qualified Data.Aeson as Aeson
@@ -80,12 +81,7 @@ runUpdate (boxAttrs -> attrs) a = runUpdate' attrs a >>= feed
     prettyFail :: UpdateFailed -> T.Text
     prettyFail = \case
       FailNoSuchKey k -> "Key could not be found: " <> k
-      FailZero -> T.unlines
-        [ "A dead end was reached during evaluation."
-        , "This is a bug. Please create a ticket:"
-        , "  https://github.com/nmattia/niv/issues/new"
-        , "Thanks! I'll buy you a beer."
-        ]
+      FailZero -> bug "A dead end was reached during evaluation."
       FailCheck -> "A check failed during update"
       FailTemplate tpl keys -> T.unlines
         [ "Could not render template " <> tpl

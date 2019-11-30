@@ -9,9 +9,9 @@ module Niv.Git.Cmd where
 
 import Control.Arrow
 import Control.Applicative
-import Data.String.QQ (s)
 import Data.Text.Extended as T
 import Niv.Cmd
+import Niv.Logger
 import Niv.Sources
 import Niv.Update
 import System.Exit (ExitCode(ExitSuccess))
@@ -105,32 +105,41 @@ latestRev repo ref = do
     let gitArgs = [ "ls-remote", repo, "refs/heads/" <> ref ]
     sout <- runGit gitArgs
     case sout of
-      ls@(_:_:_) -> abortTooMuchOutput ls
-      (l1:[]) -> parseRev l1
-      [] -> abortNoOutput
+      ls@(_:_:_) -> abortTooMuchOutput gitArgs ls
+      (l1:[]) -> parseRev gitArgs l1
+      [] -> abortNoOutput gitArgs
   where
-    parseRev l = maybe (abortNoRev l) pure $ do
+    parseRev args l = maybe (abortNoRev args l) pure $ do
       checkRev $ T.takeWhile (/= '\t') l
     checkRev t = if isRev t then Just t else Nothing
-    abortNoOutput = abort "foo" -- TODO: args + abortBugIn
+    abortNoOutput args = abortGitFailure args
+      "Git didn't produce any output."
+    abortTooMuchOutput args ls = abortGitFailure args $ T.unlines $
+      [ "Git produced too much output:" ] <> map ("  " <>) ls
 
 defaultRefAndHEAD
     :: T.Text -- ^ the repository
     -> IO (T.Text, T.Text)
 defaultRefAndHEAD repo = do
-    sout <- runGit [ "ls-remote", "--symref", repo, "HEAD" ]
+    sout <- runGit args
     case sout of
       (l1:l2:_) -> (,) <$> parseRef l1 <*> parseRev l2
-      _ -> abortNoRefAndRev
+      _ -> abortGitFailure args "Could not read reference and revision."
   where
-    parseRef l = maybe (abortNoRef l) pure $ do
+    args = [ "ls-remote", "--symref", repo, "HEAD" ]
+    parseRef l = maybe (abortNoRef args l) pure $ do
       -- ref: refs/head/master\tHEAD -> master\tHEAD
       refAndSym <- T.stripPrefix "ref: refs/heads/" l
       let ref = T.takeWhile (/= '\t') refAndSym
       if T.null ref then Nothing else Just ref
-    parseRev l = maybe (abortNoRev l) pure $ do
+    parseRev l = maybe (abortNoRev args l) pure $ do
       checkRev $ T.takeWhile (/= '\t') l
     checkRev t = if isRev t then Just t else Nothing
+
+abortNoRev :: [T.Text] -> T.Text -> IO a
+abortNoRev args l = abortGitFailure args $ "Could not read revision from: " <> l
+abortNoRef :: [T.Text] -> T.Text -> IO a
+abortNoRef args l = abortGitFailure args $ "Could not read reference from: " <> l
 
 -- | Run the "git" executable
 runGit :: [T.Text] -> IO [T.Text]
@@ -138,7 +147,10 @@ runGit args = do
     (exitCode, sout, serr) <- readProcessWithExitCode "git" (T.unpack <$> args) ""
     case (exitCode, lines sout) of
       (ExitSuccess, ls)  -> pure $ T.pack <$> ls
-      _ -> abortGitFailure args (T.pack sout) (T.pack serr)
+      _ -> abortGitFailure args $ T.unlines
+        [ T.unwords [ "stdout:" , T.pack sout ]
+        , T.unwords [ "stderr:" , T.pack serr ]
+        ]
 
 isRev :: T.Text -> Bool
 isRev t =
@@ -147,25 +159,8 @@ isRev t =
   -- commit _should_ be 40 chars long, but to be sure we pick 7
   T.length t >= 7
 
-abortTooMuchOutput :: [T.Text] -> IO a
-abortTooMuchOutput = abort .  T.unwords
-
-abortNoRef :: T.Text -> IO a
-abortNoRef = abort -- TODO
-
-abortNoRev :: T.Text -> IO a
-abortNoRev = abort -- TODO
-
-abortNoRefAndRev :: IO a
-abortNoRefAndRev = error "foo"
-
--- TODO: mention error code
-abortGitFailure :: [T.Text] -> T.Text -> T.Text -> IO a
-abortGitFailure args sout serr = abort $ [s|
-Could not read the output of 'git'. This is a bug. Please create a
-ticket:
-
-  https://github.com/nmattia/niv/issues/new
-
-Thanks! I'll buy you a beer.
-|] <> T.unlines ["command: ", T.unwords args, "stdout: ", sout, "stderr: ", serr]
+abortGitFailure :: [T.Text] -> T.Text -> IO a
+abortGitFailure args msg = abort $ bug $ T.unlines
+  [ "Could not read the output of 'git'."
+  , T.unwords ("command:":"git":args)
+  , msg ]

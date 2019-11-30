@@ -5,6 +5,7 @@
 
 module Niv.Logger
   ( job
+  , bug
   , tsay
   , say
   , green, tgreen
@@ -115,3 +116,11 @@ tfaint = t faint
 
 t :: (String -> String) -> T.Text -> T.Text
 t = dimap T.unpack T.pack
+
+bug :: T.Text -> T.Text
+bug txt = T.unlines
+  [ txt
+  , "This is a bug. Please create a ticket:"
+  , "  https://github.com/nmattia/niv/issues/new"
+  , "Thanks! I'll buy you a beer."
+  ]
