@@ -83,7 +83,7 @@ let
     else if spec.type == "builtin-tarball" then fetch_builtin-tarball spec
     else if spec.type == "builtin-url" then fetch_builtin-url spec
     else
-      abort "ERROR: niv spec ${name} has unknown type ${builtins.fromJSON spec.type}";
+      abort "ERROR: niv spec ${name} has unknown type ${builtins.toJSON spec.type}";
 
   # Ports of functions for older nix versions
 
