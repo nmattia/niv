@@ -3,7 +3,7 @@
 {-# LANGUAGE Arrows #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Niv.Git.Cmd {- (gitCmd) -} where
+module Niv.Git.Cmd (gitCmd) where
 
 import Control.Arrow
 import Data.String.QQ (s)
@@ -27,6 +27,7 @@ gitCmd = Cmd
   , name = "git"
   }
 
+-- TODO: don't hardcode here
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec = pure $ PackageSpec $ HMS.singleton "repo" "git@github.com:nmattia/niv"
 
@@ -103,7 +104,7 @@ runGit args = do
 
 isRev :: T.Text -> Bool
 isRev t =
-  -- commit hashes a comprised of abcdef0123456789
+  -- commit hashes are comprised of abcdef0123456789
   T.all (\c -> (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9')) t &&
   -- commit _should_ be 40 chars long, but to be sure we pick 7
   T.length t >= 7
