@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Arrows #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -13,6 +14,7 @@ import Niv.Sources
 import Niv.Update
 import System.Exit (ExitCode(ExitSuccess))
 import System.Process (readProcessWithExitCode)
+import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
 import qualified Options.Applicative as Opts
@@ -29,7 +31,15 @@ gitCmd = Cmd
 
 -- TODO: don't hardcode here
 parseGitPackageSpec :: Opts.Parser PackageSpec
-parseGitPackageSpec = pure $ PackageSpec $ HMS.singleton "repo" "git@github.com:nmattia/niv"
+parseGitPackageSpec =
+    (PackageSpec . HMS.singleton "repo") <$>
+      parseRepo
+  where
+    parseRepo =
+      Aeson.String <$> Opts.strOption
+        ( Opts.long "repo" <>
+          Opts.metavar "URL"
+        )
 
 describeGit :: Opts.InfoMod a
 describeGit = mconcat
