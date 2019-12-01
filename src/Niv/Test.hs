@@ -3,6 +3,7 @@ module Niv.Test (tests, test) where
 import Niv.Sources.Test
 import Niv.GitHub.Test
 import Niv.Update.Test
+import qualified Niv.Git.Test as Git
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as Tasty
 
@@ -31,4 +32,5 @@ tests = Tasty.testGroup "niv"
     , Tasty.testGroup "sources.nix"
         [ Tasty.testCase "has latest version" test_shippedSourcesNixIsLatest
         ]
+    , Tasty.testGroup "git" Git.tests
     ]

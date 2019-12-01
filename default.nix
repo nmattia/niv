@@ -31,7 +31,9 @@ with rec
     "^src/Data/Aeson$"
     "^src/Data/HashMap$"
     "^src/Data/HashMap/Strict$"
+    "^src/Data/Text$"
     "^src/Niv$"
+    "^src/Niv/Git$"
     "^src/Niv/GitHub$"
     "^src/Niv/Sources$"
     "^src/Niv/Update$"
@@ -188,7 +190,8 @@ rec
 {
   inherit niv niv-sdist niv-source niv-devshell niv-cabal-upload;
 
-  tests = pkgs.callPackage ./tests { inherit niv; };
+  tests-github = pkgs.callPackage ./tests/github { inherit niv; };
+  tests-git = pkgs.callPackage ./tests/git { inherit niv; };
 
   niv-test = pkgs.runCommand "niv-test" { buildInputs = [ niv ]; }
     "niv-test && touch $out";
