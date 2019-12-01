@@ -17,6 +17,7 @@ module Niv.Logger
   ) where
 
 import Control.Monad
+import Data.List
 import Data.Profunctor
 import System.Exit (exitFailure)
 import System.IO.Unsafe (unsafePerformIO)
@@ -59,7 +60,9 @@ say :: String -> IO ()
 say msg = do
     stackSize <- jobStackSize
     let indent = replicate (stackSize * 2) ' '
-    putStrLn $ unlines $ (indent <>) <$> lines msg
+    -- we use `intercalate "\n"` because `unlines` prints an extra newline at
+    -- the end
+    putStrLn $ intercalate "\n" $ (indent <>) <$> lines msg
 
 green :: S
 green str =
