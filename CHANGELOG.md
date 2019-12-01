@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.5] 2019-12-01
+## Changed
+* Fix `niv show` adding extra newlines
+
 ## [0.2.4] 2019-12-01
 ### Added
 * Experimental support for `add` subcommands, in particular `niv add git`
