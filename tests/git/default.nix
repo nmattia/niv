@@ -2,10 +2,11 @@
 
 # TODO: this doesn' test anything meaningful yet because "niv git PACKAGE"
 # doesn't parse yet
-pkgs.runCommand "foo"
+pkgs.runCommand "git-test"
   { nativeBuildInputs = [ pkgs.git niv pkgs.nix pkgs.jq ]; }
   (
-  # First we create a dummy git repo with a single commit
+  # First we create a dummy git repo with one commit on master, and one commit
+  # on "branch".
   ''
     gitdir=$(mktemp -d)
     pushd $gitdir > /dev/null
@@ -16,6 +17,15 @@ pkgs.runCommand "foo"
     git add file
     git commit -m "Initial commit"
     gitrev=$(git rev-parse HEAD)
+
+    git checkout -b branch
+    echo world >> file
+    git add file
+    git commit -m "second commit"
+    gitrev2=$(git rev-parse HEAD)
+
+    # reset to master as "default branch"
+    git checkout master
     popd > /dev/null
   '' +
 
@@ -47,6 +57,14 @@ pkgs.runCommand "foo"
       echo "Mismatched revCount: 1 != $nivnixrevcount"
       exit 42
     fi
+
+    niv update my-git-repo -a ref=branch
+    nivrev2=$(nix eval --json '(import ./nix/sources.nix).my-git-repo.rev' | jq -r)
+    if [ ! "$gitrev2" = "$nivrev2" ]; then
+      echo "Mismatched revs: $gitrev2 != $nivrev2"
+      exit 42
+    fi
+
     popd > /dev/null
 
     touch $out

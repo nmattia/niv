@@ -295,9 +295,14 @@ cmdUpdate = \case
 
         eFinalSpec <- case HMS.lookup packageName sources of
           Just defaultSpec -> do
+            -- lookup the "type" to find a Cmd to run, defaulting to legacy
+            -- github
+            let cmd = case HMS.lookup "type" (unPackageSpec defaultSpec) of
+                  Just "git" -> gitCmd
+                  _ -> githubCmd
             fmap attrsToSpec <$> tryEvalUpdate
               (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
-              (updateCmd githubCmd)
+              (updateCmd cmd)
 
           Nothing -> abortCannotUpdateNoSuchPackage packageName
 
@@ -314,9 +319,14 @@ cmdUpdate = \case
         \packageName defaultSpec -> do
           tsay $ "Package: " <> unPackageName packageName
           let initialSpec = specToFreeAttrs defaultSpec
+          -- lookup the "type" to find a Cmd to run, defaulting to legacy
+          -- github
+          let cmd = case HMS.lookup "type" (unPackageSpec defaultSpec) of
+                Just "git" -> gitCmd
+                _ -> githubCmd
           finalSpec <- fmap attrsToSpec <$> tryEvalUpdate
             initialSpec
-            (updateCmd githubCmd)
+            (updateCmd cmd)
           pure finalSpec
 
       let (failed, sources') = partitionEithersHMS esources'
