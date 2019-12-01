@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.4] 2019-12-01
+### Added
+* Experimental support for `add` subcommands, in particular `niv add git`
+## Changed
+* Various error message fixes
+
 ## [0.2.3] 2019-11-28
 ### Added
 * A new CLI option (`-s`) reads attributes as raw strings.
