@@ -151,7 +151,9 @@ defaultRefAndHEAD repo = do
     sout <- runGit args
     case sout of
       (l1:l2:_) -> (,) <$> parseRef l1 <*> parseRev l2
-      _ -> abortGitFailure args "Could not read reference and revision."
+      _ -> abortGitFailure args $ T.unlines $
+        [ "Could not read reference and revision from stdout:"
+        ] <> sout
   where
     args = [ "ls-remote", "--symref", repo, "HEAD" ]
     parseRef l = maybe (abortNoRef args l) pure $ do
