@@ -7,8 +7,9 @@
 
 module Niv.Git.Cmd where
 
-import Control.Arrow
 import Control.Applicative
+import Control.Arrow
+import Data.Maybe
 import Data.Text.Extended as T
 import Niv.Cmd
 import Niv.Logger
@@ -17,6 +18,7 @@ import Niv.Update
 import System.Exit (ExitCode(ExitSuccess))
 import System.Process (readProcessWithExitCode)
 import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Char8 as B8
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Text as T
 import qualified Options.Applicative as Opts
@@ -50,7 +52,7 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec =
     (PackageSpec . HMS.fromList) <$>
-      many (parseRepo <|> parseRef <|> parseRev)
+      many (parseRepo <|> parseRef <|> parseRev <|> parseAttr <|> parseSAttr)
   where
     parseRepo =
       ("repo", ) . Aeson.String <$> Opts.strOption
@@ -67,6 +69,31 @@ parseGitPackageSpec =
         ( Opts.long "ref" <>
           Opts.metavar "REF"
         )
+    parseAttr =
+      Opts.option (Opts.maybeReader parseKeyValJSON)
+        ( Opts.long "attribute" <>
+          Opts.short 'a' <>
+          Opts.metavar "KEY=VAL" <>
+          Opts.help "Set the package spec attribute <KEY> to <VAL>, where <VAL> may be JSON."
+        )
+    parseSAttr =
+      Opts.option (Opts.maybeReader (parseKeyVal Aeson.toJSON))
+        ( Opts.long "string-attribute" <>
+          Opts.short 's' <>
+          Opts.metavar "KEY=VAL" <>
+          Opts.help "Set the package spec attribute <KEY> to <VAL>."
+        )
+
+    parseKeyValJSON = parseKeyVal $ \x ->
+      fromMaybe (Aeson.toJSON x) (Aeson.decodeStrict (B8.pack x))
+
+    -- Parse "key=val" into ("key", val)
+    parseKeyVal
+      :: (String -> Aeson.Value)  -- ^ how to convert to JSON
+      -> String -> Maybe (T.Text, Aeson.Value)
+    parseKeyVal toJSON str = case span (/= '=') str of
+      (key, '=':val) -> Just (T.pack key, toJSON val)
+      _ -> Nothing
 
 describeGit :: Opts.InfoMod a
 describeGit = mconcat
