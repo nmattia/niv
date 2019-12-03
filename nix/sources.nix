@@ -8,13 +8,13 @@ let
 
   fetch_file = spec:
     if spec.builtin or true then
-      builtins_fetchurl { inherit (spec) url sha256; }
+      pathToDerivation (builtins_fetchurl { inherit (spec) url sha256; })
     else
       pkgs.fetchurl { inherit (spec) url sha256; };
 
   fetch_tarball = spec:
     if spec.builtin or true then
-      builtins_fetchTarball { inherit (spec) url sha256; }
+      pathToDerivation (builtins_fetchTarball { inherit (spec) url sha256; })
     else
       pkgs.fetchzip { inherit (spec) url sha256; };
 
@@ -88,6 +88,14 @@ let
     else if spec.type == "builtin-url" then fetch_builtin-url spec
     else
       abort "ERROR: niv spec ${name} has unknown type ${builtins.toJSON spec.type}";
+
+  pathToDerivation = outPath: {
+    name = "source";
+    type = "derivation";
+    system = builtins.currentSystem;
+    outputName = "out";
+    inherit outPath;
+  };
 
   # Ports of functions for older nix versions
 
