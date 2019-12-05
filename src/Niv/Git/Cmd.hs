@@ -29,7 +29,7 @@ gitCmd = Cmd
   { description = describeGit
   , parseCmdShortcut = parseGitShortcut
   , parsePackageSpec = parseGitPackageSpec
-  , updateCmd = gitUpdate
+  , updateCmd = gitUpdate'
   , name = "git"
   }
 
@@ -108,21 +108,29 @@ describeGit = mconcat
       "  niv add git --repo /my/custom/repo --name custom --ref foobar"
   ]
 
-gitUpdate :: Update () ()
-gitUpdate = proc () -> do
+gitUpdate
+  :: (T.Text -> T.Text -> IO T.Text) -- ^ latest rev
+  -> (T.Text -> IO (T.Text, T.Text)) -- ^ latest rev and default ref
+  -> Update () ()
+gitUpdate latestRev' defaultRefAndHEAD' = proc () -> do
     useOrSet "type" -< ("git" :: Box T.Text)
     repository <- load "repo" -< ()
-    refAndRev <- (discoverRev <+> discoverRefAndRev) -< repository
-    update "ref" -< fst <$> refAndRev
-    update "rev" -< snd <$> refAndRev
-    returnA -< ()
+    discoverRev <+> discoverRefAndRev -< repository
   where
     discoverRefAndRev = proc repository -> do
-      run defaultRefAndHEAD -< repository
+      refAndRev <- run defaultRefAndHEAD' -< repository
+      update "ref" -< fst <$> refAndRev
+      update "rev" -< snd <$> refAndRev
+      returnA -< ()
     discoverRev = proc repository -> do
       ref <- load "ref" -< ()
-      rev <- run (\(r1,r2) -> latestRev r1 r2)-< (,) <$> repository <*> ref
-      returnA -< (,) <$> ref <*> rev
+      rev <- run' (uncurry latestRev') -< (,) <$> repository <*> ref
+      update "rev" -< rev
+      returnA -< ()
+
+-- | The "real" (IO) update
+gitUpdate' :: Update () ()
+gitUpdate' = gitUpdate latestRev defaultRefAndHEAD
 
 latestRev
     :: T.Text -- ^ the repository

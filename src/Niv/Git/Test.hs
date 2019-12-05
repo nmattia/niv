@@ -1,16 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Arrows #-}
 
 module Niv.Git.Test (tests) where
 
+import Control.Monad
+import Data.Bifunctor
 import Niv.Git.Cmd
 import Niv.Sources
+import Niv.Update
 import Test.Tasty.HUnit ((@=?))
 import qualified Data.HashMap.Strict as HMS
 import qualified Test.Tasty as Tasty
 import qualified Test.Tasty.HUnit as Tasty
 
 tests :: [Tasty.TestTree]
-tests = pure $ Tasty.testGroup "repository parse"
+tests = [ test_repositoryParse , test_gitUpdates ]
+
+test_repositoryParse :: Tasty.TestTree
+test_repositoryParse = Tasty.testGroup "repository parse"
   [ Tasty.testCase "goo" $
       parseGitShortcut "goo" @=? Nothing
   , Tasty.testCase "git@github.com:nmattia/niv" $
@@ -28,3 +35,29 @@ tests = pure $ Tasty.testGroup "repository parse"
       parseGitShortcut "~/path/to/repo.git" @=? Just
         (PackageName "repo", HMS.singleton "repo" "~/path/to/repo.git")
   ]
+
+test_gitUpdates :: Tasty.TestTree
+test_gitUpdates = Tasty.testGroup "updates"
+  [ Tasty.testCase "rev is updated" test_gitUpdateRev
+  ]
+
+test_gitUpdateRev :: IO ()
+test_gitUpdateRev = do
+    interState <- evalUpdate initialState $ proc () ->
+      gitUpdate (error "should be def") defaultRefAndHEAD' -< ()
+    let interState' = HMS.map (first (\_ -> Free)) interState
+    actualState <- evalUpdate interState' $ proc () ->
+      gitUpdate latestRev' (error "should update") -< ()
+    unless ((snd <$> actualState) == expectedState) $
+      error $ "State mismatch: " <> show actualState
+  where
+    latestRev' _ _ = pure "some-other-rev"
+    defaultRefAndHEAD' _ = pure ("some-ref", "some-rev")
+    initialState = HMS.fromList
+      [ ("repo", (Free, "git@github.com:nmattia/niv")) ]
+    expectedState = HMS.fromList
+      [ ("repo", "git@github.com:nmattia/niv")
+      , ("ref", "some-ref")
+      , ("rev", "some-other-rev")
+      , ("type", "git")
+      ]
