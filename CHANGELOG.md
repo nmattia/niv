@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.6] 2019-12-05
+## Changed
+* Fix `niv update` with `git` specs
+
 ## [0.2.5] 2019-12-01
 ## Changed
 * Fix `niv show` adding extra newlines
