@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -120,7 +119,7 @@ cmdInit = do
               if shouldUpdateNixSourcesNix content
               then do
                 say "Updating sources.nix"
-                liftIO $ B.writeFile path initNixSourcesNixContent
+                li $ B.writeFile path initNixSourcesNixContent
               else say "Not updating sources.nix"
           )
         , ( pathNixSourcesJson fsj
@@ -144,8 +143,8 @@ cmdInit = do
                 )
           , \path _content -> dontCreateFile path)
         ] $ \(path, onCreate, onUpdate) -> do
-            exists <- liftIO $ Dir.doesFileExist path
-            if exists then liftIO (B.readFile path) >>= onUpdate path else onCreate path
+            exists <- li $ Dir.doesFileExist path
+            if exists then li (B.readFile path) >>= onUpdate path else onCreate path
       case fsj of
         Auto -> pure ()
         AtPath fp ->
@@ -164,7 +163,7 @@ cmdInit = do
 
   where
     createFile :: FilePath -> B.ByteString -> NIO ()
-    createFile path content = liftIO $ do
+    createFile path content = li $ do
       let dir = takeDirectory path
       Dir.createDirectoryIfMissing True dir
       say $ "Creating " <> path
@@ -251,7 +250,7 @@ cmdAdd :: Update () a -> PackageName -> Attrs -> NIO ()
 cmdAdd updateFunc packageName attrs = do
     job ("Adding package " <> T.unpack (unPackageName packageName)) $ do
       fsj <- getFindSourcesJson
-      sources <- unSources <$> liftIO (getSources fsj)
+      sources <- unSources <$> li (getSources fsj)
 
       when (HMS.member packageName sources) $
         li $ abortCannotAddPackageExists packageName
