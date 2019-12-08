@@ -13,7 +13,23 @@ export NIX_PATH="nixpkgs=./nix"
 
 echo "Building"
 
+nixargs=(
+    "--no-link"
+    "--max-jobs" "10"
+)
+
+
+if [[ ! $OSTYPE =~ darwin ]]; then
+    echo "Not testing on darwin"
+    echo "Enabling sandbox, running all tests"
+    nixargs+=("--sandbox")
+else
+    echo "Testing on darwin"
+    echo "Not enabling sandbox, not running integration"
+    nixargs+=("-A" "niv-test")
+fi
+
 # Build and create a root
-nix-build --sandbox --no-link --max-jobs 10
+nix-build ${nixargs[@]}
 
 echo "all good"

@@ -1,0 +1,21 @@
+name: "netlify deploy"
+on:
+  push:
+    branches:
+      - master
+jobs:
+  netlify:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: cachix/install-nix-action@v6
+    - name: "deploy to netlify"
+      env:
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      run: |
+        nix-env -f ./nix -iA nodejs-10_x
+        npm install netlify-cli
+        ./node_modules/netlify-cli/bin/run deploy \
+            --dir=./site \
+            --message="$GITHUB_SHA" --prod

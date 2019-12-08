@@ -5,6 +5,14 @@
 pkgs.runCommand "git-test"
   { nativeBuildInputs = [ pkgs.git niv pkgs.nix pkgs.jq ]; }
   (
+
+  # make sure the tests run smoothly in multi-user install
+  # https://github.com/NixOS/nix/issues/3258
+  ''
+    export NIX_STATE_DIR=$TMPDIR
+    export NIX_LOG_DIR=$TMPDIR
+    export HOME=$TMPDIR
+  '' +
   # First we create a dummy git repo with one commit on master, and one commit
   # on "branch".
   ''
