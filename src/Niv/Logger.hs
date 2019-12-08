@@ -29,7 +29,7 @@ type S = String -> String
 type T = T.Text -> T.Text
 
 -- XXX: this assumes as single thread
-job :: String -> IO () -> IO ()
+job :: (MonadUnliftIO io, MonadIO io) => String -> io () -> io ()
 job str act = do
     say (bold str)
     indent
@@ -41,28 +41,28 @@ job str act = do
                 let se = show e
                 (if length se > 40 then ":\n" else ": ") <> se
           say $ red "ERROR" <> showErr
-          exitFailure
+          liftIO exitFailure
   where
     indent = void $ atomicModifyIORef jobStack (\x -> (x + 1, undefined))
     deindent = void $ atomicModifyIORef jobStack (\x -> (x - 1, undefined))
 
-jobStackSize :: IO Int
+jobStackSize :: MonadIO io => io Int
 jobStackSize = readIORef jobStack
 
 jobStack :: IORef Int
 jobStack = unsafePerformIO $ newIORef 0
 {-# NOINLINE jobStackSize #-}
 
-tsay :: T.Text -> IO ()
+tsay :: MonadIO io => T.Text -> io ()
 tsay = say . T.unpack
 
-say :: String -> IO ()
+say :: MonadIO io => String -> io ()
 say msg = do
     stackSize <- jobStackSize
     let indent = replicate (stackSize * 2) ' '
     -- we use `intercalate "\n"` because `unlines` prints an extra newline at
     -- the end
-    putStrLn $ intercalate "\n" $ (indent <>) <$> lines msg
+    liftIO $ putStrLn $ intercalate "\n" $ (indent <>) <$> lines msg
 
 green :: S
 green str =

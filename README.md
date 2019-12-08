@@ -201,9 +201,10 @@ niv - dependency manager for Nix projects
 
 version: 0.2.6
 
-Usage: niv COMMAND
+Usage: niv [-s|--sources-json FILE] COMMAND
 
 Available options:
+  -s,--sources-json FILE   Use FILE instead of nix/sources.json
   -h,--help                Show this help text
 
 Available commands:
