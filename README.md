@@ -199,11 +199,12 @@ $ niv update ghc -v 8.6.2
 ```
 niv - dependency manager for Nix projects
 
-version: 0.2.6
+version: 0.2.7
 
-Usage: niv COMMAND
+Usage: niv [-s|--sources-json FILE] COMMAND
 
 Available options:
+  -s,--sources-json FILE   Use FILE instead of nix/sources.json
   -h,--help                Show this help text
 
 Available commands:

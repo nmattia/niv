@@ -31,6 +31,11 @@ import qualified System.Directory as Dir
 -- sources.json related
 -------------------------------------------------------------------------------
 
+-- | Where to find the sources.json
+data FindSourcesJson
+  = Auto -- ^ use the default (nix/sources.json)
+  | AtPath FilePath -- ^ use the specified file path
+
 data SourcesError
   = SourcesDoesntExist
   | SourceIsntJSON
@@ -40,12 +45,12 @@ newtype Sources = Sources
   { unSources :: HMS.HashMap PackageName PackageSpec }
   deriving newtype (FromJSON, ToJSON)
 
-getSourcesEither :: IO (Either SourcesError Sources)
-getSourcesEither = do
-    Dir.doesFileExist pathNixSourcesJson >>= \case
+getSourcesEither :: FindSourcesJson -> IO (Either SourcesError Sources)
+getSourcesEither fsj = do
+    Dir.doesFileExist (pathNixSourcesJson fsj) >>= \case
       False -> pure $ Left SourcesDoesntExist
       True ->
-        Aeson.decodeFileStrict pathNixSourcesJson >>= \case
+        Aeson.decodeFileStrict (pathNixSourcesJson fsj) >>= \case
           Just value -> case valueToSources value of
             Nothing -> pure $ Left SpecIsntAMap
             Just srcs -> pure $ Right srcs
@@ -62,18 +67,18 @@ getSourcesEither = do
     mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
     mapKeys f = HMS.fromList . map (first f) . HMS.toList
 
-getSources :: IO Sources
-getSources = do
+getSources :: FindSourcesJson -> IO Sources
+getSources fsj = do
     warnIfOutdated
-    getSourcesEither >>= either
+    getSourcesEither fsj >>= either
       (\case
-        SourcesDoesntExist -> abortSourcesDoesntExist
-        SourceIsntJSON -> abortSourcesIsntJSON
-        SpecIsntAMap -> abortSpecIsntAMap
+        SourcesDoesntExist -> (abortSourcesDoesntExist fsj)
+        SourceIsntJSON -> (abortSourcesIsntJSON fsj)
+        SpecIsntAMap -> (abortSpecIsntAMap fsj)
       ) pure
 
-setSources :: Sources -> IO ()
-setSources sources = Aeson.encodeFilePretty pathNixSourcesJson sources
+setSources :: FindSourcesJson -> Sources -> IO ()
+setSources fsj sources = Aeson.encodeFilePretty (pathNixSourcesJson fsj) sources
 
 newtype PackageName = PackageName { unPackageName :: T.Text }
   deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)
@@ -85,32 +90,34 @@ newtype PackageSpec = PackageSpec { unPackageSpec :: Aeson.Object }
 attrsToSpec :: Attrs -> PackageSpec
 attrsToSpec = PackageSpec . fmap snd
 
--- | @nix/sources.json@
-pathNixSourcesJson :: FilePath
-pathNixSourcesJson = "nix" </> "sources.json"
+-- | @nix/sources.json@ or pointed at by 'FindSourcesJson'
+pathNixSourcesJson :: FindSourcesJson -> FilePath
+pathNixSourcesJson = \case
+    Auto -> "nix" </> "sources.json"
+    AtPath f -> f
 
 --
 -- ABORT messages
 --
 
-abortSourcesDoesntExist :: IO a
-abortSourcesDoesntExist = abort $ T.unlines [ line1, line2 ]
+abortSourcesDoesntExist :: FindSourcesJson -> IO a
+abortSourcesDoesntExist fsj = abort $ T.unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> T.pack pathNixSourcesJson
+    line1 = "Cannot use " <> T.pack (pathNixSourcesJson fsj)
     line2 = [s|
 The sources file does not exist! You may need to run 'niv init'.
 |]
 
-abortSourcesIsntJSON :: IO a
-abortSourcesIsntJSON = abort $ T.unlines [ line1, line2 ]
+abortSourcesIsntJSON :: FindSourcesJson -> IO a
+abortSourcesIsntJSON fsj = abort $ T.unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> T.pack pathNixSourcesJson
+    line1 = "Cannot use " <> T.pack (pathNixSourcesJson fsj)
     line2 = "The sources file should be JSON."
 
-abortSpecIsntAMap :: IO a
-abortSpecIsntAMap = abort $ T.unlines [ line1, line2 ]
+abortSpecIsntAMap :: FindSourcesJson -> IO a
+abortSpecIsntAMap fsj = abort $ T.unlines [ line1, line2 ]
   where
-    line1 = "Cannot use " <> T.pack pathNixSourcesJson
+    line1 = "Cannot use " <> T.pack (pathNixSourcesJson fsj)
     line2 = [s|
 The package specifications in the sources file should be JSON maps from
 attribute name to attribute value, e.g.:
@@ -136,6 +143,7 @@ data SourcesNixVersion
   | V10
   | V11
   | V12
+  | V13
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -153,6 +161,7 @@ sourcesVersionToText = \case
     V10 -> "10"
     V11 -> "11"
     V12 -> "12"
+    V13 -> "13"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -177,6 +186,7 @@ sourcesVersionToMD5 = \case
     V10 -> "d8625c0a03dd935e1c79f46407faa8d3"
     V11 -> "8a95b7d93b16f7c7515d98f49b0ec741"
     V12 -> "2f9629ad9a8f181ed71d2a59b454970c"
+    V13 -> "5e23c56b92eaade4e664cb16dcac1e0a"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text

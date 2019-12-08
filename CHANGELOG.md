@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.7] 2019-12-08
+## Added
+* Support for custom path `sources.json` with `--sources-json`
+
 ## [0.2.6] 2019-12-05
 ## Changed
 * Fix `niv update` with `git` specs

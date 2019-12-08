@@ -10,11 +10,11 @@ module Niv.Cli where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Reader
 import Data.Aeson ((.=))
 import Data.Char (isSpace)
 import Data.HashMap.Strict.Extended
 import Data.Hashable (Hashable)
-import Data.String.QQ (s)
 import Data.Text.Extended
 import Data.Version (showVersion)
 import Niv.Cmd
@@ -38,15 +38,28 @@ import qualified System.Directory as Dir
 -- I died a little
 import Paths_niv (version)
 
+newtype NIO a = NIO { runNIO :: ReaderT FindSourcesJson IO a }
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader FindSourcesJson)
+
+instance MonadUnliftIO NIO where
+  withRunInIO = wrappedWithRunInIO NIO runNIO
+
+getFindSourcesJson :: NIO FindSourcesJson
+getFindSourcesJson = ask
+
+li :: MonadIO io => IO a -> io a
+li = liftIO
+
 cli :: IO ()
-cli = join $
-    execParserPure' Opts.defaultPrefs opts <$> getArgs
+cli = do
+    (fsj, nio) <- execParserPure' Opts.defaultPrefs opts <$> getArgs
       >>= Opts.handleParseResult
+    runReaderT (runNIO nio) fsj
   where
     execParserPure' pprefs pinfo [] = Opts.Failure $
       Opts.parserFailure pprefs pinfo Opts.ShowHelpText mempty
     execParserPure' pprefs pinfo args = Opts.execParserPure pprefs pinfo args
-    opts = Opts.info (parseCommand <**> Opts.helper ) $ mconcat desc
+    opts = Opts.info ((,) <$> parseFindSourcesJson <*> (parseCommand <**> Opts.helper)) $ mconcat desc
     desc =
       [ Opts.fullDesc
       , Opts.headerDoc $ Just $
@@ -54,8 +67,16 @@ cli = join $
           "" Opts.<$$>
           "version:" Opts.<+> Opts.text (showVersion version)
       ]
+    parseFindSourcesJson =
+      AtPath <$> Opts.strOption (
+        Opts.long "sources-json" <>
+        Opts.short 's' <>
+        Opts.metavar "FILE" <>
+        Opts.help "Use FILE instead of nix/sources.json"
+      ) <|> pure Auto
 
-parseCommand :: Opts.Parser (IO ())
+
+parseCommand :: Opts.Parser (NIO ())
 parseCommand = Opts.subparser (
     Opts.command "init" parseCmdInit <>
     Opts.command "add"  parseCmdAdd <>
@@ -75,7 +96,7 @@ parsePackage = (,) <$> parsePackageName <*> (parsePackageSpec githubCmd)
 -- INIT
 -------------------------------------------------------------------------------
 
-parseCmdInit :: Opts.ParserInfo (IO ())
+parseCmdInit :: Opts.ParserInfo (NIO ())
 parseCmdInit = Opts.info (pure cmdInit <**> Opts.helper) $ mconcat desc
   where
     desc =
@@ -84,9 +105,10 @@ parseCmdInit = Opts.info (pure cmdInit <**> Opts.helper) $ mconcat desc
           "Initialize a Nix project. Existing files won't be modified."
       ]
 
-cmdInit :: IO ()
+cmdInit :: NIO ()
 cmdInit = do
     job "Initializing" $ do
+      fsj <- getFindSourcesJson
 
       -- Writes all the default files
       -- a path, a "create" function and an update function for each file.
@@ -97,10 +119,10 @@ cmdInit = do
               if shouldUpdateNixSourcesNix content
               then do
                 say "Updating sources.nix"
-                B.writeFile path initNixSourcesNixContent
+                li $ B.writeFile path initNixSourcesNixContent
               else say "Not updating sources.nix"
           )
-        , ( pathNixSourcesJson
+        , ( pathNixSourcesJson fsj
           , \path -> do
               createFile path initNixSourcesJsonContent
               -- Imports @niv@ and @nixpkgs@ (19.03)
@@ -121,23 +143,39 @@ cmdInit = do
                 )
           , \path _content -> dontCreateFile path)
         ] $ \(path, onCreate, onUpdate) -> do
-            exists <- Dir.doesFileExist path
-            if exists then B.readFile path >>= onUpdate path else onCreate path
+            exists <- li $ Dir.doesFileExist path
+            if exists then li (B.readFile path) >>= onUpdate path else onCreate path
+      case fsj of
+        Auto -> pure ()
+        AtPath fp ->
+          tsay $ T.unlines
+            [ T.unwords
+                  [ tbold $ tblue "INFO:"
+                  , "You are using a custom path for sources.json."
+                  ]
+            , "  You need to configure the sources.nix to use " <> tbold (T.pack fp) <> ":"
+            , tbold "      import sources.nix { sourcesJson = PATH ; }; "
+            , T.unwords
+                  [ "  where", tbold "PATH", "is the relative path from sources.nix to"
+                  , tbold (T.pack fp) <> "." ]
+            ]
+
+
   where
-    createFile :: FilePath -> B.ByteString -> IO ()
-    createFile path content = do
+    createFile :: FilePath -> B.ByteString -> NIO ()
+    createFile path content = li $ do
       let dir = takeDirectory path
       Dir.createDirectoryIfMissing True dir
       say $ "Creating " <> path
       B.writeFile path content
-    dontCreateFile :: FilePath -> IO ()
+    dontCreateFile :: FilePath -> NIO ()
     dontCreateFile path = say $ "Not creating " <> path
 
 -------------------------------------------------------------------------------
 -- ADD
 -------------------------------------------------------------------------------
 
-parseCmdAdd :: Opts.ParserInfo (IO ())
+parseCmdAdd :: Opts.ParserInfo (NIO ())
 parseCmdAdd =
     Opts.info
       ((parseCommands <|> parseShortcuts) <**> Opts.helper) $
@@ -208,48 +246,51 @@ parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
         Opts.help "Set the package name to <NAME>"
       )
 
-cmdAdd :: Update () a -> PackageName -> Attrs -> IO ()
+cmdAdd :: Update () a -> PackageName -> Attrs -> NIO ()
 cmdAdd updateFunc packageName attrs = do
     job ("Adding package " <> T.unpack (unPackageName packageName)) $ do
-      sources <- unSources <$> getSources
+      fsj <- getFindSourcesJson
+      sources <- unSources <$> li (getSources fsj)
 
       when (HMS.member packageName sources) $
-        abortCannotAddPackageExists packageName
+        li $ abortCannotAddPackageExists packageName
 
-      eFinalSpec <- fmap attrsToSpec <$> tryEvalUpdate attrs updateFunc
+      eFinalSpec <- fmap attrsToSpec <$> li (tryEvalUpdate attrs updateFunc)
 
       case eFinalSpec of
-        Left e -> abortUpdateFailed [(packageName, e)]
+        Left e -> li (abortUpdateFailed [(packageName, e)])
         Right finalSpec -> do
           say $ "Writing new sources file"
-          setSources $ Sources $
+          li $ setSources fsj $ Sources $
             HMS.insert packageName finalSpec sources
 
 -------------------------------------------------------------------------------
 -- SHOW
 -------------------------------------------------------------------------------
 
-parseCmdShow :: Opts.ParserInfo (IO ())
+parseCmdShow :: Opts.ParserInfo (NIO ())
 parseCmdShow =
     Opts.info
       ((cmdShow <$> Opts.optional parsePackageName) <**> Opts.helper)
       Opts.fullDesc
 
 -- TODO: nicer output
-cmdShow :: Maybe PackageName -> IO ()
+cmdShow :: Maybe PackageName -> NIO ()
 cmdShow = \case
     Just packageName -> do
-      sources <- unSources <$> getSources
+      fsj <- getFindSourcesJson
+      sources <- unSources <$> li (getSources fsj)
 
       case HMS.lookup packageName sources of
         Just pspec -> showPackage packageName pspec
-        Nothing -> abortCannotShowNoSuchPackage packageName
+        Nothing -> li $ abortCannotShowNoSuchPackage packageName
 
     Nothing -> do
-      sources <- unSources <$> getSources
+      fsj <- getFindSourcesJson
+      sources <- unSources <$> li (getSources fsj)
       forWithKeyM_ sources $ showPackage
 
-showPackage :: PackageName -> PackageSpec -> IO ()
+showPackage :: MonadIO io => PackageName -> PackageSpec -> io ()
 showPackage (PackageName pname) (PackageSpec spec) = do
     tsay $ tbold pname
     forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
@@ -262,7 +303,7 @@ showPackage (PackageName pname) (PackageSpec spec) = do
 -- UPDATE
 -------------------------------------------------------------------------------
 
-parseCmdUpdate :: Opts.ParserInfo (IO ())
+parseCmdUpdate :: Opts.ParserInfo (NIO ())
 parseCmdUpdate =
     Opts.info
       ((cmdUpdate <$> Opts.optional parsePackage) <**> Opts.helper) $
@@ -287,11 +328,12 @@ specToFreeAttrs = fmap (Free,) . unPackageSpec
 specToLockedAttrs :: PackageSpec -> Attrs
 specToLockedAttrs = fmap (Locked,) . unPackageSpec
 
-cmdUpdate :: Maybe (PackageName, PackageSpec) -> IO ()
+cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
 cmdUpdate = \case
     Just (packageName, cliSpec) ->
       job ("Update " <> T.unpack (unPackageName packageName)) $ do
-        sources <- unSources <$> getSources
+        fsj <- getFindSourcesJson
+        sources <- unSources <$> li (getSources fsj)
 
         eFinalSpec <- case HMS.lookup packageName sources of
           Just defaultSpec -> do
@@ -300,20 +342,21 @@ cmdUpdate = \case
             let cmd = case HMS.lookup "type" (unPackageSpec defaultSpec) of
                   Just "git" -> gitCmd
                   _ -> githubCmd
-            fmap attrsToSpec <$> tryEvalUpdate
+            fmap attrsToSpec <$> li (tryEvalUpdate
               (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
-              (updateCmd cmd)
+              (updateCmd cmd))
 
-          Nothing -> abortCannotUpdateNoSuchPackage packageName
+          Nothing -> li $ abortCannotUpdateNoSuchPackage packageName
 
         case eFinalSpec of
-          Left e -> abortUpdateFailed [(packageName, e)]
+          Left e -> li $ abortUpdateFailed [(packageName, e)]
           Right finalSpec ->
-            setSources $ Sources $
+            li $ setSources fsj $ Sources $
               HMS.insert packageName finalSpec sources
 
     Nothing -> job "Updating all packages" $ do
-      sources <- unSources <$> getSources
+      fsj <- getFindSourcesJson
+      sources <- unSources <$> li (getSources fsj)
 
       esources' <- forWithKeyM sources $
         \packageName defaultSpec -> do
@@ -324,17 +367,17 @@ cmdUpdate = \case
           let cmd = case HMS.lookup "type" (unPackageSpec defaultSpec) of
                 Just "git" -> gitCmd
                 _ -> githubCmd
-          finalSpec <- fmap attrsToSpec <$> tryEvalUpdate
+          finalSpec <- fmap attrsToSpec <$> li (tryEvalUpdate
             initialSpec
-            (updateCmd cmd)
+            (updateCmd cmd))
           pure finalSpec
 
       let (failed, sources') = partitionEithersHMS esources'
 
       unless (HMS.null failed) $
-        abortUpdateFailed (HMS.toList failed)
+        li $ abortUpdateFailed (HMS.toList failed)
 
-      setSources $ Sources sources'
+      li $ setSources fsj $ Sources sources'
 
 partitionEithersHMS
   :: (Eq k, Hashable k)
@@ -348,7 +391,7 @@ partitionEithersHMS =
 -- MODIFY
 -------------------------------------------------------------------------------
 
-parseCmdModify :: Opts.ParserInfo (IO ())
+parseCmdModify :: Opts.ParserInfo (NIO ())
 parseCmdModify =
     Opts.info
       ((cmdModify <$> parsePackage) <**> Opts.helper) $
@@ -364,22 +407,23 @@ parseCmdModify =
           "  niv modify nixpkgs -a branch=nixpkgs-unstable"
       ]
 
-cmdModify :: (PackageName, PackageSpec) -> IO ()
+cmdModify :: (PackageName, PackageSpec) -> NIO ()
 cmdModify (packageName, cliSpec) = do
     tsay $ "Modifying package: " <> unPackageName packageName
-    sources <- unSources <$> getSources
+    fsj <- getFindSourcesJson
+    sources <- unSources <$> li (getSources fsj)
 
     finalSpec <- case HMS.lookup packageName sources of
       Just defaultSpec -> pure $ attrsToSpec (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
-      Nothing -> abortCannotModifyNoSuchPackage packageName
+      Nothing -> li $ abortCannotModifyNoSuchPackage packageName
 
-    setSources $ Sources $ HMS.insert packageName finalSpec sources
+    li $ setSources fsj $ Sources $ HMS.insert packageName finalSpec sources
 
 -------------------------------------------------------------------------------
 -- DROP
 -------------------------------------------------------------------------------
 
-parseCmdDrop :: Opts.ParserInfo (IO ())
+parseCmdDrop :: Opts.ParserInfo (NIO ())
 parseCmdDrop =
     Opts.info
       ((cmdDrop <$> parsePackageName <*> parseDropAttributes) <**>
@@ -399,30 +443,32 @@ parseCmdDrop =
     parseDropAttributes = many $
       Opts.argument Opts.str (Opts.metavar "ATTRIBUTE")
 
-cmdDrop :: PackageName -> [T.Text] -> IO ()
+cmdDrop :: PackageName -> [T.Text] -> NIO ()
 cmdDrop packageName = \case
     [] -> do
       tsay $ "Dropping package: " <> unPackageName packageName
-      sources <- unSources <$> getSources
+      fsj <- getFindSourcesJson
+      sources <- unSources <$> li (getSources fsj)
 
       when (not $ HMS.member packageName sources) $
-        abortCannotDropNoSuchPackage packageName
+        li $ abortCannotDropNoSuchPackage packageName
 
-      setSources $ Sources $
+      li $ setSources fsj $ Sources $
         HMS.delete packageName sources
     attrs -> do
       tsay $ "Dropping attributes :" <> T.intercalate " " attrs
       tsay $ "In package: " <> unPackageName packageName
-      sources <- unSources <$> getSources
+      fsj <- getFindSourcesJson
+      sources <- unSources <$> li (getSources fsj)
 
       packageSpec <- case HMS.lookup packageName sources of
         Nothing ->
-          abortCannotAttributesDropNoSuchPackage packageName
+          li $ abortCannotAttributesDropNoSuchPackage packageName
         Just (PackageSpec packageSpec) -> pure $ PackageSpec $
           HMS.mapMaybeWithKey
             (\k v -> if k `elem` attrs then Nothing else Just v) packageSpec
 
-      setSources $ Sources $
+      li $ setSources fsj $ Sources $
         HMS.insert packageName packageSpec sources
 
 -------------------------------------------------------------------------------
@@ -449,16 +495,6 @@ shouldUpdateNixSourcesNix content =
 -------------------------------------------------------------------------------
 -- Abort
 -------------------------------------------------------------------------------
-
-abortSourcesIsntAMap :: IO a
-abortSourcesIsntAMap = abort $ T.unlines [ line1, line2 ]
-  where
-    line1 = "Cannot use " <> T.pack pathNixSourcesJson
-    line2 = [s|
-The sources file should be a JSON map from package name to package
-specification, e.g.:
-  { ... }
-|]
 
 abortCannotAddPackageExists :: PackageName -> IO a
 abortCannotAddPackageExists (PackageName n) = abort $ T.unlines

@@ -6,13 +6,13 @@ let
   # The fetchers. fetch_<type> fetches specs of type <type>.
   #
 
-  fetch_file = spec:
+  fetch_file = pkgs: spec:
     if spec.builtin or true then
       builtins_fetchurl { inherit (spec) url sha256; }
     else
       pkgs.fetchurl { inherit (spec) url sha256; };
 
-  fetch_tarball = spec:
+  fetch_tarball = pkgs: spec:
     if spec.builtin or true then
       builtins_fetchTarball { inherit (spec) url sha256; }
     else
@@ -44,26 +44,20 @@ let
       (builtins_fetchurl { inherit (spec) url sha256; });
 
   #
-  # The sources to fetch.
-  #
-
-  sources = builtins.fromJSON (builtins.readFile ./sources.json);
-
-  #
   # Various helpers
   #
 
   # The set of packages used when specs are fetched using non-builtins.
-  pkgs =
+  mkPkgs = sources:
     if hasNixpkgsPath
     then
       if hasThisAsNixpkgsPath
-      then import (builtins_fetchTarball { inherit (sources_nixpkgs) url sha256; }) {}
+      then import (builtins_fetchTarball { inherit (mkNixpkgs sources) url sha256; }) {}
       else import <nixpkgs> {}
     else
-      import (builtins_fetchTarball { inherit (sources_nixpkgs) url sha256; }) {};
+      import (builtins_fetchTarball { inherit (mkNixpkgs sources) url sha256; }) {};
 
-  sources_nixpkgs =
+  mkNixpkgs = sources:
     if builtins.hasAttr "nixpkgs" sources
     then sources.nixpkgs
     else abort
@@ -77,12 +71,12 @@ let
     (builtins.tryEval <nixpkgs>).success && <nixpkgs> == ./.;
 
   # The actual fetching function.
-  fetch = name: spec:
+  fetch = pkgs: name: spec:
 
     if ! builtins.hasAttr "type" spec then
       abort "ERROR: niv spec ${name} does not have a 'type' attribute"
-    else if spec.type == "file" then fetch_file spec
-    else if spec.type == "tarball" then fetch_tarball spec
+    else if spec.type == "file" then fetch_file pkgs spec
+    else if spec.type == "tarball" then fetch_tarball pkgs spec
     else if spec.type == "git" then fetch_git spec
     else if spec.type == "builtin-tarball" then fetch_builtin-tarball spec
     else if spec.type == "builtin-url" then fetch_builtin-url spec
@@ -117,12 +111,26 @@ let
       else
         fetchurl attrs;
 
+  # Create the final "sources" from the config
+  mkSources = config:
+    mapAttrs (
+      name: spec:
+        if builtins.hasAttr "outPath" spec
+        then abort
+          "The values in sources.json should not have an 'outPath' attribute"
+        else
+          spec // { outPath = fetch config.pkgs name spec; }
+    ) config.sources;
+
+  # The "config" used by the fetchers
+  mkConfig =
+    { sourcesFile ? ./sources.json
+    }: rec {
+      # The sources, i.e. the attribute set of spec name to spec
+      sources = builtins.fromJSON (builtins.readFile sourcesFile);
+      # The "pkgs" (evaluated nixpkgs) to use for e.g. non-builtin fetchers
+      pkgs = mkPkgs sources;
+    };
 in
-mapAttrs (
-  name: spec:
-    if builtins.hasAttr "outPath" spec
-    then abort
-      "The values in sources.json should not have an 'outPath' attribute"
-    else
-      spec // { outPath = fetch name spec; }
-) sources
+mkSources (mkConfig {}) //
+  { __functor = _: settings: mkSources (mkConfig settings); }
