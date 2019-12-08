@@ -146,6 +146,22 @@ cmdInit = do
         ] $ \(path, onCreate, onUpdate) -> do
             exists <- liftIO $ Dir.doesFileExist path
             if exists then liftIO (B.readFile path) >>= onUpdate path else onCreate path
+      case fsj of
+        Auto -> pure ()
+        AtPath fp ->
+          tsay $ T.unlines
+            [ T.unwords
+                  [ tbold $ tblue "INFO:"
+                  , "You are using a custom path for sources.json."
+                  ]
+            , "  You need to configure the sources.nix to use " <> tbold (T.pack fp) <> ":"
+            , tbold "      import sources.nix { sourcesJson = PATH ; }; "
+            , T.unwords
+                  [ "  where", tbold "PATH", "is the relative path from sources.nix to"
+                  , tbold (T.pack fp) <> "." ]
+            ]
+
+
   where
     createFile :: FilePath -> B.ByteString -> NIO ()
     createFile path content = liftIO $ do
