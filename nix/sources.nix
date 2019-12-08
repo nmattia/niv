@@ -44,12 +44,6 @@ let
       (builtins_fetchurl { inherit (spec) url sha256; });
 
   #
-  # The sources to fetch.
-  #
-
-  sourcesDefault = builtins.fromJSON (builtins.readFile ./sources.json);
-
-  #
   # Various helpers
   #
 
