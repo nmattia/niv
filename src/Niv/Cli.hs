@@ -69,7 +69,7 @@ cli = do
       ]
     parseFindSourcesJson =
       AtPath <$> Opts.strOption (
-        Opts.long "sources-json" <>
+        Opts.long "sources-file" <>
         Opts.short 's' <>
         Opts.metavar "FILE" <>
         Opts.help "Use FILE instead of nix/sources.json"
@@ -154,7 +154,7 @@ cmdInit = do
                   , "You are using a custom path for sources.json."
                   ]
             , "  You need to configure the sources.nix to use " <> tbold (T.pack fp) <> ":"
-            , tbold "      import sources.nix { sourcesJson = PATH ; }; "
+            , tbold "      import sources.nix { sourcesFile = PATH ; }; "
             , T.unwords
                   [ "  where", tbold "PATH", "is the relative path from sources.nix to"
                   , tbold (T.pack fp) <> "." ]
