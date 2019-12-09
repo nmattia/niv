@@ -124,10 +124,10 @@ let
 
   # The "config" used by the fetchers
   mkConfig =
-    { sourcesFile ? ./sources.json
+    { sourcesJson ? ./sources.json
     }: rec {
       # The sources, i.e. the attribute set of spec name to spec
-      sources = builtins.fromJSON (builtins.readFile sourcesFile);
+      sources = builtins.fromJSON (builtins.readFile sourcesJson);
       # The "pkgs" (evaluated nixpkgs) to use for e.g. non-builtin fetchers
       pkgs = mkPkgs sources;
     };
