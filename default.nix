@@ -58,7 +58,13 @@ with rec
     };
   };
 
-  niv = haskellPackages.niv;
+  niv = haskellPackages.niv.overrideAttrs (oldAttrs: {
+    postInstall = ''
+      ${oldAttrs.postInstall}
+      mkdir -p $out/share/niv
+      cp $src/nix/sources.nix $out/share/niv
+    '';
+  });
 
   niv-sdist = pkgs.haskell.lib.sdistTarball niv;
 
@@ -68,7 +74,7 @@ with rec
     in
       pkgs.writeScript "cabal-upload"
         ''
-          #!${pkgs.stdenv.shell}
+        #!${pkgs.stdenv.shell}
           cabal upload "$@" "${niv-sdist}/niv-${niv-version}.tar.gz"
         '';
 

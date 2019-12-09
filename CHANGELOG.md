@@ -1,6 +1,8 @@
 # Changelog
 
 ## [0.2.8] 2019-12-00
+## Added
+* Package `sources.nix` with `niv` package
 ## Changed
 * Fixed message in `niv init` with custom `sources.json`
 
