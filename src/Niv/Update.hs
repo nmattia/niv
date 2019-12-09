@@ -36,6 +36,8 @@ data Update b c where
   Update :: T.Text -> Update (Box Value) (Box Value)
   Run :: (a -> IO b)  -> Update (Box a) (Box b)
   Template :: Update (Box T.Text) (Box T.Text)
+  Override :: Update (Box Aeson.Object) ()
+  Read :: Update () Aeson.Object
 
 instance ArrowZero Update where
     zeroArrow = Zero
@@ -65,6 +67,8 @@ instance Show (Update b c) where
     Update k -> "Update " <> T.unpack k
     Run _act -> "Io"
     Template -> "Template"
+    Override -> "Override"
+    Read -> "Read"
 
 data Compose a c = forall b. Compose' (Update b c) (Update a b)
 
@@ -238,6 +242,14 @@ runUpdate' attrs = \case
               HMS.lookup k attrs) v' of
         Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
         Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
+    Override -> pure $ UpdateNeedMore $ \v -> do
+      v' <- runBox v
+      let v'' = fmap ((Locked,) . pure) v'
+      -- let v'' = fmap (\(f, v''') -> (f, pure v''')) v'
+      pure $ UpdateSuccess v'' ()
+    Read -> do
+      attrs' <- mapM (\(_, x) -> runBox x) attrs
+      pure $ UpdateReady $ UpdateSuccess attrs attrs'
 
 decodeBox :: FromJSON a => T.Text -> Box Value -> Box a
 decodeBox msg v = v { boxOp = boxOp v >>= decodeValue msg }
@@ -280,6 +292,13 @@ useOrSet k =
     arr (fmap Aeson.toJSON) >>>
     UseOrSet k >>>
     arr (decodeBox $ "When trying to use or set key " <> k)
+
+
+override :: Update (Box Aeson.Object) ()
+override = Override
+
+read :: Update () Aeson.Object
+read = Read
 
 update :: JSON a => T.Text -> Update (Box a) (Box a)
 update k =
