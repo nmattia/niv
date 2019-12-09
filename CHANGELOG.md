@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.8] 2019-12-00
+## Changed
+* Fixed message in `niv init` with custom `sources.json`
+
 ## [0.2.7] 2019-12-08
 ## Added
 * Support for custom path `sources.json` with `--sources-json`
