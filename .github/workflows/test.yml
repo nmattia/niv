@@ -1,6 +1,9 @@
 name: "Test"
 on:
   pull_request:
+  push:
+    branches:
+      - master
 jobs:
   tests:
     strategy:
