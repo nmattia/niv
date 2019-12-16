@@ -1,6 +1,6 @@
 {
     "nixpkgs": {
-        "branch": "nixos-19.03",
+        "branch": "nixos-19.09",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
         "homepage": "https://github.com/NixOS/nixpkgs",
         "owner": "NixOS",

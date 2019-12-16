@@ -71,7 +71,7 @@ pkgs.runCommand "test"
     mkdir -p mock/repos/NixOS/nixpkgs-channels
     cp  ${./data/repos/NixOS/nixpkgs-channels/repository.json} mock/repos/NixOS/nixpkgs-channels/index.html
     mkdir -p mock/repos/NixOS/nixpkgs-channels/commits
-    cat ${./data/repos/NixOS/nixpkgs-channels/commits.json} | jq -j '.[0] | .sha' > mock/repos/NixOS/nixpkgs-channels/commits/nixos-19.03
+    cat ${./data/repos/NixOS/nixpkgs-channels/commits.json} | jq -j '.[0] | .sha' > mock/repos/NixOS/nixpkgs-channels/commits/nixos-19.09
     mkdir -p mock/NixOS/nixpkgs-channels/archive
     cp ${./data/archives + "/${nixpkgs-channels_HEAD}.tar.gz"} \
       mock/NixOS/nixpkgs-channels/archive/${nixpkgs-channels_HEAD}.tar.gz

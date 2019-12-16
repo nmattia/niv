@@ -96,7 +96,7 @@ initialized with niv and nixpkgs:
     "nixpkgs": {
         "url": "https://github.com/NixOS/nixpkgs-channels/archive/109a28ab954a0ad129f7621d468f829981b8b96c.tar.gz",
         "owner": "NixOS",
-        "branch": "nixos-19.03",
+        "branch": "nixos-19.09",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
         "repo": "nixpkgs-channels",
         "sha256": "12wnxla7ld4cgpdndaipdh3j4zdalifk287ihxhnmrzrghjahs3q",
@@ -133,7 +133,7 @@ import sources.nixpkgs                  # and use them again!
 #### Tracking a nixpkgs branch
 
 The `init` command sets the `nix/sources.json` file to track the latest commit
-present on nixpkgs 19.03 when the command was run. Run the following command to
+present on nixpkgs 19.09 when the command was run. Run the following command to
 update it:
 
 ``` shell
@@ -143,7 +143,7 @@ $ niv update nixpkgs
 To change the branch being tracked run this command:
 
 ``` shell
-$ niv update nixpkgs -b nixos-19.03     # equivalent to --branch nixos-19.03
+$ niv update nixpkgs -b nixos-19.09     # equivalent to --branch nixos-19.09
 ```
 
 #### Importing packages from GitHub
