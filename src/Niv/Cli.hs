@@ -125,7 +125,7 @@ cmdInit = do
         , ( pathNixSourcesJson fsj
           , \path -> do
               createFile path initNixSourcesJsonContent
-              -- Imports @niv@ and @nixpkgs@ (19.03)
+              -- Imports @niv@ and @nixpkgs@ (19.09)
               say "Importing 'niv' ..."
               cmdAdd (updateCmd githubCmd) (PackageName "niv")
                 (specToFreeAttrs $ PackageSpec $ HMS.fromList
@@ -138,7 +138,7 @@ cmdInit = do
                 (specToFreeAttrs $ PackageSpec $ HMS.fromList
                   [ "owner" .= ("NixOS" :: T.Text)
                   , "repo" .= ("nixpkgs-channels" :: T.Text)
-                  , "branch" .= ("nixos-19.03" :: T.Text)
+                  , "branch" .= ("nixos-19.09" :: T.Text)
                   ]
                 )
           , \path _content -> dontCreateFile path)
