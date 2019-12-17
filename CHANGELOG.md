@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.9] 2019-12-00
+## Changed
+* `niv init` uses nixpkgs 19.09
+
 ## [0.2.8] 2019-12-00
 ## Changed
 * Fixed message in `niv init` with custom `sources.json`

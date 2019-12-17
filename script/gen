@@ -2,9 +2,11 @@
 #!nix-shell -i bash
 #!nix-shell -I nixpkgs=./nix
 #!nix-shell -p nix
-#!nix-shell --keep SSL_CERT_FILE
 #!nix-shell --keep GITHUB_TOKEN
 #!nix-shell --pure
+
+unset NIX_SSL_CERT_FILE
+unset SSL_CERT_FILE
 
 set -euo pipefail
 
