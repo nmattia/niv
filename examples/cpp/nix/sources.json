@@ -1,0 +1,38 @@
+{
+    "libosmium": {
+        "branch": "master",
+        "description": "Fast and flexible C++ library for working with OpenStreetMap data.",
+        "homepage": "https://osmcode.org/libosmium/",
+        "owner": "osmcode",
+        "repo": "libosmium",
+        "rev": "a43ffb61cba34a07c240bcc591d88c9a863e9618",
+        "sha256": "0mlcvqrhp40bzj5r5j9nfc5vbis8hmzcq9xi8jylkciyydaynhz4",
+        "type": "tarball",
+        "url": "https://github.com/osmcode/libosmium/archive/a43ffb61cba34a07c240bcc591d88c9a863e9618.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "niv": {
+        "branch": "master",
+        "description": "Easy dependency management for Nix projects",
+        "homepage": "https://github.com/nmattia/niv",
+        "owner": "nmattia",
+        "repo": "niv",
+        "rev": "983e7a049aea1d2033e619368b9a5d6d394d51db",
+        "sha256": "1d3p53q8anl6x9f8wg1wbznq4vwrp2ns044w0gc03drp8nh0dfdm",
+        "type": "tarball",
+        "url": "https://github.com/nmattia/niv/archive/983e7a049aea1d2033e619368b9a5d6d394d51db.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "nixpkgs": {
+        "branch": "nixos-19.09",
+        "description": "A read-only mirror of NixOS/nixpkgs tracking the released channels. Send issues and PRs to",
+        "homepage": "https://github.com/NixOS/nixpkgs",
+        "owner": "NixOS",
+        "repo": "nixpkgs-channels",
+        "rev": "d85e435b7bded2596d7b201bcd938c94d8a921c1",
+        "sha256": "1msjm4kx1z73v444i1iybvmc7z0kfkbn9nzr21rn5yc4ql1jwf99",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs-channels/archive/d85e435b7bded2596d7b201bcd938c94d8a921c1.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    }
+}
