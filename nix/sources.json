@@ -11,6 +11,18 @@
         "url": "https://github.com/NixOS/nixpkgs-channels/archive/d85e435b7bded2596d7b201bcd938c94d8a921c1.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "nixpkgs-fmt": {
+        "branch": "master",
+        "description": "Nix code formatter for nixpkgs [maintainer=@zimbatm]",
+        "homepage": "https://nix-community.github.io/nixpkgs-fmt/",
+        "owner": "nix-community",
+        "repo": "nixpkgs-fmt",
+        "rev": "2a64f4b6a597d0d62004ffcec3ae4fd83cd1efc8",
+        "sha256": "01kx4y1d4c5fjvpcffk92pk9hdbgg5j9h2ryqy2hfm54s7mb0k63",
+        "type": "tarball",
+        "url": "https://github.com/nix-community/nixpkgs-fmt/archive/2a64f4b6a597d0d62004ffcec3ae4fd83cd1efc8.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "termtosvg": {
         "branch": "develop",
         "description": "Record terminal sessions as SVG animations",

@@ -2,6 +2,7 @@
 #!nix-shell -i bash
 #!nix-shell -I nixpkgs=./nix
 #!nix-shell -p nix
+#!nix-shell -p nixpkgs-fmt
 #!nix-shell --pure
 
 unset NIX_SSL_CERT_FILE
@@ -31,5 +32,12 @@ fi
 
 # Build and create a root
 nix-build ${nixargs[@]}
+
+echo "Formatting"
+if ! nixpkgs-fmt --check . ; then
+  echo
+  echo 'run `nixpkgs-fmt .` to fix this issue'
+  exit 1
+fi
 
 echo "all good"
