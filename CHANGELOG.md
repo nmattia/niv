@@ -1,10 +1,14 @@
 # Changelog
 
-## [0.2.9] 2019-12-00
+## [0.2.10] 2020-01-06
+## Changed
+* The bundled `nix/sources.nix` is formatted with `nixpkgs-fmt`
+
+## [0.2.9] 2019-12-17
 ## Changed
 * `niv init` uses nixpkgs 19.09
 
-## [0.2.8] 2019-12-00
+## [0.2.8] 2019-12-09
 ## Changed
 * Fixed message in `niv init` with custom `sources.json`
 
