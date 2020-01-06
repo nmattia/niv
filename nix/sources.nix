@@ -19,7 +19,7 @@ let
       pkgs.fetchzip { inherit (spec) url sha256; };
 
   fetch_git = spec:
-      builtins.fetchGit { url = spec.repo; inherit (spec) rev ref; };
+    builtins.fetchGit { url = spec.repo; inherit (spec) rev ref; };
 
   fetch_builtin-tarball = spec:
     builtins.trace
@@ -132,5 +132,4 @@ let
       pkgs = mkPkgs sources;
     };
 in
-mkSources (mkConfig {}) //
-  { __functor = _: settings: mkSources (mkConfig settings); }
+mkSources (mkConfig {}) // { __functor = _: settings: mkSources (mkConfig settings); }
