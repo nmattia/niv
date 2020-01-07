@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.11] 2020-01-07
+## Changed
+* Users can set custom `pkgs` when `import`ing `sources.nix`
+
 ## [0.2.10] 2020-01-06
 ## Changed
 * The bundled `nix/sources.nix` is formatted with `nixpkgs-fmt`
