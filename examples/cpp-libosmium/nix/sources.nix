@@ -19,7 +19,7 @@ let
       pkgs.fetchzip { inherit (spec) url sha256; };
 
   fetch_git = spec:
-      builtins.fetchGit { url = spec.repo; inherit (spec) rev ref; };
+    builtins.fetchGit { url = spec.repo; inherit (spec) rev ref; };
 
   fetch_builtin-tarball = spec:
     builtins.trace
@@ -125,12 +125,14 @@ let
   # The "config" used by the fetchers
   mkConfig =
     { sourcesFile ? ./sources.json
+    , sources ? builtins.fromJSON (builtins.readFile sourcesFile)
+    , pkgs ? mkPkgs sources
     }: rec {
       # The sources, i.e. the attribute set of spec name to spec
-      sources = builtins.fromJSON (builtins.readFile sourcesFile);
+      inherit sources;
+
       # The "pkgs" (evaluated nixpkgs) to use for e.g. non-builtin fetchers
-      pkgs = mkPkgs sources;
+      inherit pkgs;
     };
 in
-mkSources (mkConfig {}) //
-  { __functor = _: settings: mkSources (mkConfig settings); }
+mkSources (mkConfig {}) // { __functor = _: settings: mkSources (mkConfig settings); }
