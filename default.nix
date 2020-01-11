@@ -46,11 +46,13 @@ with rec
   haskellPackages = pkgs.haskellPackages.override {
     overrides = _: haskellPackages: {
       niv =
-        pkgs.haskell.lib.failOnAllWarnings (
-          pkgs.haskell.lib.disableExecutableProfiling (
-            pkgs.haskell.lib.disableLibraryProfiling (
-              pkgs.haskell.lib.generateOptparseApplicativeCompletion "niv" (
-                haskellPackages.callCabal2nix "niv" niv-source {}
+        pkgs.haskell.lib.justStaticExecutables (
+          pkgs.haskell.lib.failOnAllWarnings (
+            pkgs.haskell.lib.disableExecutableProfiling (
+              pkgs.haskell.lib.disableLibraryProfiling (
+                pkgs.haskell.lib.generateOptparseApplicativeCompletion "niv" (
+                  haskellPackages.callCabal2nix "niv" niv-source {}
+                )
               )
             )
           )
