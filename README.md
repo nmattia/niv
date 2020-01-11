@@ -11,6 +11,10 @@ Painless dependencies for [Nix] projects. Read more in the [Getting started](#ge
 
 ## Install
 
+`niv` is available in [`nixpkgs`](https://github.com/NixOS/nixpkgs) on the
+`master` branch as `niv`. It is also available on the `release-19.09` branch as
+`haskellPackages.niv`. Otherwise, run:
+
 ``` bash
 $ nix-env -iA niv -f https://github.com/nmattia/niv/tarball/master
 ```
