@@ -15,6 +15,10 @@ nixargs=(
     "--max-jobs" "10"
 )
 
+targets=(
+
+)
+
 
 if [[ ! $OSTYPE =~ darwin ]]; then
     echo "Not testing on darwin"
@@ -23,11 +27,11 @@ if [[ ! $OSTYPE =~ darwin ]]; then
 else
     echo "Testing on darwin"
     echo "Not enabling sandbox, not running integration"
-    nixargs+=("-A" "niv-test")
+    targets+=("-A" "niv-test")
 fi
 
 # Build and create a root
-nix-build ${nixargs[@]}
+nix-build ${nixargs[@]} ${targets[@]}
 
 echo "Formatting"
 if ! nixpkgs-fmt --check . ; then
@@ -35,5 +39,13 @@ if ! nixpkgs-fmt --check . ; then
   echo 'run `nixpkgs-fmt .` to fix this issue'
   exit 1
 fi
+
+echo "Building examples"
+for example in examples/*; do
+    echo " - $(basename $example)"
+    pushd $example
+    nix-build ${nixargs[@]}
+    popd
+done
 
 echo "all good"

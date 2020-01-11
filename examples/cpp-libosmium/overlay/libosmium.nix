@@ -1,4 +1,4 @@
-{ stdenv, fetchFromGitHub, cmake, protozero, expat, zlib, bzip2, boost, sources ? import ../nix/sources.nix  }:
+{ stdenv, cmake, protozero, expat, zlib, bzip2, boost, sources }:
 
 stdenv.mkDerivation rec {
   name = "libosmium";
@@ -13,10 +13,10 @@ stdenv.mkDerivation rec {
     "-DBUILD_TESTING=OFF"
   ];
   buildInputs = [
-    protozero 
+    protozero
     expat
-    zlib 
-    bzip2  
+    zlib
+    bzip2
     boost
   ];
 }
