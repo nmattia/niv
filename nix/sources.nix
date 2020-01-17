@@ -49,26 +49,22 @@ let
 
   # The set of packages used when specs are fetched using non-builtins.
   mkPkgs = sources:
-    if hasNixpkgsPath
-    then
-      if hasThisAsNixpkgsPath
-      then import (builtins_fetchTarball { inherit (mkNixpkgs sources) url sha256; }) {}
-      else import <nixpkgs> {}
-    else
-      import (builtins_fetchTarball { inherit (mkNixpkgs sources) url sha256; }) {};
-
-  mkNixpkgs = sources:
-    if builtins.hasAttr "nixpkgs" sources
-    then sources.nixpkgs
-    else abort
-      ''
-        Please specify either <nixpkgs> (through -I or NIX_PATH=nixpkgs=...) or
-        add a package called "nixpkgs" to your sources.json.
-      '';
-
-  hasNixpkgsPath = (builtins.tryEval <nixpkgs>).success;
-  hasThisAsNixpkgsPath =
-    (builtins.tryEval <nixpkgs>).success && <nixpkgs> == ./.;
+    let
+      sourcesNixpkgs =
+        import (builtins_fetchTarball { inherit (sources.nixpkgs) url sha256; }) {};
+      hasNixpkgsPath = builtins.any (x: x.prefix == "nixpkgs") builtins.nixPath;
+      hasThisAsNixpkgsPath = <nixpkgs> == ./.;
+    in
+      if builtins.hasAttr "nixpkgs" sources
+      then sourcesNixpkgs
+      else if hasNixpkgsPath && ! hasThisAsNixpkgsPath then
+        import <nixpkgs> {}
+      else
+        abort
+          ''
+            Please specify either <nixpkgs> (through -I or NIX_PATH=nixpkgs=...) or
+            add a package called "nixpkgs" to your sources.json.
+          '';
 
   # The actual fetching function.
   fetch = pkgs: name: spec:
