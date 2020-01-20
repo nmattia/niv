@@ -210,7 +210,7 @@ rec
         pkgs.runCommand "niv_${cmd}_help" { buildInputs = [ niv ]; }
           "niv ${cmd} --help > $out"
       );
-      cmds = [ "add" "update" "drop" "init" "show" ];
+      cmds = [ "add" "update" "modify" "drop" "init" "show" ];
     in
       pkgs.lib.replaceStrings
         ([ "replace_niv_help" ] ++ (map (cmd: "replace_niv_${cmd}_help") cmds))

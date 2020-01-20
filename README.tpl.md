@@ -43,12 +43,13 @@ necessary for fetching and updating the packages.
 * [Update](#update): updates one or all packages in `nix/sources.json`.
 * [Drop](#drop): deletes a package from `nix/sources.json`.
 
-`niv` has two more utility functions:
+`niv` has some utility functions:
 
 * [Init](#init): bootstraps a Nix project, in particular creates a
   `nix/sources.json` file containing `niv` and `nixpkgs` as well as a
   `nix/sources.nix` file that returns the sources as a Nix object.
 * [Show](#show): shows the packages' information.
+* [Modify](#modify): modifies attributes _without_ performing an update.
 
 ### Configuration
 
@@ -214,6 +215,12 @@ replace_niv_add_help
 
 ```
 replace_niv_update_help
+```
+
+#### Modify
+
+```
+replace_niv_modify_help
 ```
 
 #### Drop

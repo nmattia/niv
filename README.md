@@ -43,12 +43,13 @@ necessary for fetching and updating the packages.
 * [Update](#update): updates one or all packages in `nix/sources.json`.
 * [Drop](#drop): deletes a package from `nix/sources.json`.
 
-`niv` has two more utility functions:
+`niv` has some utility functions:
 
 * [Init](#init): bootstraps a Nix project, in particular creates a
   `nix/sources.json` file containing `niv` and `nixpkgs` as well as a
   `nix/sources.nix` file that returns the sources as a Nix object.
 * [Show](#show): shows the packages' information.
+* [Modify](#modify): modifies attributes _without_ performing an update.
 
 ### Configuration
 
@@ -217,7 +218,8 @@ Available commands:
   add                      Add a GitHub dependency
   show                     
   update                   Update dependencies
-  modify                   Modify dependency
+  modify                   Modify dependency attributes without performing an
+                           update
   drop                     Drop dependency
 
 ```
@@ -274,6 +276,38 @@ Usage: niv update [PACKAGE] ([-a|--attribute KEY=VAL] |
                   [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION]
                   | [-t|--template URL] | [-T|--type TYPE])
   Update dependencies
+
+Available options:
+  -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>, where
+                           <VAL> may be JSON.
+  -s,--string-attribute KEY=VAL
+                           Set the package spec attribute <KEY> to <VAL>.
+  -b,--branch BRANCH       Equivalent to --attribute branch=<BRANCH>
+  -o,--owner OWNER         Equivalent to --attribute owner=<OWNER>
+  -r,--repo REPO           Equivalent to --attribute repo=<REPO>
+  -v,--version VERSION     Equivalent to --attribute version=<VERSION>
+  -t,--template URL        Used during 'update' when building URL. Occurrences
+                           of <foo> are replaced with attribute 'foo'.
+  -T,--type TYPE           The type of the URL target. The value can be either
+                           'file' or 'tarball'. If not set, the value is
+                           inferred from the suffix of the URL.
+  -h,--help                Show this help text
+
+```
+
+#### Modify
+
+```
+Examples:
+
+  niv modify nixpkgs -v beta-0.2
+  niv modify nixpkgs -a branch=nixpkgs-unstable
+
+Usage: niv modify PACKAGE ([-a|--attribute KEY=VAL] |
+                  [-s|--string-attribute KEY=VAL] | [-b|--branch BRANCH] |
+                  [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION]
+                  | [-t|--template URL] | [-T|--type TYPE])
+  Modify dependency attributes without performing an update
 
 Available options:
   -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>, where
