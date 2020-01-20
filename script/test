@@ -27,7 +27,7 @@ if [[ ! $OSTYPE =~ darwin ]]; then
 else
     echo "Testing on darwin"
     echo "Not enabling sandbox, not running integration"
-    targets+=("-A" "niv-test")
+    targets+=("-A" "niv")
 fi
 
 # Build and create a root
