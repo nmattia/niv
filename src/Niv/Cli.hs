@@ -399,7 +399,7 @@ parseCmdModify =
   where
     desc =
       [ Opts.fullDesc
-      , Opts.progDesc "Modify dependency"
+      , Opts.progDesc "Modify dependency attributes without performing an update"
       , Opts.headerDoc $ Just $
           "Examples:" Opts.<$$>
           "" Opts.<$$>
