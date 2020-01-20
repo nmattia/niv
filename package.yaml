@@ -57,7 +57,9 @@ executables:
         source-dirs: app
         dependencies:
             - niv
-    niv-test:
+
+tests:
+    unit:
         main: NivTest.main
         source-dirs: app
         dependencies:
