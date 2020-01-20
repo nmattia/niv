@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.12] 2020-01-17
+## Added
+* Examples for building C++ libraries with niv
+* Documentation for using niv from nixpkgs
+## Changed
+* Only depend on executables in `default.nix` (`-A niv`) for smaller closure
+  size
+* Ensure `<nixpkgs>` is not evaluated in `sources.nix` unless necessary
+
 ## [0.2.11] 2020-01-07
 ## Changed
 * Users can set custom `pkgs` when `import`ing `sources.nix`
