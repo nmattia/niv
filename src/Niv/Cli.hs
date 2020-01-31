@@ -394,7 +394,7 @@ partitionEithersHMS =
 parseCmdModify :: Opts.ParserInfo (NIO ())
 parseCmdModify =
     Opts.info
-      ((cmdModify <$> parsePackage) <**> Opts.helper) $
+      ((cmdModify <$> parsePackageName <*> optName <*> parsePackageSpec githubCmd) <**> Opts.helper) $
       mconcat desc
   where
     desc =
@@ -406,9 +406,15 @@ parseCmdModify =
           "  niv modify nixpkgs -v beta-0.2" Opts.<$$>
           "  niv modify nixpkgs -a branch=nixpkgs-unstable"
       ]
+    optName = Opts.optional $ PackageName <$> Opts.strOption
+      ( Opts.long "name" <>
+        Opts.short 'n' <>
+        Opts.metavar "NAME" <>
+        Opts.help "Set the package name to <NAME>"
+      )
 
-cmdModify :: (PackageName, PackageSpec) -> NIO ()
-cmdModify (packageName, cliSpec) = do
+cmdModify :: PackageName -> Maybe PackageName -> PackageSpec -> NIO ()
+cmdModify packageName mNewName cliSpec = do
     tsay $ "Modifying package: " <> unPackageName packageName
     fsj <- getFindSourcesJson
     sources <- unSources <$> li (getSources fsj)
@@ -417,7 +423,13 @@ cmdModify (packageName, cliSpec) = do
       Just defaultSpec -> pure $ attrsToSpec (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
       Nothing -> li $ abortCannotModifyNoSuchPackage packageName
 
-    li $ setSources fsj $ Sources $ HMS.insert packageName finalSpec sources
+    case mNewName of
+      Just newName -> do
+        when (HMS.member newName sources) $
+          li $ abortCannotAddPackageExists newName
+        li $ setSources fsj $ Sources $ HMS.insert newName finalSpec $ HMS.delete packageName sources
+      Nothing ->
+        li $ setSources fsj $ Sources $ HMS.insert packageName finalSpec sources
 
 -------------------------------------------------------------------------------
 -- DROP
