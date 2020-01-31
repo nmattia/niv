@@ -68,9 +68,8 @@ with rec
     let
       niv-version = niv.version;
     in
-      pkgs.writeScript "cabal-upload"
+      pkgs.writeShellScript "cabal-upload"
         ''
-          #!${pkgs.stdenv.shell}
           cabal upload "$@" "${niv-sdist}/niv-${niv-version}.tar.gz"
         '';
 
