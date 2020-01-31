@@ -147,7 +147,7 @@ nixPrefetchURL unpack turl@(T.unpack -> url) = do
     -- From the nix-prefetch-url documentation:
     --  Path names are alphanumeric and can include the symbols +-._?= and must
     --  not begin with a period.
-    -- (note: we assume they don't being with a period)
+    -- (note: we assume they don't begin with a period)
     isOk = \c -> isAlphaNum c || T.any (c ==) "+-._?="
 
 abortNixPrefetchExpectedOutput :: T.Text -> T.Text -> IO a
