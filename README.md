@@ -303,13 +303,14 @@ Examples:
   niv modify nixpkgs -v beta-0.2
   niv modify nixpkgs -a branch=nixpkgs-unstable
 
-Usage: niv modify PACKAGE ([-a|--attribute KEY=VAL] |
+Usage: niv modify PACKAGE [-n|--name NAME] ([-a|--attribute KEY=VAL] |
                   [-s|--string-attribute KEY=VAL] | [-b|--branch BRANCH] |
                   [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION]
                   | [-t|--template URL] | [-T|--type TYPE])
   Modify dependency attributes without performing an update
 
 Available options:
+  -n,--name NAME           Set the package name to <NAME>
   -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>, where
                            <VAL> may be JSON.
   -s,--string-attribute KEY=VAL
