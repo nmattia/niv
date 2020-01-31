@@ -10,6 +10,7 @@ module Niv.GitHub.Cmd (githubCmd) where
 import Control.Applicative
 import Data.Aeson ((.=))
 import Data.Bifunctor
+import Data.Char (isAlphaNum)
 import Data.Maybe
 import Data.String.QQ (s)
 import Data.Text.Extended
@@ -133,14 +134,21 @@ githubUpdate' :: Update () ()
 githubUpdate' = githubUpdate nixPrefetchURL githubLatestRev githubRepo
 
 nixPrefetchURL :: Bool -> T.Text -> IO T.Text
-nixPrefetchURL unpack (T.unpack -> url) = do
+nixPrefetchURL unpack turl@(T.unpack -> url) = do
     (exitCode, sout, serr) <- runNixPrefetch
     case (exitCode, lines sout) of
       (ExitSuccess, l:_)  -> pure $ T.pack l
       _ -> abortNixPrefetchExpectedOutput (T.pack sout) (T.pack serr)
   where
-    args = if unpack then ["--unpack", url] else [url]
+    args = (if unpack then ["--unpack"] else []) <> [ url, "--name", sanitizeName basename]
     runNixPrefetch = readProcessWithExitCode "nix-prefetch-url" args ""
+    sanitizeName = T.unpack . T.filter isOk
+    basename = last $ T.splitOn "/" turl
+    -- From the nix-prefetch-url documentation:
+    --  Path names are alphanumeric and can include the symbols +-._?= and must
+    --  not begin with a period.
+    -- (note: we assume they don't being with a period)
+    isOk = \c -> isAlphaNum c || T.any (c ==) "+-._?="
 
 abortNixPrefetchExpectedOutput :: T.Text -> T.Text -> IO a
 abortNixPrefetchExpectedOutput sout serr = abort $ [s|
