@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.13] 2020-02-02
+## Added
+* `niv modify -n NAME` to rename a package
+## Changed
+* README mentions the `modify` command
+* `niv` is not shipped with the `niv-test` executable anymore
+* `cabal-upload` was simplified
+
 ## [0.2.12] 2020-01-17
 ## Added
 * Examples for building C++ libraries with niv
