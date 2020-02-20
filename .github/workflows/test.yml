@@ -12,5 +12,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
-    - uses: cachix/install-nix-action@v6
-    - run: ./script/test
+    - uses: './.github/actions/nix'
+    - name: "Run tests"
+      run: |
+
+          ls ~/.nix-profile/etc/
+          echo "$NIX_SSL_CERT_FILE"
+          ./script/test
+    - name: "Save cache"
+      run: |
+        if [ -n "$CACHIX_SIGNING_KEY" ]
+        then
+            nix-env -iA cachix -f https://cachix.org/api/v1/install
+            nix path-info --all | cachix push niv
+        else
+            echo "CACHIX_SIGNING_KEY not set, not uploading cache"
+        fi
+      env:
+        CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}

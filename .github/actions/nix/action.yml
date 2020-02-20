@@ -1,0 +1,5 @@
+name: 'nix'
+description: 'use nix'
+runs:
+    using: 'node12'
+    main: 'main.js'
