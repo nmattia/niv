@@ -195,24 +195,30 @@ rec
   tests-github = pkgs.callPackage ./tests/github { inherit niv; };
   tests-git = pkgs.callPackage ./tests/git { inherit niv; };
 
-  readme = pkgs.writeText "README.md" (
-    let
-      template = builtins.readFile ./README.tpl.md;
-      niv_help = builtins.readFile (
-        pkgs.runCommand "niv_help" { buildInputs = [ niv ]; }
-          "niv --help > $out"
-      );
-      niv_cmd_help = cmd: builtins.readFile (
-        pkgs.runCommand "niv_${cmd}_help" { buildInputs = [ niv ]; }
-          "niv ${cmd} --help > $out"
-      );
-      cmds = [ "add" "update" "modify" "drop" "init" "show" ];
-    in
-      pkgs.lib.replaceStrings
-        ([ "replace_niv_help" ] ++ (map (cmd: "replace_niv_${cmd}_help") cmds))
-        ([ niv_help ] ++ (map niv_cmd_help cmds))
-        template
-  );
+  readme = pkgs.runCommand "README.md" { nativeBuildInputs = [ niv ]; }
+    ''
+      cp ${./README.tpl.md} $out
+      sed -i "/replace_niv_help/r"<(niv --help) $out
+      sed -i "/replace_niv_help/d" $out
+
+      sed -i "/replace_niv_add_help/r"<(niv add --help) $out
+      sed -i "/replace_niv_add_help/d" $out
+
+      sed -i "/replace_niv_update_help/r"<(niv update --help) $out
+      sed -i "/replace_niv_update_help/d" $out
+
+      sed -i "/replace_niv_modify_help/r"<(niv modify --help) $out
+      sed -i "/replace_niv_modify_help/d" $out
+
+      sed -i "/replace_niv_drop_help/r"<(niv drop --help) $out
+      sed -i "/replace_niv_drop_help/d" $out
+
+      sed -i "/replace_niv_init_help/r"<(niv init --help) $out
+      sed -i "/replace_niv_init_help/d" $out
+
+      sed -i "/replace_niv_show_help/r"<(niv show --help) $out
+      sed -i "/replace_niv_show_help/d" $out
+    '';
 
   readme-test = pkgs.runCommand "README-test" {}
     ''
