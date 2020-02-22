@@ -223,7 +223,6 @@ Available commands:
   modify                   Modify dependency attributes without performing an
                            update
   drop                     Drop dependency
-
 ```
 
 #### Add
@@ -261,7 +260,6 @@ Available options:
 Experimental commands:
   git                      Add a git dependency. Experimental.
   github                   Add a GitHub dependency
-
 ```
 
 #### Update
@@ -294,7 +292,6 @@ Available options:
                            'file' or 'tarball'. If not set, the value is
                            inferred from the suffix of the URL.
   -h,--help                Show this help text
-
 ```
 
 #### Modify
@@ -327,7 +324,6 @@ Available options:
                            'file' or 'tarball'. If not set, the value is
                            inferred from the suffix of the URL.
   -h,--help                Show this help text
-
 ```
 
 #### Drop
@@ -343,7 +339,6 @@ Usage: niv drop PACKAGE [ATTRIBUTE]
 
 Available options:
   -h,--help                Show this help text
-
 ```
 
 #### Init
@@ -354,7 +349,6 @@ Usage: niv init
 
 Available options:
   -h,--help                Show this help text
-
 ```
 
 #### show
@@ -364,7 +358,6 @@ Usage: niv show [PACKAGE]
 
 Available options:
   -h,--help                Show this help text
-
 ```
 
 [Nix]: https://nixos.org/nix/
