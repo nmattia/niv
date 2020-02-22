@@ -51,7 +51,7 @@ with rec
             pkgs.haskell.lib.disableExecutableProfiling (
               pkgs.haskell.lib.disableLibraryProfiling (
                 pkgs.haskell.lib.generateOptparseApplicativeCompletion "niv" (
-                  haskellPackages.callCabal2nix "niv" niv-source {}
+                  (pkgs.callPackage ./foo {}).buildPackage { root = ./.; src = niv-source; }
                 )
               )
             )

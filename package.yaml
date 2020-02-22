@@ -1,67 +1,73 @@
-name: niv
-version: 0.2.13
-license: MIT
-author: Nicolas Mattia <nicolas@nmattia.com>
-maintainer: Nicolas Mattia <nicolas@nmattia.com>
-copyright: (c) 2019 Nicolas Mattia
-category: Development
-github: nmattia/niv
-synopsis: Easy dependency management for Nix projects
-description: Easy dependency management for Nix projects.
-
-ghc-options:
-    - -Wall
-
-    # For macOS: https://github.com/gibiansky/IHaskell/issues/942
-    - -optP-Wno-nonportable-include-path
-
-data-files:
-    - nix/sources.nix
-
-extra-source-files:
-    - README.md
-
-dependencies:
-    - aeson
-    - aeson-pretty
-    - ansi-terminal
-    - base < 5
-    - bytestring
-    - directory
-    - file-embed
-    - filepath
-    - hashable
-    - http-conduit
-    - mtl
-    - optparse-applicative
-    - process
-    - profunctors
-    - pureMD5
-    - string-qq
-    - text
-    - unliftio
-    - unordered-containers
-
-library:
-    source-dirs:
-        - src
-    dependencies:
-        - aeson
-        - tasty
-        - tasty-hunit
-        - unordered-containers
-
-executables:
-    niv:
-        main: Niv.main
-        source-dirs: app
-        dependencies:
-            - niv
-
-tests:
-    unit:
-        main: NivTest.main
-        source-dirs: app
-        dependencies:
-            - tasty
-            - niv
+{
+  "name": "niv",
+  "version": "0.2.13",
+  "license": "MIT",
+  "author": "Nicolas Mattia <nicolas@nmattia.com>",
+  "maintainer": "Nicolas Mattia <nicolas@nmattia.com>",
+  "copyright": "(c) 2019 Nicolas Mattia",
+  "category": "Development",
+  "github": "nmattia/niv",
+  "synopsis": "Easy dependency management for Nix projects",
+  "description": "Easy dependency management for Nix projects.",
+  "ghc-options": [
+    "-Wall",
+    "-optP-Wno-nonportable-include-path"
+  ],
+  "data-files": [
+    "nix/sources.nix"
+  ],
+  "extra-source-files": [
+    "README.md"
+  ],
+  "dependencies": [
+    "aeson",
+    "aeson-pretty",
+    "ansi-terminal",
+    "base < 5",
+    "bytestring",
+    "directory",
+    "file-embed",
+    "filepath",
+    "hashable",
+    "http-conduit",
+    "mtl",
+    "optparse-applicative",
+    "process",
+    "profunctors",
+    "pureMD5",
+    "string-qq",
+    "text",
+    "unliftio",
+    "unordered-containers"
+  ],
+  "library": {
+    "source-dirs": [
+      "src"
+    ],
+    "dependencies": [
+      "aeson",
+      "tasty",
+      "tasty-hunit",
+      "unordered-containers"
+    ]
+  },
+  "executables": {
+    "niv": {
+      "main": "Niv.main",
+      "source-dirs": "app",
+      "dependencies": [
+        "niv"
+      ]
+    }
+  },
+  "tests": {
+    "unit": {
+      "main": "NivTest.main",
+      "source-dirs": "app",
+      "dependencies": [
+        "tasty",
+        "niv"
+      ]
+    }
+  }
+}
