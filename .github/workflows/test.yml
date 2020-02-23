@@ -14,19 +14,8 @@ jobs:
     - uses: actions/checkout@v1
     - uses: './.github/actions/nix'
     - name: "Run tests"
-      run: |
-
-          ls ~/.nix-profile/etc/
-          echo "$NIX_SSL_CERT_FILE"
-          ./script/test
+      run: ./script/test
     - name: "Save cache"
-      run: |
-        if [ -n "$CACHIX_SIGNING_KEY" ]
-        then
-            nix-env -iA cachix -f https://cachix.org/api/v1/install
-            nix path-info --all | cachix push niv
-        else
-            echo "CACHIX_SIGNING_KEY not set, not uploading cache"
-        fi
+      run: save-cache
       env:
         CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
