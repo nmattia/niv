@@ -4,11 +4,14 @@
 
 set -euo pipefail
 
+set -x
+
+echo "Installing Nix"
+
 sudo mkdir -p /etc/nix
 
 # Workaround segfault: https://github.com/NixOS/nix/issues/2733
 sudo sh -c 'echo "http2 = false" >> /etc/nix/nix.conf'
-
 
 if [[ $OSTYPE =~ darwin ]]; then
     echo "Installing on Darwin"
@@ -28,8 +31,37 @@ fi
 
 curl https://nixos.org/nix/install | sh
 
-sudo sh -c 'echo "substituters = https://cache.nixos.org https://niv.cachix.org" > /etc/nix/nix.conf'
-sudo sh -c 'echo "trusted-public-keys = niv.cachix.org-1:X32PCg2e/zAm3/uD1ScqW2z/K0LtDyNV7RdaxIuLgQM= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" >> /etc/nix/nix.conf'
-
 echo "::add-path::/nix/var/nix/profiles/per-user/runner/profile/bin"
 echo "::add-path::/nix/var/nix/profiles/default/bin"
+
+PATH="/nix/var/nix/profiles/per-user/runner/profile/bin:$PATH"
+PATH="/nix/var/nix/profiles/default/bin:$PATH"
+
+echo "Installing cachix"
+
+nix-env -iA cachix -f https://cachix.org/api/v1/install
+
+echo "Setting up cachix"
+
+cachix_cache="${GITHUB_REPOSITORY##*/}"
+
+echo "Using cache '$cachix_cache' for '$GITHUB_REPOSITORY'"
+
+cachix use "$cachix_cache"
+
+script_path="$HOME/.local/bin/save-cache"
+mkdir -p "$(dirname $script_path)"
+
+cat <<EOF >> "$script_path"
+#!/usr/bin/env bash
+if [ -n "\$CACHIX_SIGNING_KEY" ];
+then
+    nix path-info --all | cachix push $cachix_cache
+else
+    echo "CACHIX_SIGNING_KEY not set, not uploading cache"
+fi
+EOF
+
+chmod +x "$script_path"
+
+echo "::add-path::$(dirname $script_path)"
