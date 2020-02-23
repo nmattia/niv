@@ -4,64 +4,86 @@
 
 set -euo pipefail
 
+install_nix() {
+
+    echo "Installing Nix"
+
+    sudo mkdir -p /etc/nix
+
+    # Workaround segfault: https://github.com/NixOS/nix/issues/2733
+    sudo sh -c 'echo "http2 = false" >> /etc/nix/nix.conf'
+
+    if [[ $OSTYPE =~ darwin ]]; then
+        echo "Installing on Darwin"
+        sudo sh -c "echo \"nix\t/opt/nix\" >> /etc/synthetic.conf"
+        sudo sh -c "mkdir -m 0755 /opt/nix && chown runner /opt/nix"
+        /System/Library/Filesystems/apfs.fs/Contents/Resources/apfs.util -B
+        sudo sh -c "echo 'Defaults env_keep += NIX_IGNORE_SYMLINK_STORE' >> /etc/sudoers"
+        echo "::set-env name=NIX_IGNORE_SYMLINK_STORE::1"
+        export NIX_IGNORE_SYMLINK_STORE=1
+        sudo launchctl setenv NIX_IGNORE_SYMLINK_STORE 1
+
+        cert_file=~/.nix-profile/etc/ssl/certs/ca-bundle.crt
+        echo "::set-env name=NIX_SSL_CERT_FILE::$cert_file"
+        export NIX_SSL_CERT_FILE=$cert_file
+        sudo launchctl setenv NIX_SSL_CERT_FILE "$cert_file"
+    fi
+
+    curl https://nixos.org/nix/install | sh
+
+    echo "::add-path::/nix/var/nix/profiles/per-user/runner/profile/bin"
+    echo "::add-path::/nix/var/nix/profiles/default/bin"
+
+    PATH="/nix/var/nix/profiles/per-user/runner/profile/bin:$PATH"
+    PATH="/nix/var/nix/profiles/default/bin:$PATH"
+}
+
+install_cachix() {
+    echo "Installing cachix"
+
+    nix-env -iA cachix -f https://cachix.org/api/v1/install
+
+    echo "Setting up cachix"
+
+    cachix_cache="${GITHUB_REPOSITORY##*/}"
+
+    echo "Using cache '$cachix_cache' for '$GITHUB_REPOSITORY'"
+
+    cachix use "$cachix_cache"
+
+    script_path="$HOME/.local/bin/save-cache"
+    mkdir -p "$(dirname $script_path)"
+}
+
+save_cache() {
+
+    cachix_cache="${GITHUB_REPOSITORY##*/}"
+
+    echo "Using cache '$cachix_cache' for '$GITHUB_REPOSITORY'"
+
+    set +x
+    if [ -z "${CACHIX_SIGNING_KEY:-}" ] && [ -n "${INPUT_CACHIX_SIGNING_KEY:-}" ]; then
+        echo "CACHIX_SIGNING_KEY not set, but INPUT_CACHIX_SIGNING_KEY is present"
+        echo "setting CACHIX_SIGNING_KEY"
+        export CACHIX_SIGNING_KEY="$INPUT_CACHIX_SIGNING_KEY"
+    fi
+
+    if [ -n "$CACHIX_SIGNING_KEY" ];
+    then
+        echo "CACHIX_SIGNING_KEY is set, uploading cache"
+        nix path-info --all | cachix push $cachix_cache
+    else
+        echo "CACHIX_SIGNING_KEY not set, not uploading cache"
+    fi
+    set -x
+}
+
 set -x
 
-echo "Installing Nix"
-
-sudo mkdir -p /etc/nix
-
-# Workaround segfault: https://github.com/NixOS/nix/issues/2733
-sudo sh -c 'echo "http2 = false" >> /etc/nix/nix.conf'
-
-if [[ $OSTYPE =~ darwin ]]; then
-    echo "Installing on Darwin"
-    sudo sh -c "echo \"nix\t/opt/nix\" >> /etc/synthetic.conf"
-    sudo sh -c "mkdir -m 0755 /opt/nix && chown runner /opt/nix"
-    /System/Library/Filesystems/apfs.fs/Contents/Resources/apfs.util -B
-    sudo sh -c "echo 'Defaults env_keep += NIX_IGNORE_SYMLINK_STORE' >> /etc/sudoers"
-    echo "::set-env name=NIX_IGNORE_SYMLINK_STORE::1"
-    export NIX_IGNORE_SYMLINK_STORE=1
-    sudo launchctl setenv NIX_IGNORE_SYMLINK_STORE 1
-
-    cert_file=~/.nix-profile/etc/ssl/certs/ca-bundle.crt
-    echo "::set-env name=NIX_SSL_CERT_FILE::$cert_file"
-    export NIX_SSL_CERT_FILE=$cert_file
-    sudo launchctl setenv NIX_SSL_CERT_FILE "$cert_file"
-fi
-
-curl https://nixos.org/nix/install | sh
-
-echo "::add-path::/nix/var/nix/profiles/per-user/runner/profile/bin"
-echo "::add-path::/nix/var/nix/profiles/default/bin"
-
-PATH="/nix/var/nix/profiles/per-user/runner/profile/bin:$PATH"
-PATH="/nix/var/nix/profiles/default/bin:$PATH"
-
-echo "Installing cachix"
-
-nix-env -iA cachix -f https://cachix.org/api/v1/install
-
-echo "Setting up cachix"
-
-cachix_cache="${GITHUB_REPOSITORY##*/}"
-
-echo "Using cache '$cachix_cache' for '$GITHUB_REPOSITORY'"
-
-cachix use "$cachix_cache"
-
-script_path="$HOME/.local/bin/save-cache"
-mkdir -p "$(dirname $script_path)"
-
-cat <<EOF >> "$script_path"
-#!/usr/bin/env bash
-if [ -n "\$CACHIX_SIGNING_KEY" ];
-then
-    nix path-info --all | cachix push $cachix_cache
+if [ "${INSTALL_NIX_WAS_RUN:-}" == "1" ]; then
+    save_cache
 else
-    echo "CACHIX_SIGNING_KEY not set, not uploading cache"
+    install_nix
+    install_cachix
+    echo "::set-env name=INSTALL_NIX_WAS_RUN::1"
 fi
-EOF
-
-chmod +x "$script_path"
-
-echo "::add-path::$(dirname $script_path)"

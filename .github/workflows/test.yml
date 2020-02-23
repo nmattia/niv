@@ -13,9 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - uses: './.github/actions/nix'
+      with:
+        CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
     - name: "Run tests"
       run: ./script/test
-    - name: "Save cache"
-      run: save-cache
-      env:
-        CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
