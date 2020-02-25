@@ -60,7 +60,7 @@
       in
         haskellPackages.callPackage (
           { mkDerivation }:
-            haskellPackages.mkDerivation {
+            mkDerivation {
               pname = spec.name;
               version = spec.version;
               inherit src;
