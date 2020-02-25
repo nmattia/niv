@@ -68,7 +68,7 @@ save_cache() {
         export CACHIX_SIGNING_KEY="$INPUT_CACHIX_SIGNING_KEY"
     fi
 
-    if [ -n "$CACHIX_SIGNING_KEY" ];
+    if [ -n "${CACHIX_SIGNING_KEY:-}" ];
     then
         echo "CACHIX_SIGNING_KEY is set, uploading cache"
         nix path-info --all | cachix push $cachix_cache
