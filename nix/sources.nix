@@ -21,27 +21,13 @@ let
   fetch_git = spec:
     builtins.fetchGit { url = spec.repo; inherit (spec) rev ref; };
 
-  fetch_builtin-tarball = spec:
-    builtins.trace
-      ''
-        WARNING:
-          The niv type "builtin-tarball" will soon be deprecated. You should
-          instead use `builtin = true`.
+  fetch_builtin-tarball = name: throw
+    ''[${name}] The niv type "builtin-tarball" is deprecated. You should instead use `builtin = true`.
+        $ niv modify ${name} -a type=tarball -a builtin=true'';
 
-          $ niv modify <package> -a type=tarball -a builtin=true
-      ''
-      builtins_fetchTarball { inherit (spec) url sha256; };
-
-  fetch_builtin-url = spec:
-    builtins.trace
-      ''
-        WARNING:
-          The niv type "builtin-url" will soon be deprecated. You should
-          instead use `builtin = true`.
-
-          $ niv modify <package> -a type=file -a builtin=true
-      ''
-      (builtins_fetchurl { inherit (spec) url sha256; });
+  fetch_builtin-url = name: throw
+    ''[${name}] The niv type "builtin-url" will soon be deprecated. You should instead use `builtin = true`.
+        $ niv modify ${name} -a type=file -a builtin=true'';
 
   #
   # Various helpers
@@ -74,8 +60,8 @@ let
     else if spec.type == "file" then fetch_file pkgs spec
     else if spec.type == "tarball" then fetch_tarball pkgs spec
     else if spec.type == "git" then fetch_git spec
-    else if spec.type == "builtin-tarball" then fetch_builtin-tarball spec
-    else if spec.type == "builtin-url" then fetch_builtin-url spec
+    else if spec.type == "builtin-tarball" then fetch_builtin-tarball name
+    else if spec.type == "builtin-url" then fetch_builtin-url name
     else
       abort "ERROR: niv spec ${name} has unknown type ${builtins.toJSON spec.type}";
 
