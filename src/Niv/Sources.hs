@@ -148,6 +148,8 @@ data SourcesNixVersion
   | V15
   | V16
   | V17
+  -- prettify derivation name
+  -- add 'local' type of sources
   | V18
   deriving stock (Bounded, Enum, Eq)
 
@@ -201,7 +203,7 @@ sourcesVersionToMD5 = \case
     V15 -> "dc11af910773ec9b4e505e0f49ebcfd2"
     V16 -> "2d93c52cab8e960e767a79af05ca572a"
     V17 -> "149b8907f7b08dc1c28164dfa55c7fad"
-    V18 -> "5fec8217a6e712c817f9de5289d85fbe"
+    V18 -> "bc5e6aefcaa6f9e0b2155ca4f44e5a33"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text

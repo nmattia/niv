@@ -19,6 +19,7 @@ import Data.Text.Extended
 import Data.Version (showVersion)
 import Niv.Cmd
 import Niv.Git.Cmd
+import Niv.Local.Cmd
 import Niv.GitHub.Cmd
 import Niv.Logger
 import Niv.Sources
@@ -190,13 +191,16 @@ parseCmdAdd =
     parseCmd cmd = uncurry (cmdAdd (updateCmd cmd)) <$> (parseCmdArgs cmd)
     parseCmdAddGit =
       Opts.info (parseCmd gitCmd <**> Opts.helper) (description gitCmd)
+    parseCmdAddLocal =
+      Opts.info (parseCmd localCmd <**> Opts.helper) (description localCmd)
     parseCmdAddGitHub =
       Opts.info (parseCmd githubCmd <**> Opts.helper) (description githubCmd)
     parseCommands = Opts.subparser
         ( Opts.hidden <>
           Opts.commandGroup "Experimental commands:" <>
           Opts.command "git" parseCmdAddGit <>
-          Opts.command "github" parseCmdAddGitHub
+          Opts.command "github" parseCmdAddGitHub <>
+          Opts.command "local" parseCmdAddLocal
         )
 
 -- | only used in shortcuts (niv add foo/bar ...) because PACKAGE is NOT
@@ -341,6 +345,7 @@ cmdUpdate = \case
             -- github
             let cmd = case HMS.lookup "type" (unPackageSpec defaultSpec) of
                   Just "git" -> gitCmd
+                  Just "local" -> localCmd
                   _ -> githubCmd
             fmap attrsToSpec <$> li (tryEvalUpdate
               (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
@@ -366,6 +371,7 @@ cmdUpdate = \case
           -- github
           let cmd = case HMS.lookup "type" (unPackageSpec defaultSpec) of
                 Just "git" -> gitCmd
+                Just "local" -> localCmd
                 _ -> githubCmd
           finalSpec <- fmap attrsToSpec <$> li (tryEvalUpdate
             initialSpec

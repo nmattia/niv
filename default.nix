@@ -35,6 +35,7 @@ with rec
     "^src/Niv$"
     "^src/Niv/Git$"
     "^src/Niv/GitHub$"
+    "^src/Niv/Local$"
     "^src/Niv/Sources$"
     "^src/Niv/Update$"
     "^src.*.hs$"
