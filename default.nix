@@ -41,7 +41,7 @@ with rec
     "^src.*.hs$"
     "^README.md$"
     "^nix$"
-    "^nix.sources.nix$"
+    "^nix.sources.*.nix$"
   ];
 
   haskellPackages = pkgs.haskellPackages.override {

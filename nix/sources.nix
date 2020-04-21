@@ -7,21 +7,23 @@ let
   #
 
   fetch_file = pkgs: spec:
-    if spec.builtin or true then
-      builtins_fetchurl { inherit (spec) url sha256; }
+    let spec' = pkgs.lib.niv.elaborate-url spec; in
+    if spec'.builtin or true then
+      builtins_fetchurl { inherit (spec') url sha256; }
     else
-      pkgs.fetchurl { inherit (spec) url sha256; };
+      pkgs.fetchurl { inherit (spec') url sha256; };
 
   fetch_tarball = pkgs: name: spec:
     let
+      spec' = pkgs.lib.niv.elaborate-url spec;
       ok = str: ! builtins.isNull (builtins.match "[a-zA-Z0-9+-._?=]" str);
       # sanitize the name, though nix will still fail if name starts with period
       name' = stringAsChars (x: if ! ok x then "-" else x) "${name}-src";
     in
       if spec.builtin or true then
-        builtins_fetchTarball { name = name'; inherit (spec) url sha256; }
+        builtins_fetchTarball { name = name'; inherit (spec') url sha256; }
       else
-        pkgs.fetchzip { name = name'; inherit (spec) url sha256; };
+        pkgs.fetchzip { name = name'; inherit (spec') url sha256; };
 
   fetch_git = spec:
     builtins.fetchGit { url = spec.repo; inherit (spec) rev ref; };
@@ -43,15 +45,20 @@ let
   # The set of packages used when specs are fetched using non-builtins.
   mkPkgs = sources:
     let
+      import-args =
+        { overlays = [
+            (self: super: { lib = super.lib // { niv = import ./sources.lib.nix { nixpkgs=self; };}; })
+          ];
+        };
       sourcesNixpkgs =
-        import (builtins_fetchTarball { inherit (sources.nixpkgs) url sha256; }) {};
+        import (builtins_fetchTarball { name="nixpkgs"; inherit (sources.nixpkgs) url sha256; }) import-args;
       hasNixpkgsPath = builtins.any (x: x.prefix == "nixpkgs") builtins.nixPath;
       hasThisAsNixpkgsPath = <nixpkgs> == ./.;
     in
       if builtins.hasAttr "nixpkgs" sources
       then sourcesNixpkgs
       else if hasNixpkgsPath && ! hasThisAsNixpkgsPath then
-        import <nixpkgs> {}
+        import <nixpkgs> import-args
       else
         abort
           ''
