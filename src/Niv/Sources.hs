@@ -213,6 +213,10 @@ sourcesNixMD5 = T.pack . show . MD5.md5 <$> BL8.readFile pathNixSourcesNix
 pathNixSourcesNix :: FilePath
 pathNixSourcesNix = "nix" </> "sources.nix"
 
+-- | @nix/sources.lib.nix@
+pathNixSourcesLibNix :: FilePath
+pathNixSourcesLibNix = "nix" </> "sources.lib.nix"
+
 warnIfOutdated :: IO ()
 warnIfOutdated = do
     tryAny (BL8.readFile pathNixSourcesNix) >>= \case
@@ -243,6 +247,9 @@ warnIfOutdated = do
 -- | Glue code between nix and sources.json
 initNixSourcesNixContent :: B.ByteString
 initNixSourcesNixContent = $(embedFile "nix/sources.nix")
+
+initNixSourcesLibNixContent :: B.ByteString
+initNixSourcesLibNixContent = $(embedFile "nix/sources.lib.nix")
 
 -- | Empty JSON map
 initNixSourcesJsonContent :: B.ByteString

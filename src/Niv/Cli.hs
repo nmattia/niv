@@ -117,11 +117,20 @@ cmdInit = do
         [ ( pathNixSourcesNix
           , (`createFile` initNixSourcesNixContent)
           , \path content -> do
-              if shouldUpdateNixSourcesNix content
+              if shouldUpdateBundled (Bundled pathNixSourcesNix initNixSourcesNixContent) content
               then do
                 say "Updating sources.nix"
                 li $ B.writeFile path initNixSourcesNixContent
               else say "Not updating sources.nix"
+          )
+        , ( pathNixSourcesLibNix
+          , (`createFile` initNixSourcesLibNixContent)
+          , \path content -> do
+              if shouldUpdateBundled (Bundled pathNixSourcesLibNix initNixSourcesLibNixContent) content
+              then do
+                say "Updating sources.lib.nix"
+                li $ B.writeFile path initNixSourcesLibNixContent
+              else say "Not updating sources.lib.nix"
           )
         , ( pathNixSourcesJson fsj
           , \path -> do
@@ -493,11 +502,16 @@ cmdDrop packageName = \case
 -- Files and their content
 -------------------------------------------------------------------------------
 
+data Bundled = Bundled
+  { path :: FilePath
+  , contents :: B.ByteString
+  }
+
 -- | Checks if content is different than default and if it does /not/ contain
 -- a comment line with @niv: no_update@
-shouldUpdateNixSourcesNix :: B.ByteString -> Bool
-shouldUpdateNixSourcesNix content =
-    content /= initNixSourcesNixContent &&
+shouldUpdateBundled :: Bundled -> B.ByteString -> Bool
+shouldUpdateBundled expected content =
+    content /= (contents expected) &&
       not (any lineForbids (B8.lines content))
   where
     lineForbids :: B8.ByteString -> Bool
