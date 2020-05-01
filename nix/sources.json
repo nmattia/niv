@@ -23,6 +23,18 @@
         "url": "https://github.com/nix-community/nixpkgs-fmt/archive/2a64f4b6a597d0d62004ffcec3ae4fd83cd1efc8.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "ormolu": {
+        "branch": "master",
+        "description": "A formatter for Haskell source code",
+        "homepage": null,
+        "owner": "tweag",
+        "repo": "ormolu",
+        "rev": "22839ed74c9964578ae3b2af5c693f605ac8a687",
+        "sha256": "055z8p8kl80fr50crcvy2djk3qg2x34p8pa7kihxlcj9wrhsijyy",
+        "type": "tarball",
+        "url": "https://github.com/tweag/ormolu/archive/22839ed74c9964578ae3b2af5c693f605ac8a687.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "termtosvg": {
         "branch": "develop",
         "description": "Record terminal sessions as SVG animations",
