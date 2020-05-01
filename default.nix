@@ -147,7 +147,10 @@ with rec
   # version from `package.yaml` and create a dummy module that we inject in the
   # `ghci` command.
   niv-devshell = haskellPackages.shellFor {
-    buildInputs = [ pkgs.nixpkgs-fmt ];
+    buildInputs = [
+      pkgs.nixpkgs-fmt
+      pkgs.ormolu
+    ];
     packages = ps: [ ps.niv ];
     shellHook = ''
       repl_for() {
