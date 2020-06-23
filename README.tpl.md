@@ -9,6 +9,12 @@ Painless dependencies for [Nix] projects. Read more in the [Getting started](#ge
     <img src="https://niv.nmattia.com/niv.svg">
 </p>
 
+
+* [Install](#install)
+* [Build](#build)
+* [Usage](#usage)
+* [FAQ](#frequently-asked-questions)
+
 ## Install
 
 `niv` is available in [`nixpkgs`](https://github.com/NixOS/nixpkgs) on the
@@ -246,3 +252,41 @@ replace_niv_show_help
 [Nix]: https://nixos.org/nix/
 [jq]: https://stedolan.github.io/jq/
 [GHC]: https://www.haskell.org/ghc/
+
+
+## Frequently Asked Questions
+
+### Can you use private GitHub repositories?
+
+Yes. There are two ways:
+
+#### 1. Use the git protocol
+
+When using the git protocol, your public SSH keypair is used to authenticate
+you:
+
+``` shell
+$ niv add git git@github.com:my_user/my_private_repo
+```
+
+##### 2. Use the netrc file
+
+in order to `niv add` a private github repo you'll need to:
+
+1. create a .netrc file with the following content
+```
+machine github.com
+  login YOUR_GITHUB_USER_NAME
+  password YOUR_GITHUB_TOKEN
+```
+
+2. add the path to the above file to `/etc/nix/nix.conf`:
+```
+netrc-file = /PATH/TO/.netrc
+```
+
+3. set `GITHUB_TOKEN` env var when calling `niv add`
+```
+GITHUB_TOKEN=$YOUR_GITHUB_TOKEN niv add ...
+```
+
