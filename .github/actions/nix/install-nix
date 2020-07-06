@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # vim: set ft=bash
-# adapted from https://github.com/cachix/install-nix-action/blob/master/src/main.ts
+# adapted from https://github.com/cachix/install-nix-action/blob/master/lib/install-nix.sh
 
 set -euo pipefail
 
@@ -8,34 +8,29 @@ install_nix() {
 
     echo "Installing Nix"
 
-    sudo mkdir -p /etc/nix
+    # Set jobs to number of cores
+    sudo sh -c 'echo max-jobs = auto >> /tmp/nix.conf'
+    # Allow binary caches for runner user
+    sudo sh -c 'echo trusted-users = root runner >> /tmp/nix.conf'
 
-    # Workaround segfault: https://github.com/NixOS/nix/issues/2733
-    sudo sh -c 'echo "http2 = false" >> /etc/nix/nix.conf'
+    sh <(curl -L ${INPUT_INSTALL_URL:-https://nixos.org/nix/install}) \
+      --daemon --daemon-user-count 4 --nix-extra-conf-file /tmp/nix.conf --darwin-use-unencrypted-nix-store-volume --no-channel-add
 
     if [[ $OSTYPE =~ darwin ]]; then
-        echo "Installing on Darwin"
-        sudo sh -c "echo \"nix\t/opt/nix\" >> /etc/synthetic.conf"
-        sudo sh -c "mkdir -m 0755 /opt/nix && chown runner /opt/nix"
-        /System/Library/Filesystems/apfs.fs/Contents/Resources/apfs.util -B
-        sudo sh -c "echo 'Defaults env_keep += NIX_IGNORE_SYMLINK_STORE' >> /etc/sudoers"
-        echo "::set-env name=NIX_IGNORE_SYMLINK_STORE::1"
-        export NIX_IGNORE_SYMLINK_STORE=1
-        sudo launchctl setenv NIX_IGNORE_SYMLINK_STORE 1
+      # Disable spotlight indexing of /nix to speed up performance
+      sudo mdutil -i off /nix
 
-        cert_file=~/.nix-profile/etc/ssl/certs/ca-bundle.crt
-        echo "::set-env name=NIX_SSL_CERT_FILE::$cert_file"
-        export NIX_SSL_CERT_FILE=$cert_file
-        sudo launchctl setenv NIX_SSL_CERT_FILE "$cert_file"
+      # macOS needs certificates hints
+      cert_file=/nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt
+      echo "::set-env name=NIX_SSL_CERT_FILE::$cert_file"
+      export NIX_SSL_CERT_FILE=$cert_file
+      sudo launchctl setenv NIX_SSL_CERT_FILE "$cert_file"
     fi
 
-    curl https://nixos.org/nix/install | sh
-
+    # Set paths
     echo "::add-path::/nix/var/nix/profiles/per-user/runner/profile/bin"
     echo "::add-path::/nix/var/nix/profiles/default/bin"
-
-    PATH="/nix/var/nix/profiles/per-user/runner/profile/bin:$PATH"
-    PATH="/nix/var/nix/profiles/default/bin:$PATH"
+    . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
 }
 
 install_cachix() {
