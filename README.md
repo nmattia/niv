@@ -351,10 +351,15 @@ Available options:
 #### Init
 
 ```
-Usage: niv init 
+Usage: niv init ([--no-nixpkgs] | [-b|--nixpkgs-branch ARG]
+                [--nixpkgs OWNER/REPO])
   Initialize a Nix project. Existing files won't be modified.
 
 Available options:
+  --no-nixpkgs             Don't add a nixpkgs entry to sources.json.
+  -b,--nixpkgs-branch ARG  The nixpkgs branch to use. (default: "release-19.09")
+  --nixpkgs OWNER/REPO     Use a custom nixpkgs repository from
+                           GitHub. (default: NixOS/nixpkgs-channels)
   -h,--help                Show this help text
 ```
 
