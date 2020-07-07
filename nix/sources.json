@@ -1,14 +1,14 @@
 {
     "nixpkgs": {
-        "branch": "nixos-19.09",
-        "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
-        "homepage": "https://github.com/NixOS/nixpkgs",
+        "branch": "release-20.03",
+        "description": "Nix Packages collection",
+        "homepage": null,
         "owner": "NixOS",
-        "repo": "nixpkgs-channels",
-        "rev": "d85e435b7bded2596d7b201bcd938c94d8a921c1",
-        "sha256": "1msjm4kx1z73v444i1iybvmc7z0kfkbn9nzr21rn5yc4ql1jwf99",
+        "repo": "nixpkgs",
+        "rev": "6f7e39c768442fce08646c3fbccacb2808baff66",
+        "sha256": "0mkf96prhb3rlxvcxhd8xa5kd56gfrakhriv2s0cir9w6cmrfzbp",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs-channels/archive/d85e435b7bded2596d7b201bcd938c94d8a921c1.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/6f7e39c768442fce08646c3fbccacb2808baff66.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs-fmt": {
