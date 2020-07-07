@@ -97,17 +97,58 @@ parsePackage = (,) <$> parsePackageName <*> (parsePackageSpec githubCmd)
 -- INIT
 -------------------------------------------------------------------------------
 
+-- | Whether or not to fetch nixpkgs
+data FetchNixpkgs
+  = NoNixpkgs
+  | YesNixpkgs T.Text Nixpkgs
+
+data Nixpkgs = Nixpkgs T.Text T.Text -- owner, repo
+
+instance Show Nixpkgs where
+  show (Nixpkgs o r) = T.unpack o <> "/" <> T.unpack r
+
+-- | The default nixpkgs
+defaultNixpkgsRepo, defaultNixpkgsUser :: T.Text
+defaultNixpkgsRepo = "nixpkgs-channels"
+defaultNixpkgsUser = "NixOS"
+
 parseCmdInit :: Opts.ParserInfo (NIO ())
-parseCmdInit = Opts.info (pure cmdInit <**> Opts.helper) $ mconcat desc
+parseCmdInit = Opts.info (cmdInit <$> parseNixpkgs <**> Opts.helper) $ mconcat desc
   where
+    customNixpkgsReader = Opts.maybeReader $ \(T.pack -> repo) -> case T.splitOn "/" repo of
+      [owner, reponame] -> Just (Nixpkgs owner reponame)
+      _ -> Nothing
+    parseNixpkgs =
+      Opts.flag' NoNixpkgs
+        (
+          Opts.long "no-nixpkgs" <>
+          Opts.help "Don't add a nixpkgs entry to sources.json."
+        ) <|>
+      (YesNixpkgs <$>
+        (Opts.strOption
+        (
+          Opts.long "nixpkgs-branch" <>
+          Opts.short 'b' <>
+          Opts.help "The nixpkgs branch to use." <>
+          Opts.showDefault <>
+          Opts.value "release-19.09"
+        )
+      ) <*> Opts.option customNixpkgsReader
+      (
+        Opts.long "nixpkgs" <>
+        Opts.showDefault <>
+        Opts.help "Use a custom nixpkgs repository from GitHub." <>
+        Opts.metavar "OWNER/REPO" <>
+        Opts.value (Nixpkgs "NixOS" "nixpkgs-channels")
+      ))
     desc =
       [ Opts.fullDesc
       , Opts.progDesc
           "Initialize a Nix project. Existing files won't be modified."
       ]
 
-cmdInit :: NIO ()
-cmdInit = do
+cmdInit :: FetchNixpkgs -> NIO ()
+cmdInit nixpkgs = do
     job "Initializing" $ do
       fsj <- getFindSourcesJson
 
@@ -134,14 +175,19 @@ cmdInit = do
                   , "repo" .= ("niv" :: T.Text)
                   ]
                 )
-              say "Importing 'nixpkgs' ..."
-              cmdAdd (updateCmd githubCmd) (PackageName "nixpkgs")
-                (specToFreeAttrs $ PackageSpec $ HMS.fromList
-                  [ "owner" .= ("NixOS" :: T.Text)
-                  , "repo" .= ("nixpkgs-channels" :: T.Text)
-                  , "branch" .= ("nixos-19.09" :: T.Text)
-                  ]
-                )
+              case nixpkgs of
+                NoNixpkgs -> say "Not importing 'nixpkgs'."
+                YesNixpkgs branch nixpkgs' -> do
+                  say "Importing 'nixpkgs' ..."
+                  let (owner, repo) =  case nixpkgs' of
+                        Nixpkgs o r -> (o,r)
+                  cmdAdd (updateCmd githubCmd) (PackageName "nixpkgs")
+                    (specToFreeAttrs $ PackageSpec $ HMS.fromList
+                      [ "owner" .= owner
+                      , "repo" .= repo
+                      , "branch" .= branch
+                      ]
+                    )
           , \path _content -> dontCreateFile path)
         ] $ \(path, onCreate, onUpdate) -> do
             exists <- li $ Dir.doesFileExist path
