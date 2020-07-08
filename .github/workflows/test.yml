@@ -15,5 +15,7 @@ jobs:
     - uses: './.github/actions/nix'
       with:
         CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
+    - name: "Check Haskell formatting"
+      run: ./script/fmt -c
     - name: "Run tests"
       run: ./script/test
