@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+###
+### fmt — find changed Haskell files and format them with ormolu
+###
+### Usage:
+###   fmt [-c] [-i]
+###
+### Options:
+###   -i        Format files inplace, will change files!
+###   -c        Only check formatting, don't change files
+###   -h        Print this message
+
+help() {
+    sed -rn 's/^### ?//;T;p' "$0"
+}
+
+fmt() {
+    command -v ormolu >/dev/null 2>&1 || {
+        echo >&2 "error: ormolu not found. run this in niv's nix-shell"
+        exit 1
+    }
+
+    merge_base=$(git merge-base HEAD origin/master)
+    changed_files=$(git diff --name-only $merge_base *.hs)
+
+    for f in ${changed_files[@]}
+    do
+        echo "checking: $f"
+        ormolu --mode $mode $f
+        if [[ ! $? -eq 0 ]] && [[ "$mode" == "check" ]]
+        # ormolu silently fails. let's print an error message so the user know's
+        # what's going on
+        then
+            echo "need fmt: $f"
+        fi
+    done
+    echo "all files checked for formatting"
+}
+
+while getopts "ich" arg; do
+    case $arg in
+        i)  mode="inplace" fmt
+            ;;
+        c)  mode="check" fmt
+            ;;
+        *)  help
+            exit
+            ;;
+    esac
+done
+
