@@ -107,13 +107,13 @@ initialized with niv and nixpkgs:
 ``` json
 {
     "nixpkgs": {
-        "url": "https://github.com/NixOS/nixpkgs-channels/archive/109a28ab954a0ad129f7621d468f829981b8b96c.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/109a28ab954a0ad129f7621d468f829981b8b96c.tar.gz",
         "owner": "NixOS",
         "branch": "nixos-19.09",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "nixpkgs-channels",
+        "repo": "nixpkgs",
         "sha256": "12wnxla7ld4cgpdndaipdh3j4zdalifk287ihxhnmrzrghjahs3q",
-        "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
+        "description": "Nix Packages collection",
         "rev": "109a28ab954a0ad129f7621d468f829981b8b96c"
     },
     "niv": {
@@ -237,7 +237,7 @@ Available commands:
 Examples:
 
   niv add stedolan/jq
-  niv add NixOS/nixpkgs-channels -n nixpkgs -b nixos-19.09
+  niv add NixOS/nixpkgs -n nixpkgs -b nixos-19.09
   niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
 
 Usage: niv add PACKAGE [-n|--name NAME] ([-a|--attribute KEY=VAL] |
