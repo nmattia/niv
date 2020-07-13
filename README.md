@@ -359,7 +359,7 @@ Available options:
   --no-nixpkgs             Don't add a nixpkgs entry to sources.json.
   -b,--nixpkgs-branch ARG  The nixpkgs branch to use. (default: "release-19.09")
   --nixpkgs OWNER/REPO     Use a custom nixpkgs repository from
-                           GitHub. (default: NixOS/nixpkgs-channels)
+                           GitHub. (default: NixOS/nixpkgs)
   -h,--help                Show this help text
 ```
 
