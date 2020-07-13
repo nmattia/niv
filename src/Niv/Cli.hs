@@ -109,7 +109,7 @@ instance Show Nixpkgs where
 
 -- | The default nixpkgs
 defaultNixpkgsRepo, defaultNixpkgsUser :: T.Text
-defaultNixpkgsRepo = "nixpkgs-channels"
+defaultNixpkgsRepo = "nixpkgs"
 defaultNixpkgsUser = "NixOS"
 
 parseCmdInit :: Opts.ParserInfo (NIO ())
@@ -139,7 +139,7 @@ parseCmdInit = Opts.info (cmdInit <$> parseNixpkgs <**> Opts.helper) $ mconcat d
         Opts.showDefault <>
         Opts.help "Use a custom nixpkgs repository from GitHub." <>
         Opts.metavar "OWNER/REPO" <>
-        Opts.value (Nixpkgs "NixOS" "nixpkgs-channels")
+        Opts.value (Nixpkgs defaultNixpkgsUser defaultNixpkgsRepo)
       ))
     desc =
       [ Opts.fullDesc
