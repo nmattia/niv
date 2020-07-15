@@ -212,7 +212,7 @@ $ niv update ghc -v 8.6.2
 ```
 niv - dependency manager for Nix projects
 
-version: 0.2.13
+version: 0.2.14
 
 Usage: niv [-s|--sources-file FILE] COMMAND
 
