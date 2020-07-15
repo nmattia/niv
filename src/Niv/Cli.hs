@@ -108,9 +108,10 @@ instance Show Nixpkgs where
   show (Nixpkgs o r) = T.unpack o <> "/" <> T.unpack r
 
 -- | The default nixpkgs
-defaultNixpkgsRepo, defaultNixpkgsUser :: T.Text
+defaultNixpkgsRepo, defaultNixpkgsUser, defaultNixpkgsBranch :: T.Text
 defaultNixpkgsRepo = "nixpkgs"
 defaultNixpkgsUser = "NixOS"
+defaultNixpkgsBranch = "release-19.09"
 
 parseCmdInit :: Opts.ParserInfo (NIO ())
 parseCmdInit = Opts.info (cmdInit <$> parseNixpkgs <**> Opts.helper) $ mconcat desc
@@ -131,7 +132,7 @@ parseCmdInit = Opts.info (cmdInit <$> parseNixpkgs <**> Opts.helper) $ mconcat d
           Opts.short 'b' <>
           Opts.help "The nixpkgs branch to use." <>
           Opts.showDefault <>
-          Opts.value "release-19.09"
+          Opts.value defaultNixpkgsBranch
         )
       ) <*> Opts.option customNixpkgsReader
       (
@@ -167,7 +168,7 @@ cmdInit nixpkgs = do
         , ( pathNixSourcesJson fsj
           , \path -> do
               createFile path initNixSourcesJsonContent
-              -- Imports @niv@ and @nixpkgs@ (19.09)
+              -- Imports @niv@ and @nixpkgs@
               say "Importing 'niv' ..."
               cmdAdd (updateCmd githubCmd) (PackageName "niv")
                 (specToFreeAttrs $ PackageSpec $ HMS.fromList

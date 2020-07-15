@@ -110,7 +110,7 @@ describeGitHub = mconcat
       "Examples:" Opts.<$$>
       "" Opts.<$$>
       "  niv add stedolan/jq" Opts.<$$>
-      "  niv add NixOS/nixpkgs -n nixpkgs -b nixos-19.09" Opts.<$$>
+      "  niv add NixOS/nixpkgs -n nixpkgs -b nixpkgs-unstable" Opts.<$$>
       "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
   ]
 

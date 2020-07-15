@@ -237,7 +237,7 @@ Available commands:
 Examples:
 
   niv add stedolan/jq
-  niv add NixOS/nixpkgs -n nixpkgs -b nixos-19.09
+  niv add NixOS/nixpkgs -n nixpkgs -b nixpkgs-unstable
   niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
 
 Usage: niv add PACKAGE [-n|--name NAME] ([-a|--attribute KEY=VAL] |
