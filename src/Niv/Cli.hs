@@ -111,7 +111,7 @@ instance Show Nixpkgs where
 defaultNixpkgsRepo, defaultNixpkgsUser, defaultNixpkgsBranch :: T.Text
 defaultNixpkgsRepo = "nixpkgs"
 defaultNixpkgsUser = "NixOS"
-defaultNixpkgsBranch = "release-19.09"
+defaultNixpkgsBranch = "release-20.03"
 
 parseCmdInit :: Opts.ParserInfo (NIO ())
 parseCmdInit = Opts.info (cmdInit <$> parseNixpkgs <**> Opts.helper) $ mconcat desc
