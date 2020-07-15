@@ -100,7 +100,7 @@ parsePackage = (,) <$> parsePackageName <*> (parsePackageSpec githubCmd)
 -- | Whether or not to fetch nixpkgs
 data FetchNixpkgs
   = NoNixpkgs
-  | YesNixpkgs T.Text Nixpkgs
+  | YesNixpkgs T.Text Nixpkgs -- branch, nixpkgs
 
 data Nixpkgs = Nixpkgs T.Text T.Text -- owner, repo
 
