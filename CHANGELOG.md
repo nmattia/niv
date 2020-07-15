@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.14] 2020-07-15
+## Added
+* `niv add local` for local sources.
+* Custom nixpkgs can be specified during `init`.
+## Changed
+* The derivation name for package `foo` is now `foo-src`.
+* The extension `.tgz` is considered as `.tar.gz`.
+* The default nixpkgs is `release-20.03`.
+* Nixpkgs is now pulled from `NixOS/nixpkgs`, not from channels.
+## Removed
+* The types `builtin-tarbal` and `builtin-url` were removed.
+
 ## [0.2.13] 2020-02-02
 ## Added
 * `niv modify -n NAME` to rename a package
