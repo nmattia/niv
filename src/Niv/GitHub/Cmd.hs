@@ -138,7 +138,7 @@ nixPrefetchURL unpack turl@(T.unpack -> url) = do
     (exitCode, sout, serr) <- runNixPrefetch
     case (exitCode, lines sout) of
       (ExitSuccess, l:_)  -> pure $ T.pack l
-      _ -> abortNixPrefetchExpectedOutput (T.pack sout) (T.pack serr)
+      _ -> abortNixPrefetchExpectedOutput (T.pack <$> args) (T.pack sout) (T.pack serr)
   where
     args = (if unpack then ["--unpack"] else []) <> [ url, "--name", sanitizeName basename]
     runNixPrefetch = readProcessWithExitCode "nix-prefetch-url" args ""
@@ -150,12 +150,12 @@ nixPrefetchURL unpack turl@(T.unpack -> url) = do
     -- (note: we assume they don't begin with a period)
     isOk = \c -> isAlphaNum c || T.any (c ==) "+-._?="
 
-abortNixPrefetchExpectedOutput :: T.Text -> T.Text -> IO a
-abortNixPrefetchExpectedOutput sout serr = abort $ [s|
+abortNixPrefetchExpectedOutput :: [T.Text] -> T.Text -> T.Text -> IO a
+abortNixPrefetchExpectedOutput args sout serr = abort $ [s|
 Could not read the output of 'nix-prefetch-url'. This is a bug. Please create a
 ticket:
 
   https://github.com/nmattia/niv/issues/new
 
 Thanks! I'll buy you a beer.
-|] <> T.unlines ["stdout: ", sout, "stderr: ", serr]
+|] <> T.unlines ["command: ", "nix-prefetch-url" <> T.unwords args, "stdout: ", sout, "stderr: ", serr]
