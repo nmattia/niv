@@ -521,7 +521,7 @@ cmdDrop packageName = \case
       li $ setSources fsj $ Sources $
         HMS.delete packageName sources
     attrs -> do
-      tsay $ "Dropping attributes :" <> T.intercalate " " attrs
+      tsay $ "Dropping attributes: " <> T.intercalate " " attrs
       tsay $ "In package: " <> unPackageName packageName
       fsj <- getFindSourcesJson
       sources <- unSources <$> li (getSources fsj)
