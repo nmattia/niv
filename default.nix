@@ -148,7 +148,7 @@ let
   niv-devshell = haskellPackages.shellFor {
     buildInputs = [
       pkgs.nixpkgs-fmt
-      pkgs.ormolu
+      pkgs.haskellPackages.ormolu
     ];
     packages = ps: [ ps.niv ];
     shellHook = ''

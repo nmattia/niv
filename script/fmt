@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 ###
-### fmt — find changed Haskell files and format them with ormolu
+### fmt - find changed Haskell files and format them with ormolu
 ###
 ### Usage:
-###   fmt [-c] [-i]
+###   fmt [-c]
 ###
 ### Options:
-###   -i        Format files inplace, will change files!
 ###   -c        Only check formatting, don't change files
 ###   -h        Print this message
 
