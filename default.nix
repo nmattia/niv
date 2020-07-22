@@ -2,8 +2,7 @@
 , pkgs ? import ./nix { inherit sources; }
 }:
 
-with rec
-{
+let
   files = pkgs.callPackage ./nix/files.nix {};
 
   sourceByRegex = name: src: regexes:
@@ -191,7 +190,7 @@ with rec
       echo "  ..."
     '';
   };
-};
+in
 rec
 {
   inherit niv niv-sdist niv-source niv-devshell niv-cabal-upload;
