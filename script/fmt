@@ -1,50 +1,56 @@
 #!/usr/bin/env bash
 ###
-### fmt - find changed Haskell files and format them with ormolu
+### fmt - Format Haskell files with Ormolu
 ###
 ### Usage:
-###   fmt [-c]
+###   fmt [-c|--check]
 ###
 ### Options:
-###   -c        Only check formatting, don't change files
-###   -h        Print this message
+###   -c,--check        Only check formatting, don't change files
+
+set -euo pipefail
 
 help() {
     sed -rn 's/^### ?//;T;p' "$0"
 }
 
 fmt() {
+    local mode="$1"
     command -v ormolu >/dev/null 2>&1 || {
         echo >&2 "error: ormolu not found. run this in niv's nix-shell"
         exit 1
     }
 
-    merge_base=$(git merge-base HEAD origin/master)
-    changed_files=$(git diff --name-only $merge_base *.hs)
-
-    for f in ${changed_files[@]}
+    needs_formatting=( )
+    for f in $(find . -name '*.hs')
     do
         echo "checking: $f"
-        ormolu --mode $mode $f
-        if [[ ! $? -eq 0 ]] && [[ "$mode" == "check" ]]
-        # ormolu silently fails. let's print an error message so the user know's
-        # what's going on
-        then
-            echo "need fmt: $f"
+        if ! ormolu --mode "$mode" "$f"; then
+            needs_formatting+=( "$f" )
         fi
     done
-    echo "all files checked for formatting"
+
+    if [ ${#needs_formatting[@]} -eq 0 ]; then
+        echo All files checked for formatting
+    else
+        echo The following files need formatting:
+        for i in "${needs_formatting[@]}"; do
+            echo " - $f"
+        done
+        if [ "$mode" == "check" ]; then
+            exit 1
+        fi
+    fi
 }
 
-while getopts "ich" arg; do
-    case $arg in
-        i)  mode="inplace" fmt
-            ;;
-        c)  mode="check" fmt
-            ;;
-        *)  help
-            exit
-            ;;
-    esac
-done
-
+if [ "$#" == "0" ]; then
+    fmt "inplace"
+elif [ "$1" == "-c" ] || [ "$1" == "--check" ]; then
+    fmt "check"
+elif [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    help
+    exit 0
+else
+    help
+    exit 1
+fi
