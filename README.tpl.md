@@ -294,3 +294,16 @@ netrc-file = /PATH/TO/.netrc
 GITHUB_TOKEN=$YOUR_GITHUB_TOKEN niv add ...
 ```
 
+### How do I import a subpath of a source?
+
+In order to use the directory `dir` of a `my-package`, use the following
+pattern:
+
+``` nix
+let
+  sources = import ./nix/sources.nix;
+in sources.my-package + "/dir"
+```
+
+where `sources.my-package` is the root directory, and `+ "/dir"` appends the
+subdirectory.
