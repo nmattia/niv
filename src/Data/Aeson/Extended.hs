@@ -11,7 +11,8 @@ import qualified Data.ByteString.Lazy as BL
 encodeFilePretty :: (ToJSON a) => FilePath -> a -> IO ()
 encodeFilePretty fp = BL.writeFile fp . AesonPretty.encodePretty' config
   where
-    config = AesonPretty.defConfig {
-      AesonPretty.confTrailingNewline = True,
-      AesonPretty.confCompare = compare
-    }
+    config =
+      AesonPretty.defConfig
+        { AesonPretty.confTrailingNewline = True,
+          AesonPretty.confCompare = compare
+        }

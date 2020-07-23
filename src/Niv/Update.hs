@@ -12,14 +12,14 @@ module Niv.Update where
 
 import Control.Applicative
 import Control.Arrow
-import Data.Aeson (FromJSON, ToJSON, Value)
-import Data.String
-import Niv.Logger
-import UnliftIO
 import qualified Control.Category as Cat
+import Data.Aeson (FromJSON, ToJSON, Value)
 import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HMS
+import Data.String
 import qualified Data.Text as T
+import Niv.Logger
+import UnliftIO
 
 type Attrs = HMS.HashMap T.Text (Freedom, Value)
 
@@ -34,27 +34,27 @@ data Update b c where
   Load :: T.Text -> Update () (Box Value)
   UseOrSet :: T.Text -> Update (Box Value) (Box Value)
   Update :: T.Text -> Update (Box Value) (Box Value)
-  Run :: (a -> IO b)  -> Update (Box a) (Box b)
+  Run :: (a -> IO b) -> Update (Box a) (Box b)
   Template :: Update (Box T.Text) (Box T.Text)
 
 instance ArrowZero Update where
-    zeroArrow = Zero
+  zeroArrow = Zero
 
 instance ArrowPlus Update where
-    (<+>) = Plus
+  (<+>) = Plus
 
 instance Arrow Update where
-    arr = Arr
-    first = First
+  arr = Arr
+  first = First
 
 instance Cat.Category Update where
-    id = Id
-    f . g = Compose (Compose' f g)
+  id = Id
+  f . g = Compose (Compose' f g)
 
 instance Show (Update b c) where
   show = \case
     Id -> "Id"
-    Compose (Compose' f g)-> "(" <> show f <> " . " <> show g <> ")"
+    Compose (Compose' f g) -> "(" <> show f <> " . " <> show g <> ")"
     Arr _f -> "Arr"
     First a -> "First " <> show a
     Zero -> "Zero"
@@ -83,10 +83,11 @@ runUpdate (boxAttrs -> attrs) a = runUpdate' attrs a >>= feed
       FailNoSuchKey k -> "Key could not be found: " <> k
       FailZero -> bug "A dead end was reached during evaluation."
       FailCheck -> "A check failed during update"
-      FailTemplate tpl keys -> T.unlines
-        [ "Could not render template " <> tpl
-        , "with keys: " <> T.intercalate ", " keys
-        ]
+      FailTemplate tpl keys ->
+        T.unlines
+          [ "Could not render template " <> tpl,
+            "with keys: " <> T.intercalate ", " keys
+          ]
 
 execUpdate :: Attrs -> Update () a -> IO a
 execUpdate attrs a = snd <$> runUpdate attrs a
@@ -104,41 +105,43 @@ data UpdateFailed
   | FailZero
   | FailCheck
   | FailTemplate T.Text [T.Text]
-  deriving Show
+  deriving (Show)
 
 data UpdateRes a b
   = UpdateReady (UpdateReady b)
   | UpdateNeedMore (a -> IO (UpdateReady b))
-  deriving Functor
+  deriving (Functor)
 
 data UpdateReady b
   = UpdateSuccess BoxedAttrs b
   | UpdateFailed UpdateFailed
-  deriving Functor
+  deriving (Functor)
 
 runBox :: Box a -> IO a
 runBox = boxOp
 
-data Box a = Box
-  { boxNew :: Bool
-    -- ^ Whether the value is new or was retrieved (or derived) from old
-    -- attributes
-  , boxOp :: IO a
-  }
-  deriving Functor
+data Box a
+  = Box
+      { -- | Whether the value is new or was retrieved (or derived) from old
+        -- attributes
+        boxNew :: Bool,
+        boxOp :: IO a
+      }
+  deriving (Functor)
 
 instance Applicative Box where
-  pure x = Box { boxNew = False, boxOp = pure x }
-  f <*> v = Box
-    { boxNew = (||) (boxNew f) (boxNew v)
-    , boxOp = boxOp f <*> boxOp v
-    }
+  pure x = Box {boxNew = False, boxOp = pure x}
+  f <*> v =
+    Box
+      { boxNew = (||) (boxNew f) (boxNew v),
+        boxOp = boxOp f <*> boxOp v
+      }
 
 instance Semigroup a => Semigroup (Box a) where
   (<>) = liftA2 (<>)
 
 instance IsString (Box T.Text) where
-  fromString str = Box { boxNew = False, boxOp = pure $ T.pack str }
+  fromString str = Box {boxNew = False, boxOp = pure $ T.pack str}
 
 type BoxedAttrs = HMS.HashMap T.Text (Freedom, Box Value)
 
@@ -146,12 +149,16 @@ unboxAttrs :: BoxedAttrs -> IO Attrs
 unboxAttrs = traverse (\(fr, v) -> (fr,) <$> runBox v)
 
 boxAttrs :: Attrs -> BoxedAttrs
-boxAttrs = fmap (\(fr, v) -> (fr,
-    case fr of
-      -- TODO: explain why hacky
-      Locked -> (pure v) { boxNew = True } -- XXX: somewhat hacky
-      Free -> pure v
-    ))
+boxAttrs =
+  fmap
+    ( \(fr, v) ->
+        ( fr,
+          case fr of
+            -- TODO: explain why hacky
+            Locked -> (pure v) {boxNew = True} -- XXX: somewhat hacky
+            Free -> pure v
+        )
+    )
 
 data Freedom
   = Locked
@@ -163,84 +170,94 @@ data Freedom
 -- In most cases I just picked the first implementation that compiled
 runUpdate' :: BoxedAttrs -> Update a b -> IO (UpdateRes a b)
 runUpdate' attrs = \case
-    Id -> pure $ UpdateNeedMore $ pure . UpdateSuccess attrs
-    Arr f -> pure $ UpdateNeedMore $ pure . UpdateSuccess attrs . f
-    Zero -> pure $ UpdateReady (UpdateFailed FailZero)
-    Plus l r -> runUpdate' attrs l >>= \case
-      UpdateReady (UpdateFailed{}) -> runUpdate' attrs r
-      UpdateReady (UpdateSuccess f v) -> pure $ UpdateReady (UpdateSuccess f v)
-      UpdateNeedMore next -> pure $ UpdateNeedMore $ \v -> next v >>= \case
-        UpdateSuccess f res -> pure $ UpdateSuccess f res
-        UpdateFailed {} -> runUpdate' attrs r >>= \case
-          UpdateReady res -> pure res
-          UpdateNeedMore next' -> next' v
-    Load k -> pure $ UpdateReady $ do
-      case HMS.lookup k attrs of
-        Just (_, v') -> UpdateSuccess attrs v'
-        Nothing -> UpdateFailed $ FailNoSuchKey k
-    First a -> do
-      runUpdate' attrs a >>= \case
-        UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
-        UpdateReady (UpdateSuccess fo ba) -> pure $ UpdateNeedMore $ \gtt -> do
-          pure $ UpdateSuccess fo (ba, snd gtt)
-        UpdateNeedMore next -> pure $ UpdateNeedMore $ \gtt -> do
-          next (fst gtt) >>= \case
-            UpdateFailed e -> pure $ UpdateFailed e
-            UpdateSuccess f res -> do
-              pure $ UpdateSuccess f (res, snd gtt)
-    Run act -> pure (UpdateNeedMore $ \gtt -> do
-      pure $ UpdateSuccess attrs $ Box (boxNew gtt) (act =<< runBox gtt))
-    Check ch -> pure (UpdateNeedMore $ \gtt -> do
-      v <- runBox gtt
-      if ch v
-      then pure $ UpdateSuccess attrs ()
-      else pure $ UpdateFailed FailCheck)
-    UseOrSet k -> pure $ case HMS.lookup k attrs of
-      Just (Locked, v) -> UpdateReady $ UpdateSuccess attrs v
-      Just (Free, v) -> UpdateReady $ UpdateSuccess attrs v
-      Nothing -> UpdateNeedMore $ \gtt -> do
-        let attrs' = HMS.singleton k (Locked, gtt) <> attrs
-        pure $ UpdateSuccess attrs' gtt
-    Update k -> pure $ case HMS.lookup k attrs of
-      Just (Locked, v) -> UpdateReady $ UpdateSuccess attrs v
-      Just (Free, v) -> UpdateNeedMore $ \gtt -> do
-        if (boxNew gtt)
+  Id -> pure $ UpdateNeedMore $ pure . UpdateSuccess attrs
+  Arr f -> pure $ UpdateNeedMore $ pure . UpdateSuccess attrs . f
+  Zero -> pure $ UpdateReady (UpdateFailed FailZero)
+  Plus l r -> runUpdate' attrs l >>= \case
+    UpdateReady (UpdateFailed {}) -> runUpdate' attrs r
+    UpdateReady (UpdateSuccess f v) -> pure $ UpdateReady (UpdateSuccess f v)
+    UpdateNeedMore next -> pure $ UpdateNeedMore $ \v -> next v >>= \case
+      UpdateSuccess f res -> pure $ UpdateSuccess f res
+      UpdateFailed {} -> runUpdate' attrs r >>= \case
+        UpdateReady res -> pure res
+        UpdateNeedMore next' -> next' v
+  Load k -> pure $ UpdateReady $ do
+    case HMS.lookup k attrs of
+      Just (_, v') -> UpdateSuccess attrs v'
+      Nothing -> UpdateFailed $ FailNoSuchKey k
+  First a -> do
+    runUpdate' attrs a >>= \case
+      UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
+      UpdateReady (UpdateSuccess fo ba) -> pure $ UpdateNeedMore $ \gtt -> do
+        pure $ UpdateSuccess fo (ba, snd gtt)
+      UpdateNeedMore next -> pure $ UpdateNeedMore $ \gtt -> do
+        next (fst gtt) >>= \case
+          UpdateFailed e -> pure $ UpdateFailed e
+          UpdateSuccess f res -> do
+            pure $ UpdateSuccess f (res, snd gtt)
+  Run act ->
+    pure
+      ( UpdateNeedMore $ \gtt -> do
+          pure $ UpdateSuccess attrs $ Box (boxNew gtt) (act =<< runBox gtt)
+      )
+  Check ch ->
+    pure
+      ( UpdateNeedMore $ \gtt -> do
+          v <- runBox gtt
+          if ch v
+            then pure $ UpdateSuccess attrs ()
+            else pure $ UpdateFailed FailCheck
+      )
+  UseOrSet k -> pure $ case HMS.lookup k attrs of
+    Just (Locked, v) -> UpdateReady $ UpdateSuccess attrs v
+    Just (Free, v) -> UpdateReady $ UpdateSuccess attrs v
+    Nothing -> UpdateNeedMore $ \gtt -> do
+      let attrs' = HMS.singleton k (Locked, gtt) <> attrs
+      pure $ UpdateSuccess attrs' gtt
+  Update k -> pure $ case HMS.lookup k attrs of
+    Just (Locked, v) -> UpdateReady $ UpdateSuccess attrs v
+    Just (Free, v) -> UpdateNeedMore $ \gtt -> do
+      if (boxNew gtt)
         then do
           v' <- boxOp v
           gtt' <- boxOp gtt
           -- Here we compare the old and new values, flagging the new one as
           -- "boxNew" iff they differ.
           -- TODO: generalize this to all boxes
-          let gtt'' = if v' /= gtt' then gtt { boxNew = True, boxOp = pure gtt' }
-                else gtt { boxNew = False, boxOp = pure gtt' }
+          let gtt'' =
+                if v' /= gtt'
+                  then gtt {boxNew = True, boxOp = pure gtt'}
+                  else gtt {boxNew = False, boxOp = pure gtt'}
           pure $ UpdateSuccess (HMS.insert k (Locked, gtt'') attrs) gtt''
         else do
           pure $ UpdateSuccess attrs v
-      Nothing -> UpdateNeedMore $ \gtt -> do
-        pure $ UpdateSuccess (HMS.insert k (Locked, gtt) attrs) gtt
-    Compose (Compose' f g) -> runUpdate' attrs g >>= \case
+    Nothing -> UpdateNeedMore $ \gtt -> do
+      pure $ UpdateSuccess (HMS.insert k (Locked, gtt) attrs) gtt
+  Compose (Compose' f g) -> runUpdate' attrs g >>= \case
+    UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
+    UpdateReady (UpdateSuccess attrs' act) -> runUpdate' attrs' f >>= \case
       UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
-      UpdateReady (UpdateSuccess attrs' act) -> runUpdate' attrs' f >>= \case
-        UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
-        UpdateReady (UpdateSuccess attrs'' act') -> pure $ UpdateReady $ UpdateSuccess attrs'' act'
-        UpdateNeedMore next -> UpdateReady <$> next act
-      UpdateNeedMore next -> pure $ UpdateNeedMore $ \gtt -> do
-        next gtt >>= \case
-          UpdateFailed e -> pure $ UpdateFailed e
-          UpdateSuccess attrs' act -> runUpdate' attrs' f >>= \case
-            UpdateReady ready -> pure ready
-            UpdateNeedMore next' -> next' act
-    Template -> pure $ UpdateNeedMore $ \v -> do
-      v' <- runBox v
-      case renderTemplate
-            (\k ->
-              ((decodeBox $ "When rendering template " <> v') . snd) <$>
-              HMS.lookup k attrs) v' of
-        Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
-        Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
+      UpdateReady (UpdateSuccess attrs'' act') -> pure $ UpdateReady $ UpdateSuccess attrs'' act'
+      UpdateNeedMore next -> UpdateReady <$> next act
+    UpdateNeedMore next -> pure $ UpdateNeedMore $ \gtt -> do
+      next gtt >>= \case
+        UpdateFailed e -> pure $ UpdateFailed e
+        UpdateSuccess attrs' act -> runUpdate' attrs' f >>= \case
+          UpdateReady ready -> pure ready
+          UpdateNeedMore next' -> next' act
+  Template -> pure $ UpdateNeedMore $ \v -> do
+    v' <- runBox v
+    case renderTemplate
+      ( \k ->
+          ((decodeBox $ "When rendering template " <> v') . snd)
+            <$> HMS.lookup k attrs
+      )
+      v' of
+      Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
+      Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
 
 decodeBox :: FromJSON a => T.Text -> Box Value -> Box a
-decodeBox msg v = v { boxOp = boxOp v >>= decodeValue msg }
+decodeBox msg v = v {boxOp = boxOp v >>= decodeValue msg}
 
 decodeValue :: FromJSON a => T.Text -> Value -> IO a
 decodeValue msg v = case Aeson.fromJSON v of
@@ -254,16 +271,16 @@ decodeValue msg v = case Aeson.fromJSON v of
 --  renderTemplate ("foo" -> "bar") "<baz>" -> pure Nothing
 renderTemplate :: (T.Text -> Maybe (Box T.Text)) -> T.Text -> Maybe (Box T.Text)
 renderTemplate vals = \case
-    (T.uncons -> Just ('<', str)) -> do
-      case T.span (/= '>') str of
-        (key, T.uncons -> Just ('>', rest)) -> do
-          let v = vals key
-          (liftA2 (<>) v) (renderTemplate vals rest)
-        _ -> Nothing
-    (T.uncons -> Just (c, str)) -> fmap (T.cons c) <$> renderTemplate vals str
-    (T.uncons -> Nothing) -> Just $ pure T.empty
-    -- XXX: isn't this redundant?
-    _ -> Just $ pure T.empty
+  (T.uncons -> Just ('<', str)) -> do
+    case T.span (/= '>') str of
+      (key, T.uncons -> Just ('>', rest)) -> do
+        let v = vals key
+        (liftA2 (<>) v) (renderTemplate vals rest)
+      _ -> Nothing
+  (T.uncons -> Just (c, str)) -> fmap (T.cons c) <$> renderTemplate vals str
+  (T.uncons -> Nothing) -> Just $ pure T.empty
+  -- XXX: isn't this redundant?
+  _ -> Just $ pure T.empty
 
 template :: Update (Box T.Text) (Box T.Text)
 template = Template
@@ -277,15 +294,15 @@ load k = Load k >>> arr (decodeBox $ "When loading key " <> k)
 -- TODO: should input really be Box?
 useOrSet :: JSON a => T.Text -> Update (Box a) (Box a)
 useOrSet k =
-    arr (fmap Aeson.toJSON) >>>
-    UseOrSet k >>>
-    arr (decodeBox $ "When trying to use or set key " <> k)
+  arr (fmap Aeson.toJSON)
+    >>> UseOrSet k
+    >>> arr (decodeBox $ "When trying to use or set key " <> k)
 
 update :: JSON a => T.Text -> Update (Box a) (Box a)
 update k =
-    arr (fmap Aeson.toJSON) >>>
-    Update k >>>
-    arr (decodeBox $ "When updating key " <> k)
+  arr (fmap Aeson.toJSON)
+    >>> Update k
+    >>> arr (decodeBox $ "When updating key " <> k)
 
 run :: (a -> IO b) -> Update (Box a) (Box b)
 run = Run
@@ -295,4 +312,4 @@ run' :: (a -> IO b) -> Update (Box a) (Box b)
 run' act = Run act >>> dirty
 
 dirty :: Update (Box a) (Box a)
-dirty = arr (\v -> v { boxNew = True })
+dirty = arr (\v -> v {boxNew = True})
