@@ -307,3 +307,16 @@ in sources.my-package + "/dir"
 
 in this example, `sources.my-package` becomes `my-package`'s root directory, and `+ "/dir"` appends the
 subdirectory.
+
+### How can I import NixOS modules?
+
+After the package containing the modules has been `niv add`ed, importing the
+modules is straightforward:
+
+``` nix
+let
+  sources = import ./nix/sources.nix;
+in {
+  imports = [ (sources.package + "/path/to/module") ];
+}
+```
