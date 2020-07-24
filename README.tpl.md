@@ -305,5 +305,5 @@ let
 in sources.my-package + "/dir"
 ```
 
-where `sources.my-package` is the root directory, and `+ "/dir"` appends the
+in this example, `sources.my-package` becomes `my-package`'s root directory, and `+ "/dir"` appends the
 subdirectory.
