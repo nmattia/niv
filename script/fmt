@@ -1,4 +1,9 @@
-#!/usr/bin/env bash
+#!/usr/bin/env nix-shell
+#!nix-shell -i bash
+#!nix-shell -I nixpkgs=./nix
+#!nix-shell -p ormolu
+#!nix-shell -p glibcLocales
+#!nix-shell --keep GITHUB_TOKEN
 ###
 ### fmt - Format Haskell files with Ormolu
 ###
@@ -40,6 +45,7 @@ fmt() {
         if [ "$mode" == "check" ]; then
             exit 1
         fi
+        echo "Please run ./script/fmt"
     fi
 }
 

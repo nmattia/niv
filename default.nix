@@ -198,6 +198,24 @@ rec
   tests-github = pkgs.callPackage ./tests/github { inherit niv; };
   tests-git = pkgs.callPackage ./tests/git { inherit niv; };
 
+  fmt-check =
+    pkgs.stdenv.mkDerivation
+      {
+        name = "fmt-check";
+        buildInputs = [ pkgs.ormolu pkgs.glibcLocales ];
+        src = niv-source;
+        phases = [ "unpackPhase" "checkPhase" ];
+        LANG = "en_US.UTF-8";
+        checkPhase = ''
+          cp ${./script/fmt} ./fmt
+          patchShebangs ./fmt
+          chmod +x fmt
+          bash fmt -c
+          touch $out
+        '';
+        doCheck = true;
+      };
+
   readme = pkgs.runCommand "README.md" { nativeBuildInputs = [ niv ]; }
     ''
       cp ${./README.tpl.md} $out
