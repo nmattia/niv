@@ -1,4 +1,5 @@
 {-# LANGUAGE Arrows #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -9,6 +10,7 @@ module Niv.Git.Cmd where
 
 import Control.Applicative
 import Control.Arrow
+import Control.Monad (unless, void)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.HashMap.Strict as HMS
@@ -23,6 +25,7 @@ import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import System.Exit (ExitCode (ExitSuccess))
 import System.Process (readProcessWithExitCode)
+import UnliftIO
 
 gitCmd :: Cmd
 gitCmd =
@@ -141,54 +144,37 @@ gitUpdate latestRev' defaultRefAndHEAD' = proc () -> do
 gitUpdate' :: Update () ()
 gitUpdate' = gitUpdate latestRev defaultRefAndHEAD
 
-latestRev ::
-  -- | the repository
-  T.Text ->
-  -- | the ref/branch
-  T.Text ->
-  IO T.Text
-latestRev repo ref = do
-  let gitArgs = ["ls-remote", repo, "refs/heads/" <> ref]
-  sout <- runGit gitArgs
-  case sout of
-    ls@(_ : _ : _) -> abortTooMuchOutput gitArgs ls
-    (l1 : []) -> parseRev gitArgs l1
-    [] -> abortNoOutput gitArgs
+-- TODO: document the git operations
+latestRevInfo :: T.Text -> Maybe T.Text -> IO (T.Text, T.Text)
+latestRevInfo repo mref = runGits $ \git -> do
+  void $ git ["init"]
+  void $ git ["remote", "add", "origin", repo]
+  ref <- maybe (git ["remote", "show", "origin"] >>= findRef) pure mref
+  void $ git ["fetch", "origin", ref, "--depth", "1"]
+  void $ git ["checkout", ref]
+  git ["show", "--quiet", "--format=%H%n%aD", ref] >>= \case
+    [] -> abort "Git did not produce enough output while reading commit information"
+    [rev, _date] -> do
+      unless (isRev rev) $ do
+        abort $ "The revision retrieved from git does not look like a revision: '" <> rev <> "'."
+      pure (ref, rev)
+    output ->
+      abort $ T.unlines $
+        ["Git produced too much output while reading commit information:"] <> output
   where
-    parseRev args l = maybe (abortNoRev args l) pure $ do
-      checkRev $ T.takeWhile (/= '\t') l
-    checkRev t = if isRev t then Just t else Nothing
-    abortNoOutput args =
-      abortGitFailure
-        args
-        "Git didn't produce any output."
-    abortTooMuchOutput args ls =
-      abortGitFailure args $ T.unlines $
-        ["Git produced too much output:"] <> map ("  " <>) ls
+    findRef ls = case listToMaybe $ mapMaybe (T.stripPrefix "HEAD branch:" . T.strip) ls of
+      Just l -> pure (T.strip l)
+      Nothing -> abort $ T.unlines $ ["could not parse default ref: "] <> ls
 
+latestRev :: T.Text -> T.Text -> IO T.Text
+latestRev repo ref = snd <$> latestRevInfo repo (Just ref)
+
+-- TODO: test this
 defaultRefAndHEAD ::
   -- | the repository
   T.Text ->
   IO (T.Text, T.Text)
-defaultRefAndHEAD repo = do
-  sout <- runGit args
-  case sout of
-    (l1 : l2 : _) -> (,) <$> parseRef l1 <*> parseRev l2
-    _ ->
-      abortGitFailure args $ T.unlines $
-        [ "Could not read reference and revision from stdout:"
-        ]
-          <> sout
-  where
-    args = ["ls-remote", "--symref", repo, "HEAD"]
-    parseRef l = maybe (abortNoRef args l) pure $ do
-      -- ref: refs/head/master\tHEAD -> master\tHEAD
-      refAndSym <- T.stripPrefix "ref: refs/heads/" l
-      let ref = T.takeWhile (/= '\t') refAndSym
-      if T.null ref then Nothing else Just ref
-    parseRev l = maybe (abortNoRev args l) pure $ do
-      checkRev $ T.takeWhile (/= '\t') l
-    checkRev t = if isRev t then Just t else Nothing
+defaultRefAndHEAD repo = latestRevInfo repo Nothing
 
 abortNoRev :: [T.Text] -> T.Text -> IO a
 abortNoRev args l = abortGitFailure args $ "Could not read revision from: " <> l
@@ -209,6 +195,22 @@ runGit args = do
             T.unwords ["stderr:", T.pack serr]
           ]
 
+runGits :: (([T.Text] -> IO [T.Text]) -> IO a) -> IO a
+runGits act = withSystemTempDirectory "niv" $ \f -> do
+  past <- newIORef []
+  let runGit' args = do
+        atomicModifyIORef past (\past' -> (past' <> [args], ()))
+        runGit ("-C" : T.pack f : args)
+  tryAny (act runGit') >>= \case
+    Left e -> do
+      past' <- readIORef past
+      abort $ bug $ T.unlines $
+        [ "An error happened while executing the following git commands in the niv checkout '" <> T.pack f <> "':"
+        ]
+          <> (map (\cmd -> T.intercalate " " ("  git" : cmd)) past')
+          <> [tshow e]
+    Right a -> pure a
+
 isRev :: T.Text -> Bool
 isRev t =
   -- commit hashes are comprised of abcdef0123456789
@@ -219,7 +221,7 @@ isRev t =
 
 abortGitFailure :: [T.Text] -> T.Text -> IO a
 abortGitFailure args msg =
-  abort $ bug $
+  abort $
     T.unlines
       [ "Could not read the output of 'git'.",
         T.unwords ("command:" : "git" : args),
