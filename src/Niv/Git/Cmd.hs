@@ -155,8 +155,7 @@ latestRevInfo repo mref = runGits $ \git -> do
   void $ git ["remote", "add", "origin", repo]
   ref <- maybe (git ["remote", "show", "origin"] >>= findRef) pure mref
   void $ git ["fetch", "origin", ref, "--depth", "1"]
-  void $ git ["checkout", ref]
-  git ["show", "--quiet", "--format=%H%n%aD", ref] >>= \case
+  git ["show", "--quiet", "--format=%H%n%aD", "origin/" <> ref] >>= \case
     [] -> abort "Git did not produce enough output while reading commit information"
     [rev, dte] -> do
       unless (isRev rev) $ do
