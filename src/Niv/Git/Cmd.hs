@@ -118,11 +118,13 @@ describeGit =
           Opts.<$$> "  niv add git --repo /my/custom/repo --name custom --ref foobar"
     ]
 
+data CommitInfo = CommitInfo {revision :: T.Text, date :: T.Text}
+
 gitUpdate ::
   -- | latest rev
-  (T.Text -> T.Text -> IO T.Text) ->
+  (T.Text -> T.Text -> IO CommitInfo) ->
   -- | latest rev and default ref
-  (T.Text -> IO (T.Text, T.Text)) ->
+  (T.Text -> IO (T.Text, CommitInfo)) ->
   Update () ()
 gitUpdate latestRev' defaultRefAndHEAD' = proc () -> do
   useOrSet "type" -< ("git" :: Box T.Text)
@@ -132,12 +134,14 @@ gitUpdate latestRev' defaultRefAndHEAD' = proc () -> do
     discoverRefAndRev = proc repository -> do
       refAndRev <- run defaultRefAndHEAD' -< repository
       update "ref" -< fst <$> refAndRev
-      update "rev" -< snd <$> refAndRev
+      update "rev" -< (revision . snd) <$> refAndRev
+      update "date" -< (date . snd) <$> refAndRev
       returnA -< ()
     discoverRev = proc repository -> do
       ref <- load "ref" -< ()
       rev <- run' (uncurry latestRev') -< (,) <$> repository <*> ref
-      update "rev" -< rev
+      update "rev" -< revision <$> rev
+      update "date" -< date <$> rev
       returnA -< ()
 
 -- | The "real" (IO) update
@@ -145,7 +149,7 @@ gitUpdate' :: Update () ()
 gitUpdate' = gitUpdate latestRev defaultRefAndHEAD
 
 -- TODO: document the git operations
-latestRevInfo :: T.Text -> Maybe T.Text -> IO (T.Text, T.Text)
+latestRevInfo :: T.Text -> Maybe T.Text -> IO (T.Text, CommitInfo)
 latestRevInfo repo mref = runGits $ \git -> do
   void $ git ["init"]
   void $ git ["remote", "add", "origin", repo]
@@ -154,10 +158,10 @@ latestRevInfo repo mref = runGits $ \git -> do
   void $ git ["checkout", ref]
   git ["show", "--quiet", "--format=%H%n%aD", ref] >>= \case
     [] -> abort "Git did not produce enough output while reading commit information"
-    [rev, _date] -> do
+    [rev, dte] -> do
       unless (isRev rev) $ do
         abort $ "The revision retrieved from git does not look like a revision: '" <> rev <> "'."
-      pure (ref, rev)
+      pure (ref, CommitInfo {revision = rev, date = dte})
     output ->
       abort $ T.unlines $
         ["Git produced too much output while reading commit information:"] <> output
@@ -166,14 +170,14 @@ latestRevInfo repo mref = runGits $ \git -> do
       Just l -> pure (T.strip l)
       Nothing -> abort $ T.unlines $ ["could not parse default ref: "] <> ls
 
-latestRev :: T.Text -> T.Text -> IO T.Text
+latestRev :: T.Text -> T.Text -> IO CommitInfo
 latestRev repo ref = snd <$> latestRevInfo repo (Just ref)
 
 -- TODO: test this
 defaultRefAndHEAD ::
   -- | the repository
   T.Text ->
-  IO (T.Text, T.Text)
+  IO (T.Text, CommitInfo)
 defaultRefAndHEAD repo = latestRevInfo repo Nothing
 
 abortNoRev :: [T.Text] -> T.Text -> IO a
