@@ -9,6 +9,7 @@ where
 import Control.Monad
 import Data.Bifunctor
 import qualified Data.HashMap.Strict as HMS
+import Data.IORef
 import Niv.Git.Cmd
 import Niv.Sources
 import Niv.Update
@@ -49,7 +50,8 @@ test_gitUpdates :: Tasty.TestTree
 test_gitUpdates =
   Tasty.testGroup
     "updates"
-    [ Tasty.testCase "rev is updated" test_gitUpdateRev
+    [ Tasty.testCase "rev is updated" test_gitUpdateRev,
+      Tasty.testCase "git is called once" test_gitCalledOnce
     ]
 
 test_gitUpdateRev :: IO ()
@@ -59,6 +61,56 @@ test_gitUpdateRev = do
   let interState' = HMS.map (first (\_ -> Free)) interState
   actualState <- evalUpdate interState' $ proc () ->
     gitUpdate latestRev' (error "should update") -< ()
+  unless ((snd <$> actualState) == expectedState)
+    $ error
+    $ "State mismatch: " <> show actualState
+  where
+    latestRev' _ _ = pure "some-other-rev"
+    defaultRefAndHEAD' _ = pure ("some-ref", "some-rev")
+    initialState =
+      HMS.fromList
+        [("repo", (Free, "git@github.com:nmattia/niv"))]
+    expectedState =
+      HMS.fromList
+        [ ("repo", "git@github.com:nmattia/niv"),
+          ("ref", "some-ref"),
+          ("rev", "some-other-rev"),
+          ("type", "git")
+        ]
+
+once1 :: (b -> IO a) -> IO (b -> IO a)
+once1 f = do
+  used <- newIORef False
+  pure $ \x -> do
+    used' <- readIORef used
+    if used'
+      then error "already used"
+      else do
+        writeIORef used True
+        f x
+
+once2 :: (a -> b -> IO c) -> IO (a -> b -> IO c)
+once2 f = do
+  used <- newIORef False
+  pure $ \x y -> do
+    used' <- readIORef used
+    if used'
+      then error "already used"
+      else do
+        writeIORef used True
+        f x y
+
+-- | This tests that we don't run the same git operations several times during
+-- the update
+test_gitCalledOnce :: IO ()
+test_gitCalledOnce = do
+  defaultRefAndHEAD'' <- once1 defaultRefAndHEAD'
+  latestRev'' <- once2 latestRev'
+  interState <- evalUpdate initialState $ proc () ->
+    gitUpdate (error "should be def") defaultRefAndHEAD'' -< ()
+  let interState' = HMS.map (first (\_ -> Free)) interState
+  actualState <- evalUpdate interState' $ proc () ->
+    gitUpdate latestRev'' (error "should update") -< ()
   unless ((snd <$> actualState) == expectedState)
     $ error
     $ "State mismatch: " <> show actualState

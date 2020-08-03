@@ -70,7 +70,7 @@ data Compose a c = forall b. Compose' (Update b c) (Update a b)
 
 -- | Run an 'Update' and return the new attributes and result.
 runUpdate :: Attrs -> Update () a -> IO (Attrs, a)
-runUpdate (boxAttrs -> attrs) a = runUpdate' attrs a >>= feed
+runUpdate (attrs) a = boxAttrs attrs >>= flip runUpdate' a >>= feed
   where
     feed = \case
       UpdateReady res -> hndl res
@@ -129,6 +129,19 @@ data Box a
       }
   deriving (Functor)
 
+mkBox :: Box a -> IO (Box a)
+mkBox b = do
+  mvar <- newMVar Nothing
+  pure b {boxOp = singleton mvar (boxOp b)}
+
+singleton :: MVar (Maybe a) -> IO a -> IO a
+singleton mvar def = do
+  modifyMVar mvar $ \case
+    Just a -> pure (Just a, a)
+    Nothing -> do
+      a <- def
+      pure (Just a, a)
+
 instance Applicative Box where
   pure x = Box {boxNew = False, boxOp = pure x}
   f <*> v =
@@ -148,16 +161,18 @@ type BoxedAttrs = HMS.HashMap T.Text (Freedom, Box Value)
 unboxAttrs :: BoxedAttrs -> IO Attrs
 unboxAttrs = traverse (\(fr, v) -> (fr,) <$> runBox v)
 
-boxAttrs :: Attrs -> BoxedAttrs
+boxAttrs :: Attrs -> IO BoxedAttrs
 boxAttrs =
-  fmap
-    ( \(fr, v) ->
-        ( fr,
-          case fr of
-            -- TODO: explain why hacky
-            Locked -> (pure v) {boxNew = True} -- XXX: somewhat hacky
-            Free -> pure v
-        )
+  mapM
+    ( \(fr, v) -> do
+        box <- mkBox (pure v)
+        pure
+          ( fr,
+            case fr of
+              -- TODO: explain why hacky
+              Locked -> box {boxNew = True} -- XXX: somewhat hacky
+              Free -> box
+          )
     )
 
 data Freedom
@@ -198,7 +213,8 @@ runUpdate' attrs = \case
   Run act ->
     pure
       ( UpdateNeedMore $ \gtt -> do
-          pure $ UpdateSuccess attrs $ Box (boxNew gtt) (act =<< runBox gtt)
+          box <- mkBox $ Box (boxNew gtt) (act =<< runBox gtt)
+          pure $ UpdateSuccess attrs box
       )
   Check ch ->
     pure
