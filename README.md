@@ -383,7 +383,12 @@ Available options:
 
 ## Frequently Asked Questions
 
-### Can you use private GitHub repositories?
+* [Can I use private GitHub repositories?](#can-i-use-private-github-repositories)
+* [How do I import a subpath of a source?](#how-do-i-import-a-subpath-of-a-source)
+* [How do I import NixOS modules](#how-do-i-import-nixos-modules)
+* [Can I use local packages?](#can-i-use-local-packages)
+
+### Can I use private GitHub repositories?
 
 Yes. There are two ways:
 
@@ -431,7 +436,7 @@ in sources.my-package + "/dir"
 in this example, `sources.my-package` becomes `my-package`'s root directory, and `+ "/dir"` appends the
 subdirectory.
 
-### How can I import NixOS modules?
+### How do I import NixOS modules?
 
 After the package containing the modules has been `niv add`ed, importing the
 modules is straightforward:
@@ -443,3 +448,17 @@ in {
   imports = [ (sources.package + "/path/to/module") ];
 }
 ```
+
+### Can I use local packages?
+
+If you need to use a local path as a source -- especially convenient when
+modifying dependencies -- `niv` allows you to override the `sources.json` via
+environment variables. To override a source `foo` with a local path
+`./bar/baz`, set the environment variable `NIV_OVERRIDE_foo` to `./bar/baz`.
+
+Generally, if the environment variable `NIV_OVERRIDE_<name>` is set _and_ you
+have a source named `<name>` then `niv` will use the value of
+`NIV_OVERRIDE_<name>` as the `outPath` of that source. All non-alphanumeric
+characters in the source name are escaped to the character `_`; i.e. to
+override the package `my package-foo` you need to set the environment variable
+`NIV_OVERRIDE_my_package_foo`.
