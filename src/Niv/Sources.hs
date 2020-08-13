@@ -162,6 +162,8 @@ data SourcesNixVersion
     V18
   | -- add NIV_OVERRIDE_{name}
     V19
+  | -- can be imported when there's no sources.json
+    V20
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -186,6 +188,7 @@ sourcesVersionToText = \case
   V17 -> "17"
   V18 -> "18"
   V19 -> "19"
+  V20 -> "20"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -217,6 +220,7 @@ sourcesVersionToMD5 = \case
   V17 -> "149b8907f7b08dc1c28164dfa55c7fad"
   V18 -> "bc5e6aefcaa6f9e0b2155ca4f44e5a33"
   V19 -> "543621698065cfc6a4a7985af76df718"
+  V20 -> "ab4263aa63ccf44b4e1510149ce14eff"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text

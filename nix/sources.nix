@@ -133,8 +133,8 @@ let
 
   # The "config" used by the fetchers
   mkConfig =
-    { sourcesFile ? ./sources.json
-    , sources ? builtins.fromJSON (builtins.readFile sourcesFile)
+    { sourcesFile ? if builtins.pathExists ./sources.json then ./sources.json else null
+    , sources ? if isNull sourcesFile then {} else builtins.fromJSON (builtins.readFile sourcesFile)
     , pkgs ? mkPkgs sources
     }: rec {
       # The sources, i.e. the attribute set of spec name to spec
