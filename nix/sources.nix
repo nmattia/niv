@@ -73,6 +73,15 @@ let
     else
       abort "ERROR: niv spec ${name} has unknown type ${builtins.toJSON spec.type}";
 
+  # If the environment variable NIV_OVERRIDE_${name} is set, then use
+  # the path directly as opposed to the fetched source.
+  replace = name: drv:
+    let
+      saneName = stringAsChars (c: if isNull (builtins.match "[a-zA-Z0-9]" c) then "_" else c) name;
+      ersatz = builtins.getEnv "NIV_OVERRIDE_${saneName}";
+    in
+      if ersatz == "" then drv else ersatz;
+
   # Ports of functions for older nix versions
 
   # a Nix version of mapAttrs if the built-in doesn't exist
@@ -119,7 +128,7 @@ let
         then abort
           "The values in sources.json should not have an 'outPath' attribute"
         else
-          spec // { outPath = fetch config.pkgs name spec; }
+          spec // { outPath = replace name (fetch config.pkgs name spec); }
     ) config.sources;
 
   # The "config" used by the fetchers
@@ -134,5 +143,6 @@ let
       # The "pkgs" (evaluated nixpkgs) to use for e.g. non-builtin fetchers
       inherit pkgs;
     };
+
 in
 mkSources (mkConfig {}) // { __functor = _: settings: mkSources (mkConfig settings); }
