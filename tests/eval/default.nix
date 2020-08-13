@@ -41,5 +41,17 @@ pkgs.runCommand "foobar" { nativeBuildInputs = [ pkgs.jq pkgs.nix pkgs.moreutils
     res="$(NIV_OVERRIDE_ba_z="hello" eval_outPath '"ba z"')"
     eq "$res" "hello"
 
+    mkdir other
+    mv sources.json other
+
+    # Here we test that sources.nix can be imported even if there is no
+    # sources.json in the same directory
+    eval_outPath() {
+      nix eval --raw '(let sources = import ./sources.nix { sourcesFile = ./other/sources.json; } ; in sources.'"$1"'.outPath)'
+    }
+
+    res="$(NIV_OVERRIDE_foo="hello" eval_outPath "foo")"
+    eq "$res" "hello"
+
     touch "$out"
   ''
