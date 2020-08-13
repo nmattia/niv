@@ -160,6 +160,8 @@ data SourcesNixVersion
   | -- prettify derivation name
     -- add 'local' type of sources
     V18
+  | -- add NIV_OVERRIDE_{name}
+    V19
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -183,6 +185,7 @@ sourcesVersionToText = \case
   V16 -> "16"
   V17 -> "17"
   V18 -> "18"
+  V19 -> "19"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -213,6 +216,7 @@ sourcesVersionToMD5 = \case
   V16 -> "2d93c52cab8e960e767a79af05ca572a"
   V17 -> "149b8907f7b08dc1c28164dfa55c7fad"
   V18 -> "bc5e6aefcaa6f9e0b2155ca4f44e5a33"
+  V19 -> "543621698065cfc6a4a7985af76df718"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text

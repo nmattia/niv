@@ -197,6 +197,7 @@ rec
 
   tests-github = pkgs.callPackage ./tests/github { inherit niv; };
   tests-git = pkgs.callPackage ./tests/git { inherit niv; };
+  tests-eval = pkgs.callPackage ./tests/eval {};
 
   fmt-check =
     pkgs.stdenv.mkDerivation
