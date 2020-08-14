@@ -65,8 +65,10 @@ test_gitUpdateRev = do
     $ error
     $ "State mismatch: " <> show actualState
   where
-    latestRev' _ _ = pure "some-other-rev"
-    defaultRefAndHEAD' _ = pure ("some-ref", "some-rev")
+    latestRev' _ _ = pure someOtherCommit
+    someCommit = CommitInfo {revision = "some-rev", date = "some-date"}
+    someOtherCommit = CommitInfo {revision = "some-other-rev", date = "some-other-date"}
+    defaultRefAndHEAD' _ = pure ("some-ref", someCommit)
     initialState =
       HMS.fromList
         [("repo", (Free, "git@github.com:nmattia/niv"))]
@@ -75,6 +77,7 @@ test_gitUpdateRev = do
         [ ("repo", "git@github.com:nmattia/niv"),
           ("ref", "some-ref"),
           ("rev", "some-other-rev"),
+          ("date", "some-other-date"),
           ("type", "git")
         ]
 
@@ -115,8 +118,10 @@ test_gitCalledOnce = do
     $ error
     $ "State mismatch: " <> show actualState
   where
-    latestRev' _ _ = pure "some-other-rev"
-    defaultRefAndHEAD' _ = pure ("some-ref", "some-rev")
+    latestRev' _ _ = pure someOtherCommit
+    someCommit = CommitInfo {revision = "some-rev", date = "some-date"}
+    someOtherCommit = CommitInfo {revision = "some-other-rev", date = "some-other-date"}
+    defaultRefAndHEAD' _ = pure ("some-ref", someCommit)
     initialState =
       HMS.fromList
         [("repo", (Free, "git@github.com:nmattia/niv"))]
@@ -125,5 +130,6 @@ test_gitCalledOnce = do
         [ ("repo", "git@github.com:nmattia/niv"),
           ("ref", "some-ref"),
           ("rev", "some-other-rev"),
+          ("date", "some-other-date"),
           ("type", "git")
         ]
