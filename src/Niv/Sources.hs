@@ -164,6 +164,8 @@ data SourcesNixVersion
     V19
   | -- can be imported when there's no sources.json
     V20
+  | -- Use the source name in fetchurl
+    V21
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -189,6 +191,7 @@ sourcesVersionToText = \case
   V18 -> "18"
   V19 -> "19"
   V20 -> "20"
+  V21 -> "21"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -221,6 +224,7 @@ sourcesVersionToMD5 = \case
   V18 -> "bc5e6aefcaa6f9e0b2155ca4f44e5a33"
   V19 -> "543621698065cfc6a4a7985af76df718"
   V20 -> "ab4263aa63ccf44b4e1510149ce14eff"
+  V21 -> "0b888c92e69629dd954f485bfb4a58ed"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text
