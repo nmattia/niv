@@ -40,7 +40,7 @@ let
     };
 in
 
-mkTest "simple-eval" ''
+mkTest "niv-override-eval" ''
 
         update_sources '.foo = { type: "tarball", url: "foo", sha256: "whocares" }'
         update_sources '."ba-r" = { type: "tarball", url: "foo", sha256: "whocares" }'
@@ -70,4 +70,17 @@ mkTest "simple-eval" ''
 
     res="$(NIV_OVERRIDE_foo="hello" eval_outPath "foo")"
     eq "$res" "hello"
+  ''
+
+// mkTest "sanitize-source-name"
+  ''
+    file=$(mktemp -d)/foo%%.bar
+    touch "$file"
+    sha=$(nix-hash --type sha256 --flat $file)
+    url="file://$file"
+
+    update_sources '.foo = { type: "file", url: $url, sha256: $sha}' --arg url "$url" --arg sha "$sha"
+
+    # we don't need to check the result, we just make sure this evaluates
+    eval_outPath "foo"
   ''
