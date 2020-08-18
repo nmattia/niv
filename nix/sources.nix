@@ -6,17 +6,18 @@ let
   # The fetchers. fetch_<type> fetches specs of type <type>.
   #
 
-  fetch_file = pkgs: spec:
-    if spec.builtin or true then
-      builtins_fetchurl { inherit (spec) url sha256; }
-    else
-      pkgs.fetchurl { inherit (spec) url sha256; };
+  fetch_file = pkgs: name: spec:
+    let
+      name' = sanitizeName name;
+    in
+      if spec.builtin or true then
+        builtins_fetchurl { inherit (spec) url sha256; name = name'; }
+      else
+        pkgs.fetchurl { inherit (spec) url sha256; name = name'; };
 
   fetch_tarball = pkgs: name: spec:
     let
-      ok = str: ! builtins.isNull (builtins.match "[a-zA-Z0-9+-._?=]" str);
-      # sanitize the name, though nix will still fail if name starts with period
-      name' = stringAsChars (x: if ! ok x then "-" else x) "${name}-src";
+      name' = sanitizeName name;
     in
       if spec.builtin or true then
         builtins_fetchTarball { name = name'; inherit (spec) url sha256; }
@@ -39,6 +40,14 @@ let
   #
   # Various helpers
   #
+
+  # sanitize the name, though nix will still fail if name starts with period
+  sanitizeName = name:
+    let
+      ok = str: ! builtins.isNull (builtins.match "[a-zA-Z0-9+-._?=]" str);
+    in
+      stringAsChars (x: if ! ok x then "-" else x) "${name}-src";
+
 
   # The set of packages used when specs are fetched using non-builtins.
   mkPkgs = sources:
@@ -64,7 +73,7 @@ let
 
     if ! builtins.hasAttr "type" spec then
       abort "ERROR: niv spec ${name} does not have a 'type' attribute"
-    else if spec.type == "file" then fetch_file pkgs spec
+    else if spec.type == "file" then fetch_file pkgs name spec
     else if spec.type == "tarball" then fetch_tarball pkgs name spec
     else if spec.type == "git" then fetch_git spec
     else if spec.type == "local" then fetch_local spec
@@ -100,23 +109,26 @@ let
   stringAsChars = f: s: concatStrings (map f (stringToCharacters s));
   concatStrings = builtins.concatStringsSep "";
 
+  # https://github.com/NixOS/nixpkgs/blob/8a9f58a375c401b96da862d969f66429def1d118/lib/attrsets.nix#L331
+  optionalAttrs = cond: as: if cond then as else {};
+
   # fetchTarball version that is compatible between all the versions of Nix
-  builtins_fetchTarball = { url, name, sha256 }@attrs:
+  builtins_fetchTarball = { url, name ? null, sha256 }@attrs:
     let
       inherit (builtins) lessThan nixVersion fetchTarball;
     in
       if lessThan nixVersion "1.12" then
-        fetchTarball { inherit name url; }
+        fetchTarball ({ inherit url; } // (optionalAttrs (!isNull name) { inherit name; }))
       else
         fetchTarball attrs;
 
   # fetchurl version that is compatible between all the versions of Nix
-  builtins_fetchurl = { url, sha256 }@attrs:
+  builtins_fetchurl = { url, name ? null, sha256 }@attrs:
     let
       inherit (builtins) lessThan nixVersion fetchurl;
     in
       if lessThan nixVersion "1.12" then
-        fetchurl { inherit url; }
+        fetchurl ({ inherit url; } // (optionalAttrs (!isNull name) { inherit name; }))
       else
         fetchurl attrs;
 
