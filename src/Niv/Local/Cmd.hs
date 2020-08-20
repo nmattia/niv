@@ -27,7 +27,8 @@ localCmd =
       updateCmd = proc () -> do
         useOrSet "type" -< ("local" :: Box T.Text)
         returnA -< (),
-      name = "local"
+      name = "local",
+      extraLogs = const []
     }
 
 parseLocalShortcut :: T.Text -> Maybe (PackageName, Aeson.Object)

@@ -242,9 +242,9 @@ warnIfOutdated :: IO ()
 warnIfOutdated = do
   tryAny (BL8.readFile pathNixSourcesNix) >>= \case
     Left e ->
-      tsay $
-        T.unlines -- warn with tsay
-          [ T.unwords [tyellow "WARNING:", "Could not read", T.pack pathNixSourcesNix],
+      twarn $
+        T.unlines
+          [ T.unwords ["Could not read", T.pack pathNixSourcesNix],
             T.unwords ["  ", "(", tshow e, ")"]
           ]
     Right content -> do

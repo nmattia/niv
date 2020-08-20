@@ -15,5 +15,7 @@ data Cmd
         parseCmdShortcut :: T.Text -> Maybe (PackageName, Aeson.Object),
         parsePackageSpec :: Opts.Parser PackageSpec,
         updateCmd :: Update () (),
-        name :: T.Text
+        name :: T.Text,
+        -- | Some notes to print
+        extraLogs :: Attrs -> [T.Text]
       }

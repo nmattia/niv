@@ -8,6 +8,9 @@ module Niv.Logger
     bug,
     tsay,
     say,
+    twarn,
+    mkWarn,
+    mkNote,
     green,
     tgreen,
     red,
@@ -72,6 +75,15 @@ say msg = do
   -- we use `intercalate "\n"` because `unlines` prints an extra newline at
   -- the end
   liftIO $ putStrLn $ intercalate "\n" $ (indent <>) <$> lines msg
+
+mkWarn :: T.Text -> T.Text
+mkWarn w = tbold (tyellow "WARNING") <> ": " <> w
+
+twarn :: MonadIO io => T.Text -> io ()
+twarn = tsay . mkWarn
+
+mkNote :: T.Text -> T.Text
+mkNote w = tbold (tblue "NOTE") <> ": " <> w
 
 green :: S
 green str =
