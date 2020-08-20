@@ -53,7 +53,7 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec =
   (PackageSpec . HMS.fromList)
-    <$> many (parseRepo <|> parseRef <|> parseRev <|> parseAttr <|> parseSAttr)
+    <$> many (parseRepo <|> parseBranch <|> parseRev <|> parseAttr <|> parseSAttr)
   where
     parseRepo =
       ("repo",) . Aeson.String
@@ -67,11 +67,11 @@ parseGitPackageSpec =
           ( Opts.long "rev"
               <> Opts.metavar "SHA"
           )
-    parseRef =
-      ("ref",) . Aeson.String
+    parseBranch =
+      ("branch",) . Aeson.String
         <$> Opts.strOption
-          ( Opts.long "ref"
-              <> Opts.metavar "REF"
+          ( Opts.long "branch"
+              <> Opts.metavar "BRANCH"
           )
     parseAttr =
       Opts.option
@@ -112,7 +112,7 @@ describeGit =
           Opts.<$$> "  niv add git git@github.com:stedolan/jq"
           Opts.<$$> "  niv add git ssh://git@github.com/stedolan/jq --rev deadb33f"
           Opts.<$$> "  niv add git https://github.com/stedolan/jq.git"
-          Opts.<$$> "  niv add git --repo /my/custom/repo --name custom --ref foobar"
+          Opts.<$$> "  niv add git --repo /my/custom/repo --name custom --branch development"
     ]
 
 gitUpdate ::
@@ -121,34 +121,34 @@ gitUpdate ::
   -- | latest rev and default ref
   (T.Text -> IO (T.Text, T.Text)) ->
   Update () ()
-gitUpdate latestRev' defaultRefAndHEAD' = proc () -> do
+gitUpdate latestRev' defaultBranchAndRev' = proc () -> do
   useOrSet "type" -< ("git" :: Box T.Text)
   repository <- load "repo" -< ()
   discoverRev <+> discoverRefAndRev -< repository
   where
     discoverRefAndRev = proc repository -> do
-      refAndRev <- run defaultRefAndHEAD' -< repository
-      update "ref" -< fst <$> refAndRev
-      update "rev" -< snd <$> refAndRev
+      branchAndRev <- run defaultBranchAndRev' -< repository
+      update "branch" -< fst <$> branchAndRev
+      update "rev" -< snd <$> branchAndRev
       returnA -< ()
     discoverRev = proc repository -> do
-      ref <- load "ref" -< ()
-      rev <- run' (uncurry latestRev') -< (,) <$> repository <*> ref
+      branch <- load "branch" -< ()
+      rev <- run' (uncurry latestRev') -< (,) <$> repository <*> branch
       update "rev" -< rev
       returnA -< ()
 
 -- | The "real" (IO) update
 gitUpdate' :: Update () ()
-gitUpdate' = gitUpdate latestRev defaultRefAndHEAD
+gitUpdate' = gitUpdate latestRev defaultBranchAndRev
 
 latestRev ::
   -- | the repository
   T.Text ->
-  -- | the ref/branch
+  -- | the branch
   T.Text ->
   IO T.Text
-latestRev repo ref = do
-  let gitArgs = ["ls-remote", repo, "refs/heads/" <> ref]
+latestRev repo branch = do
+  let gitArgs = ["ls-remote", repo, "refs/heads/" <> branch]
   sout <- runGit gitArgs
   case sout of
     ls@(_ : _ : _) -> abortTooMuchOutput gitArgs ls
@@ -166,14 +166,14 @@ latestRev repo ref = do
       abortGitFailure args $ T.unlines $
         ["Git produced too much output:"] <> map ("  " <>) ls
 
-defaultRefAndHEAD ::
+defaultBranchAndRev ::
   -- | the repository
   T.Text ->
   IO (T.Text, T.Text)
-defaultRefAndHEAD repo = do
+defaultBranchAndRev repo = do
   sout <- runGit args
   case sout of
-    (l1 : l2 : _) -> (,) <$> parseRef l1 <*> parseRev l2
+    (l1 : l2 : _) -> (,) <$> parseBranch l1 <*> parseRev l2
     _ ->
       abortGitFailure args $ T.unlines $
         [ "Could not read reference and revision from stdout:"
@@ -181,11 +181,11 @@ defaultRefAndHEAD repo = do
           <> sout
   where
     args = ["ls-remote", "--symref", repo, "HEAD"]
-    parseRef l = maybe (abortNoRef args l) pure $ do
+    parseBranch l = maybe (abortNoRef args l) pure $ do
       -- ref: refs/head/master\tHEAD -> master\tHEAD
       refAndSym <- T.stripPrefix "ref: refs/heads/" l
-      let ref = T.takeWhile (/= '\t') refAndSym
-      if T.null ref then Nothing else Just ref
+      let branch = T.takeWhile (/= '\t') refAndSym
+      if T.null branch then Nothing else Just branch
     parseRev l = maybe (abortNoRev args l) pure $ do
       checkRev $ T.takeWhile (/= '\t') l
     checkRev t = if isRev t then Just t else Nothing
