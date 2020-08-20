@@ -166,6 +166,8 @@ data SourcesNixVersion
     V20
   | -- Use the source name in fetchurl
     V21
+  | -- Stop setting `ref` and use `branch` and `tag` in sources
+    V22
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -192,6 +194,7 @@ sourcesVersionToText = \case
   V19 -> "19"
   V20 -> "20"
   V21 -> "21"
+  V22 -> "22"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -225,6 +228,7 @@ sourcesVersionToMD5 = \case
   V19 -> "543621698065cfc6a4a7985af76df718"
   V20 -> "ab4263aa63ccf44b4e1510149ce14eff"
   V21 -> "c501eee378828f7f49828a140dbdbca3"
+  V22 -> "935d1d2f0bf95fda977a6e3a7e548ed4"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text

@@ -57,7 +57,7 @@ test_gitUpdates =
 test_gitUpdateRev :: IO ()
 test_gitUpdateRev = do
   interState <- evalUpdate initialState $ proc () ->
-    gitUpdate (error "should be def") defaultRefAndHEAD' -< ()
+    gitUpdate (error "should be def") defaultBranchAndHEAD' -< ()
   let interState' = HMS.map (first (\_ -> Free)) interState
   actualState <- evalUpdate interState' $ proc () ->
     gitUpdate latestRev' (error "should update") -< ()
@@ -66,14 +66,14 @@ test_gitUpdateRev = do
     $ "State mismatch: " <> show actualState
   where
     latestRev' _ _ = pure "some-other-rev"
-    defaultRefAndHEAD' _ = pure ("some-ref", "some-rev")
+    defaultBranchAndHEAD' _ = pure ("some-branch", "some-rev")
     initialState =
       HMS.fromList
         [("repo", (Free, "git@github.com:nmattia/niv"))]
     expectedState =
       HMS.fromList
         [ ("repo", "git@github.com:nmattia/niv"),
-          ("ref", "some-ref"),
+          ("branch", "some-branch"),
           ("rev", "some-other-rev"),
           ("type", "git")
         ]
@@ -104,10 +104,10 @@ once2 f = do
 -- the update
 test_gitCalledOnce :: IO ()
 test_gitCalledOnce = do
-  defaultRefAndHEAD'' <- once1 defaultRefAndHEAD'
+  defaultBranchAndHEAD'' <- once1 defaultBranchAndHEAD'
   latestRev'' <- once2 latestRev'
   interState <- evalUpdate initialState $ proc () ->
-    gitUpdate (error "should be def") defaultRefAndHEAD'' -< ()
+    gitUpdate (error "should be def") defaultBranchAndHEAD'' -< ()
   let interState' = HMS.map (first (\_ -> Free)) interState
   actualState <- evalUpdate interState' $ proc () ->
     gitUpdate latestRev'' (error "should update") -< ()
@@ -116,14 +116,14 @@ test_gitCalledOnce = do
     $ "State mismatch: " <> show actualState
   where
     latestRev' _ _ = pure "some-other-rev"
-    defaultRefAndHEAD' _ = pure ("some-ref", "some-rev")
+    defaultBranchAndHEAD' _ = pure ("some-branch", "some-rev")
     initialState =
       HMS.fromList
         [("repo", (Free, "git@github.com:nmattia/niv"))]
     expectedState =
       HMS.fromList
         [ ("repo", "git@github.com:nmattia/niv"),
-          ("ref", "some-ref"),
+          ("branch", "some-branch"),
           ("rev", "some-other-rev"),
           ("type", "git")
         ]
