@@ -176,7 +176,7 @@ cmdInit nixpkgs = do
             -- Imports @niv@ and @nixpkgs@
             say "Importing 'niv' ..."
             cmdAdd
-              (updateCmd githubCmd)
+              githubCmd
               (PackageName "niv")
               ( specToFreeAttrs $ PackageSpec $
                   HMS.fromList
@@ -191,7 +191,7 @@ cmdInit nixpkgs = do
                 let (owner, repo) = case nixpkgs' of
                       Nixpkgs o r -> (o, r)
                 cmdAdd
-                  (updateCmd githubCmd)
+                  githubCmd
                   (PackageName "nixpkgs")
                   ( specToFreeAttrs $ PackageSpec $
                       HMS.fromList
@@ -249,8 +249,8 @@ parseCmdAdd =
     -- implementer: it'll be tricky to have the correct arguments show up
     -- without repeating "PACKAGE PACKAGE PACKAGE" for every package type.
     parseShortcuts = parseShortcut githubCmd
-    parseShortcut cmd = uncurry (cmdAdd (updateCmd cmd)) <$> (parseShortcutArgs cmd)
-    parseCmd cmd = uncurry (cmdAdd (updateCmd cmd)) <$> (parseCmdArgs cmd)
+    parseShortcut cmd = uncurry (cmdAdd cmd) <$> (parseShortcutArgs cmd)
+    parseCmd cmd = uncurry (cmdAdd cmd) <$> (parseCmdArgs cmd)
     parseCmdAddGit =
       Opts.info (parseCmd gitCmd <**> Opts.helper) (description gitCmd)
     parseCmdAddLocal =
@@ -321,15 +321,15 @@ parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
                 <> Opts.help "Set the package name to <NAME>"
             )
 
-cmdAdd :: Update () a -> PackageName -> Attrs -> NIO ()
-cmdAdd updateFunc packageName attrs = do
+cmdAdd :: Cmd -> PackageName -> Attrs -> NIO ()
+cmdAdd cmd packageName attrs = do
   job ("Adding package " <> T.unpack (unPackageName packageName)) $ do
     fsj <- getFindSourcesJson
     sources <- unSources <$> li (getSources fsj)
     when (HMS.member packageName sources)
       $ li
       $ abortCannotAddPackageExists packageName
-    eFinalSpec <- fmap attrsToSpec <$> li (tryEvalUpdate attrs updateFunc)
+    eFinalSpec <- fmap attrsToSpec <$> li (doUpdate attrs cmd)
     case eFinalSpec of
       Left e -> li (abortUpdateFailed [(packageName, e)])
       Right finalSpec -> do
@@ -413,12 +413,8 @@ cmdUpdate = \case
                 Just "git" -> gitCmd
                 Just "local" -> localCmd
                 _ -> githubCmd
-          fmap attrsToSpec
-            <$> li
-              ( tryEvalUpdate
-                  (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
-                  (updateCmd cmd)
-              )
+              spec = specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec
+          fmap attrsToSpec <$> li (doUpdate spec cmd)
         Nothing -> li $ abortCannotUpdateNoSuchPackage packageName
       case eFinalSpec of
         Left e -> li $ abortUpdateFailed [(packageName, e)]
@@ -438,19 +434,19 @@ cmdUpdate = \case
               Just "git" -> gitCmd
               Just "local" -> localCmd
               _ -> githubCmd
-        finalSpec <-
-          fmap attrsToSpec
-            <$> li
-              ( tryEvalUpdate
-                  initialSpec
-                  (updateCmd cmd)
-              )
+        finalSpec <- fmap attrsToSpec <$> li (doUpdate initialSpec cmd)
         pure finalSpec
     let (failed, sources') = partitionEithersHMS esources'
     unless (HMS.null failed)
       $ li
       $ abortUpdateFailed (HMS.toList failed)
     li $ setSources fsj $ Sources sources'
+
+-- | pretty much tryEvalUpdate but we might issue some warnings first
+doUpdate :: Attrs -> Cmd -> IO (Either SomeException Attrs)
+doUpdate attrs cmd = do
+  forM_ (extraLogs cmd attrs) $ tsay
+  tryEvalUpdate attrs (updateCmd cmd)
 
 partitionEithersHMS ::
   (Eq k, Hashable k) =>

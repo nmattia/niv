@@ -63,7 +63,7 @@ pkgs.runCommand "git-test"
         exit 42
       fi
 
-      niv update my-git-repo -a ref=branch
+      niv update my-git-repo -b branch
       nivrev2=$(nix eval --json '(import ./nix/sources.nix).my-git-repo.rev' | jq -r)
       if [ ! "$gitrev2" = "$nivrev2" ]; then
         echo "Mismatched revs: $gitrev2 != $nivrev2"

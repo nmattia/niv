@@ -31,8 +31,27 @@ gitCmd =
       parseCmdShortcut = parseGitShortcut,
       parsePackageSpec = parseGitPackageSpec,
       updateCmd = gitUpdate',
-      name = "git"
+      name = "git",
+      extraLogs = gitExtraLogs
     }
+
+gitExtraLogs :: Attrs -> [T.Text]
+gitExtraLogs attrs = noteRef <> warnRefBranch <> warnRefTag
+  where
+    noteRef =
+      textIf (HMS.member "ref" attrs) $
+        mkNote
+          "Your source contains a `ref` attribute. Make sure your sources.nix is up-to-date and consider using a `branch` or `tag` attribute."
+    warnRefBranch =
+      textIf (member "ref" && member "branch") $
+        mkWarn
+          "Your source contains both a `ref` and a `branch`. Niv will update the `branch` but the `ref` will be used by Nix to fetch the repo."
+    warnRefTag =
+      textIf (member "ref" && member "tag") $
+        mkWarn
+          "Your source contains both a `ref` and a `tag`. The `ref` will be used by Nix to fetch the repo."
+    member x = HMS.member x attrs
+    textIf cond txt = if cond then [txt] else []
 
 parseGitShortcut :: T.Text -> Maybe (PackageName, Aeson.Object)
 parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
@@ -71,6 +90,7 @@ parseGitPackageSpec =
       ("branch",) . Aeson.String
         <$> Opts.strOption
           ( Opts.long "branch"
+              <> Opts.short 'b'
               <> Opts.metavar "BRANCH"
           )
     parseAttr =

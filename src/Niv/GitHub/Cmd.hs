@@ -38,7 +38,8 @@ githubCmd =
       parseCmdShortcut = parseAddShortcutGitHub,
       parsePackageSpec = parseGitHubPackageSpec,
       updateCmd = githubUpdate',
-      name = "github"
+      name = "github",
+      extraLogs = const []
       -- TODO: here filter by type == tarball or file or builtin-
     }
 
