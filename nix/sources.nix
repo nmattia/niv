@@ -8,7 +8,7 @@ let
 
   fetch_file = pkgs: name: spec:
     let
-      name' = sanitizeName name;
+      name' = sanitizeName name + "-src";
     in
       if spec.builtin or true then
         builtins_fetchurl { inherit (spec) url sha256; name = name'; }
@@ -17,7 +17,7 @@ let
 
   fetch_tarball = pkgs: name: spec:
     let
-      name' = sanitizeName name;
+      name' = sanitizeName name + "-src";
     in
       if spec.builtin or true then
         builtins_fetchTarball { name = name'; inherit (spec) url sha256; }
@@ -41,13 +41,15 @@ let
   # Various helpers
   #
 
-  # sanitize the name, though nix will still fail if name starts with period
+  # https://github.com/NixOS/nixpkgs/pull/83241/files#diff-c6f540a4f3bfa4b0e8b6bafd4cd54e8bR695
   sanitizeName = name:
-    let
-      ok = str: ! builtins.isNull (builtins.match "[a-zA-Z0-9+-._?=]" str);
-    in
-      stringAsChars (x: if ! ok x then "-" else x) "${name}-src";
-
+    (
+      concatMapStrings (s: if builtins.isList s then "-" else s)
+        (
+          builtins.split "[^[:alnum:]+._?=-]+"
+            ((x: builtins.elemAt (builtins.match "\\.*(.*)" x) 0) name)
+        )
+    );
 
   # The set of packages used when specs are fetched using non-builtins.
   mkPkgs = sources:
@@ -107,6 +109,7 @@ let
 
   # https://github.com/NixOS/nixpkgs/blob/0258808f5744ca980b9a1f24fe0b1e6f0fecee9c/lib/strings.nix#L269
   stringAsChars = f: s: concatStrings (map f (stringToCharacters s));
+  concatMapStrings = f: list: concatStrings (map f list);
   concatStrings = builtins.concatStringsSep "";
 
   # https://github.com/NixOS/nixpkgs/blob/8a9f58a375c401b96da862d969f66429def1d118/lib/attrsets.nix#L331
