@@ -246,7 +246,7 @@ Examples:
 
 Usage: niv add PACKAGE [-n|--name NAME] ([-a|--attribute KEY=VAL] |
                [-s|--string-attribute KEY=VAL] | [-b|--branch BRANCH] |
-               [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION] |
+               [-o|--owner OWNER] | [-r|--rev REV] | [-v|--version VERSION] |
                [-t|--template URL] | [-T|--type TYPE])
   Add a GitHub dependency
 
@@ -258,7 +258,7 @@ Available options:
                            Set the package spec attribute <KEY> to <VAL>.
   -b,--branch BRANCH       Equivalent to --attribute branch=<BRANCH>
   -o,--owner OWNER         Equivalent to --attribute owner=<OWNER>
-  -r,--repo REPO           Equivalent to --attribute repo=<REPO>
+  -r,--rev REV             Equivalent to --attribute rev=<REV>
   -v,--version VERSION     Equivalent to --attribute version=<VERSION>
   -t,--template URL        Used during 'update' when building URL. Occurrences
                            of <foo> are replaced with attribute 'foo'.
@@ -284,8 +284,8 @@ Examples:
 
 Usage: niv update [PACKAGE] ([-a|--attribute KEY=VAL] |
                   [-s|--string-attribute KEY=VAL] | [-b|--branch BRANCH] |
-                  [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION]
-                  | [-t|--template URL] | [-T|--type TYPE])
+                  [-o|--owner OWNER] | [-r|--rev REV] | [-v|--version VERSION] |
+                  [-t|--template URL] | [-T|--type TYPE])
   Update dependencies
 
 Available options:
@@ -295,7 +295,7 @@ Available options:
                            Set the package spec attribute <KEY> to <VAL>.
   -b,--branch BRANCH       Equivalent to --attribute branch=<BRANCH>
   -o,--owner OWNER         Equivalent to --attribute owner=<OWNER>
-  -r,--repo REPO           Equivalent to --attribute repo=<REPO>
+  -r,--rev REV             Equivalent to --attribute rev=<REV>
   -v,--version VERSION     Equivalent to --attribute version=<VERSION>
   -t,--template URL        Used during 'update' when building URL. Occurrences
                            of <foo> are replaced with attribute 'foo'.
@@ -315,8 +315,8 @@ Examples:
 
 Usage: niv modify PACKAGE [-n|--name NAME] ([-a|--attribute KEY=VAL] |
                   [-s|--string-attribute KEY=VAL] | [-b|--branch BRANCH] |
-                  [-o|--owner OWNER] | [-r|--repo REPO] | [-v|--version VERSION]
-                  | [-t|--template URL] | [-T|--type TYPE])
+                  [-o|--owner OWNER] | [-r|--rev REV] | [-v|--version VERSION] |
+                  [-t|--template URL] | [-T|--type TYPE])
   Modify dependency attributes without performing an update
 
 Available options:
@@ -327,7 +327,7 @@ Available options:
                            Set the package spec attribute <KEY> to <VAL>.
   -b,--branch BRANCH       Equivalent to --attribute branch=<BRANCH>
   -o,--owner OWNER         Equivalent to --attribute owner=<OWNER>
-  -r,--repo REPO           Equivalent to --attribute repo=<REPO>
+  -r,--rev REV             Equivalent to --attribute rev=<REV>
   -v,--version VERSION     Equivalent to --attribute version=<VERSION>
   -t,--template URL        Used during 'update' when building URL. Occurrences
                            of <foo> are replaced with attribute 'foo'.

@@ -6,6 +6,7 @@
 #
 # How To Release:
 # * git checkout master
+# * make sure changelog is up-to-date
 # * bump version in package.yaml
 # * run ./script/gen (twice...)
 # * run ./script/test
