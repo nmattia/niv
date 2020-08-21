@@ -97,7 +97,7 @@ parseGitHubPackageSpec =
     shortcutAttributes =
       foldr (<|>) empty $
         mkShortcutAttribute
-          <$> ["branch", "owner", "repo", "version"]
+          <$> ["branch", "owner", "rev", "version"]
     -- TODO: infer those shortcuts from 'Update' keys
     mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, Aeson.Value)
     mkShortcutAttribute = \case
