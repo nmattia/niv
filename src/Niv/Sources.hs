@@ -168,6 +168,8 @@ data SourcesNixVersion
     V21
   | -- Stop setting `ref` and use `branch` and `tag` in sources
     V22
+  | -- Allow to pass custom system to bootstrap niv in pure mode
+    V23
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -195,6 +197,7 @@ sourcesVersionToText = \case
   V20 -> "20"
   V21 -> "21"
   V22 -> "22"
+  V23 -> "23"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -229,6 +232,7 @@ sourcesVersionToMD5 = \case
   V20 -> "ab4263aa63ccf44b4e1510149ce14eff"
   V21 -> "c501eee378828f7f49828a140dbdbca3"
   V22 -> "935d1d2f0bf95fda977a6e3a7e548ed4"
+  V23 -> "4111204b613ec688e2669516dd313440"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text

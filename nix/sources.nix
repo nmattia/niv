@@ -59,10 +59,10 @@ let
     );
 
   # The set of packages used when specs are fetched using non-builtins.
-  mkPkgs = sources:
+  mkPkgs = sources: system:
     let
       sourcesNixpkgs =
-        import (builtins_fetchTarball { inherit (sources.nixpkgs) url sha256; }) {};
+        import (builtins_fetchTarball { inherit (sources.nixpkgs) url sha256; }) { inherit system; };
       hasNixpkgsPath = builtins.any (x: x.prefix == "nixpkgs") builtins.nixPath;
       hasThisAsNixpkgsPath = <nixpkgs> == ./.;
     in
@@ -157,7 +157,8 @@ let
   mkConfig =
     { sourcesFile ? if builtins.pathExists ./sources.json then ./sources.json else null
     , sources ? if isNull sourcesFile then {} else builtins.fromJSON (builtins.readFile sourcesFile)
-    , pkgs ? mkPkgs sources
+    , system ? builtins.currentSystem
+    , pkgs ? mkPkgs sources system
     }: rec {
       # The sources, i.e. the attribute set of spec name to spec
       inherit sources;
