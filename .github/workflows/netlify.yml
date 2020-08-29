@@ -8,14 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: cachix/install-nix-action@v6
     - name: "deploy to netlify"
+      uses: netlify/actions/cli@6c34c3fcafc69ac2e1d6dbf226560329c6dfc51b
+      with:
+        args: deploy --dir=./site --message="$GITHUB_SHA" --prod
       env:
         NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-      run: |
-        nix-env -f ./nix -iA nodejs-10_x
-        npm install netlify-cli
-        ./node_modules/netlify-cli/bin/run deploy \
-            --dir=./site \
-            --message="$GITHUB_SHA" --prod
