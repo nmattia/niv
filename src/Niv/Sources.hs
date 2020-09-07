@@ -245,18 +245,11 @@ pathNixSourcesNix = "nix" </> "sources.nix"
 
 warnIfOutdated :: IO ()
 warnIfOutdated = do
-  tryAny (BL8.readFile pathNixSourcesNix) >>= \case
-    Left e ->
-      twarn $
-        T.unlines
-          [ T.unwords ["Could not read", T.pack pathNixSourcesNix],
-            T.unwords ["  ", "(", tshow e, ")"]
-          ]
-    Right content -> do
-      case md5ToSourcesVersion (T.pack $ show $ MD5.md5 content) of
-        -- This is a custom or newer version, we don't do anything
-        Nothing -> pure ()
-        Just v
+  sourcesNixStatus >>= \case
+    SourcesNixNotFound ->
+      twarn $ T.unwords ["Could not read", T.pack pathNixSourcesNix]
+    SourcesNixCustom -> pure ()
+    SourcesNixFound v
           -- The file is the latest
           | v == maxBound -> pure ()
           -- The file is older than than latest
@@ -275,6 +268,22 @@ warnIfOutdated = do
                     <> " file:",
                   "  # niv: no_update"
                 ]
+
+data SourcesNixStatus =
+  SourcesNixNotFound |
+  SourcesNixCustom |
+  SourcesNixFound SourcesNixVersion
+
+-- | Get the status of the sources.nix
+sourcesNixStatus :: IO SourcesNixStatus
+sourcesNixStatus = do
+  tryAny (BL8.readFile pathNixSourcesNix) >>= \case
+    Left {} -> pure SourcesNixNotFound
+    Right content -> do
+      case md5ToSourcesVersion (T.pack $ show $ MD5.md5 content) of
+        -- This is a custom or newer version, we don't do anything
+        Nothing -> pure SourcesNixCustom
+        Just v -> pure $ SourcesNixFound v
 
 -- | Glue code between nix and sources.json
 initNixSourcesNixContent :: B.ByteString

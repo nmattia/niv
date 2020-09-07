@@ -583,6 +583,8 @@ cmdStatus :: NIO ()
 cmdStatus = do
   sjs <- sourcesJsonStatus
   tsay $ "sources.json: " <> sjs
+  sns <- sourcesNixStatus'
+  tsay $ "sources.nix: " <> sns
   where
     sourcesJsonStatus = do
       fsj <- getFindSourcesJson
@@ -591,6 +593,10 @@ cmdStatus = do
         Left SourcesDoesntExist -> pure "not found"
         Left SourceIsntJSON -> pure "not json"
         Left SpecIsntAMap -> pure "bad format, not a map"
+    sourcesNixStatus' = liftIO sourcesNixStatus >>= \case
+      SourcesNixNotFound -> pure "not found"
+      SourcesNixCustom -> pure "custom"
+      SourcesNixFound v -> pure (sourcesVersionToText v) -- TODO add path
 
 -------------------------------------------------------------------------------
 -- Files and their content
