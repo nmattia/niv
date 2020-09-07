@@ -153,9 +153,7 @@ let
     packages = ps: [ ps.niv ];
     shellHook = ''
       repl_for() {
-        haskell_version=$(cat ./package.yaml \
-          | grep -oP 'version: \K\d+.\d+.\d+' \
-          | sed 's/\./,/g' )
+        haskell_version=$(jq <./package.yaml -cMr '.version' | sed 's/\./,/g')
 
         paths_niv=$(mktemp -d)/Paths_niv.hs
 
