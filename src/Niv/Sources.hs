@@ -48,15 +48,16 @@ newtype Sources
       {unSources :: HMS.HashMap PackageName PackageSpec}
   deriving newtype (FromJSON, ToJSON)
 
-getSourcesEither :: FindSourcesJson -> IO (Either SourcesError Sources)
+getSourcesEither :: FindSourcesJson -> IO (Either SourcesError (FilePath, Sources))
 getSourcesEither fsj = do
-  Dir.doesFileExist (pathNixSourcesJson fsj) >>= \case
+  let path = pathNixSourcesJson fsj
+  Dir.doesFileExist path >>= \case
     False -> pure $ Left SourcesDoesntExist
     True ->
       Aeson.decodeFileStrict (pathNixSourcesJson fsj) >>= \case
         Just value -> case valueToSources value of
           Nothing -> pure $ Left SpecIsntAMap
-          Just srcs -> pure $ Right srcs
+          Just srcs -> pure $ Right (path, srcs)
         Nothing -> pure $ Left SourceIsntJSON
   where
     valueToSources :: Aeson.Value -> Maybe Sources
@@ -76,7 +77,7 @@ getSourcesEither fsj = do
 getSources :: FindSourcesJson -> IO Sources
 getSources fsj = do
   warnIfOutdated
-  getSourcesEither fsj
+  fmap snd <$> getSourcesEither fsj
     >>= either
       ( \case
           SourcesDoesntExist -> (abortSourcesDoesntExist fsj)

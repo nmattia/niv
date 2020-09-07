@@ -93,6 +93,7 @@ parseCommand =
         <> Opts.command "update" parseCmdUpdate
         <> Opts.command "modify" parseCmdModify
         <> Opts.command "drop" parseCmdDrop
+        <> Opts.command "status" parseCmdStatus
     )
 
 parsePackageName :: Opts.Parser PackageName
@@ -560,6 +561,36 @@ cmdDrop packageName = \case
             packageSpec
     li $ setSources fsj $ Sources $
       HMS.insert packageName packageSpec sources
+
+-------------------------------------------------------------------------------
+-- STATUS
+-------------------------------------------------------------------------------
+
+parseCmdStatus :: Opts.ParserInfo (NIO ())
+parseCmdStatus =
+  Opts.info
+    ( pure cmdStatus
+        <**> Opts.helper
+    )
+    $ mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc,
+        Opts.progDesc "Status of niv files"
+      ]
+
+cmdStatus :: NIO ()
+cmdStatus = do
+  sjs <- sourcesJsonStatus
+  tsay $ "sources.json: " <> sjs
+  where
+    sourcesJsonStatus = do
+      fsj <- getFindSourcesJson
+      liftIO (getSourcesEither fsj) >>= \case
+        Right (fp, _) -> pure (T.pack fp)
+        Left SourcesDoesntExist -> pure "not found"
+        Left SourceIsntJSON -> pure "not json"
+        Left SpecIsntAMap -> pure "bad format, not a map"
 
 -------------------------------------------------------------------------------
 -- Files and their content
