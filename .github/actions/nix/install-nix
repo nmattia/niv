@@ -66,7 +66,7 @@ save_cache() {
     if [ -n "${CACHIX_SIGNING_KEY:-}" ];
     then
         echo "CACHIX_SIGNING_KEY is set, uploading cache"
-        nix path-info --all | cachix push $cachix_cache
+        nix path-info --all | grep -v '.*.drv$' | cachix push $cachix_cache
     else
         echo "CACHIX_SIGNING_KEY not set, not uploading cache"
     fi
