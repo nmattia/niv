@@ -61,7 +61,7 @@ cli = do
       Opts.Failure $
         Opts.parserFailure pprefs pinfo Opts.ShowHelpText mempty
     execParserPure' pprefs pinfo args = Opts.execParserPure pprefs pinfo args
-    opts = Opts.info ((,) <$> parseFindSourcesJson <*> (parseCommand <**> Opts.helper)) $ mconcat desc
+    opts = Opts.info ((,) <$> parseFindSourcesJson <*> (parseCommand <**> Opts.helper <**> versionflag)) $ mconcat desc
     desc =
       [ Opts.fullDesc,
         Opts.headerDoc $ Just $
@@ -78,6 +78,11 @@ cli = do
               <> Opts.help "Use FILE instead of nix/sources.json"
           )
         <|> pure Auto
+    versionflag :: Opts.Parser (a -> a)
+    versionflag =
+      Opts.abortOption (Opts.InfoMsg (showVersion version)) $
+        mconcat
+          [Opts.long "version", Opts.hidden, Opts.help "Print version"]
 
 parseCommand :: Opts.Parser (NIO ())
 parseCommand =
