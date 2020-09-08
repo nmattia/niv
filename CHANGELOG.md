@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.17] 2020-09-08
+## Added
+* There is a new flag `-r/--rev` for specifying a revision during update and add
+* There is a new flag `--version` that instructs niv to show its version and exit
+## Changed
+* The derivation name of sources is sanitized
+* The `ref` field was deprecated in favor of `branch` and `tag` in `git`
+  sources
+
+## [0.2.16] 2020-08-14
+## Changed
+* The `sources.nix` can now be imported when there's no local `sources.json`
+
+## [0.2.15] 2020-08-13
+## Added
+* The sources can be overriden with `NIV_OVERRIDE_<source name>`
+## Changed
+* When `nix-prefetch-url` fails the command is shown
+* IO operations during update are cached
+
 ## [0.2.14] 2020-07-15
 ## Added
 * `niv add local` for local sources.
