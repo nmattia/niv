@@ -581,22 +581,26 @@ parseCmdStatus =
 
 cmdStatus :: NIO ()
 cmdStatus = do
-  sjs <- sourcesJsonStatus
-  tsay $ "sources.json: " <> sjs
-  sns <- sourcesNixStatus'
-  tsay $ "sources.nix: " <> sns
+  sourcesJsonStatus
+  sourcesNixStatus'
   where
     sourcesJsonStatus = do
       fsj <- getFindSourcesJson
       liftIO (getSourcesEither fsj) >>= \case
-        Right (fp, _) -> pure (T.pack fp)
-        Left SourcesDoesntExist -> pure "not found"
-        Left SourceIsntJSON -> pure "not json"
-        Left SpecIsntAMap -> pure "bad format, not a map"
+        Right (fp, sources) -> do
+          tsay $ "sources.json: " <> (T.pack fp)
+          tsay $ "sources.json # of packages: " <> tshow (HMS.size (unSources sources))
+        Left SourcesDoesntExist -> tsay "sources.json: not found"
+        Left SourceIsntJSON -> tsay "sources.json: not json"
+        Left SpecIsntAMap -> tsay "sources.json: bad format, not a map"
     sourcesNixStatus' = liftIO sourcesNixStatus >>= \case
-      SourcesNixNotFound -> pure "not found"
-      SourcesNixCustom -> pure "custom"
-      SourcesNixFound v -> pure (sourcesVersionToText v) -- TODO add path
+      SourcesNixNotFound -> tsay $ "sources.nix: not found"
+      SourcesNixCustom -> do
+        tsay $ "sources.nix: " <> T.pack pathNixSourcesNix
+        tsay $ "sources.nix version: custom"
+      SourcesNixFound v -> do
+        tsay $ "sources.nix: " <> T.pack pathNixSourcesNix
+        tsay $ "sources.nix version: " <> sourcesVersionToText v
 
 -------------------------------------------------------------------------------
 -- Files and their content

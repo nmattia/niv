@@ -250,29 +250,29 @@ warnIfOutdated = do
       twarn $ T.unwords ["Could not read", T.pack pathNixSourcesNix]
     SourcesNixCustom -> pure ()
     SourcesNixFound v
-          -- The file is the latest
-          | v == maxBound -> pure ()
-          -- The file is older than than latest
-          | otherwise -> do
-            tsay $
-              T.unlines
-                [ T.unwords
-                    [ tbold $ tblue "INFO:",
-                      "new sources.nix available:",
-                      sourcesVersionToText v,
-                      "->",
-                      sourcesVersionToText maxBound
-                    ],
-                  "  Please run 'niv init' or add the following line in the "
-                    <> T.pack pathNixSourcesNix
-                    <> " file:",
-                  "  # niv: no_update"
-                ]
+      -- The file is the latest
+      | v == maxBound -> pure ()
+      -- The file is older than than latest
+      | otherwise -> do
+        tsay $
+          T.unlines
+            [ T.unwords
+                [ tbold $ tblue "INFO:",
+                  "new sources.nix available:",
+                  sourcesVersionToText v,
+                  "->",
+                  sourcesVersionToText maxBound
+                ],
+              "  Please run 'niv init' or add the following line in the "
+                <> T.pack pathNixSourcesNix
+                <> " file:",
+              "  # niv: no_update"
+            ]
 
-data SourcesNixStatus =
-  SourcesNixNotFound |
-  SourcesNixCustom |
-  SourcesNixFound SourcesNixVersion
+data SourcesNixStatus
+  = SourcesNixNotFound
+  | SourcesNixCustom
+  | SourcesNixFound SourcesNixVersion
 
 -- | Get the status of the sources.nix
 sourcesNixStatus :: IO SourcesNixStatus
