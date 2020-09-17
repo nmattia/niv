@@ -15,6 +15,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Text.Extended
 import qualified Network.HTTP.Simple as HTTP
+import Niv.Logger
 import System.Environment (lookupEnv)
 import System.Exit (exitFailure)
 import System.IO.Unsafe (unsafePerformIO)
@@ -80,7 +81,7 @@ Make sure the repository exists.
 defaultRequest :: [T.Text] -> IO HTTP.Request
 defaultRequest (map T.encodeUtf8 -> parts) = do
   let path = T.encodeUtf8 githubPath <> BS8.intercalate "/" (parts)
-  mtoken <- lookupEnv "GITHUB_TOKEN"
+  mtoken <- lookupEnv' "GITHUB_TOKEN"
   pure
     $ ( flip (maybe id) mtoken $ \token ->
           HTTP.addRequestHeader "authorization" ("token " <> BS8.pack token)
@@ -134,33 +135,66 @@ For more information on rate-limiting, see
 
 |]
 
+-- Some environment variables may have different meanings (see for instance
+-- https://github.com/nmattia/niv/issues/280)
+-- For ambiguous ones, we prepend NIV_.
+--
+warnGitHubEnvVars :: IO ()
+warnGitHubEnvVars =
+  mapM_
+    warnEnvVar
+    [ "GITHUB_INSECURE",
+      "GITHUB_PATH"
+    ]
+  where
+    warnEnvVar vn = lookupEnv (T.unpack vn) >>= \case
+      Nothing -> pure ()
+      Just {} -> do
+        twarn $
+          T.unwords
+            [ "The environment variable",
+              vn,
+              "was renamed to",
+              "NIV_" <> vn
+            ]
+
+-- | Like lookupEnv "foo" but also looks up "NIV_foo"
+lookupEnv' :: String -> IO (Maybe String)
+lookupEnv' vn = lookupEnv vn >>= \case
+  Just x -> pure (Just x)
+  Nothing -> lookupEnv ("NIV_" <> vn)
+
 githubHost :: T.Text
 githubHost = unsafePerformIO $ do
-  lookupEnv "GITHUB_HOST" >>= \case
+  lookupEnv' "GITHUB_HOST" >>= \case
     Just (T.pack -> x) -> pure x
     Nothing -> pure "github.com"
 
 githubApiPort :: Int
 githubApiPort = unsafePerformIO $ do
-  lookupEnv "GITHUB_API_PORT" >>= \case
+  lookupEnv' "GITHUB_API_PORT" >>= \case
     Just (readMaybe -> Just x) -> pure x
     _ -> pure $ if githubSecure then 443 else 80
 
 githubApiHost :: T.Text
 githubApiHost = unsafePerformIO $ do
-  lookupEnv "GITHUB_API_HOST" >>= \case
+  lookupEnv' "GITHUB_API_HOST" >>= \case
     Just (T.pack -> x) -> pure x
     Nothing -> pure "api.github.com"
 
+-- For these two we prepend NIV_ to the variable name because the variable
+-- names can have different meanings, see
+-- https://github.com/nmattia/niv/issues/280
+
 githubSecure :: Bool
 githubSecure = unsafePerformIO $ do
-  lookupEnv "GITHUB_INSECURE" >>= \case
+  lookupEnv "NIV_GITHUB_INSECURE" >>= \case
     Just "" -> pure True
     Just _ -> pure False
     Nothing -> pure True
 
 githubPath :: T.Text
 githubPath = unsafePerformIO $ do
-  lookupEnv "GITHUB_PATH" >>= \case
+  lookupEnv "NIV_GITHUB_PATH" >>= \case
     Just (T.pack -> x) -> pure $ fromMaybe x (T.stripSuffix "/" x) <> "/"
     Nothing -> pure "/"
