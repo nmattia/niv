@@ -32,10 +32,10 @@ pkgs.runCommand "test"
   ''
     set -euo pipefail
 
-    export GITHUB_HOST="localhost:3333"
-    export GITHUB_API_HOST="localhost"
-    export GITHUB_API_PORT="3333"
-    export GITHUB_INSECURE="true"
+    export NIV_GITHUB_HOST="localhost:3333"
+    export NIV_GITHUB_API_HOST="localhost"
+    export NIV_GITHUB_API_PORT="3333"
+    export NIV_GITHUB_INSECURE="true"
 
     echo *** Starting the webserver...
     mkdir -p mock

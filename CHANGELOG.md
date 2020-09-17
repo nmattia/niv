@@ -1,5 +1,10 @@
 # Changelog
 
+## UNRELEASED
+## Changed
+* `GITHUB_PATH` was renamed to `NIV_GITHUB_PATH` https://github.com/nmattia/niv/issues/280
+* `GITHUB_INSECURE` was renamed to `NIV_GITHUB_INSECURE` https://github.com/nmattia/niv/issues/280
+
 ## [0.2.17] 2020-09-08
 ## Added
 * There is a new flag `-r/--rev` for specifying a revision during update and add

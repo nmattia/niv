@@ -24,6 +24,7 @@ import Data.Text.Extended
 import Data.Version (showVersion)
 import Niv.Cmd
 import Niv.Git.Cmd
+import Niv.GitHub.API (warnGitHubEnvVars)
 import Niv.GitHub.Cmd
 import Niv.Local.Cmd
 import Niv.Logger
@@ -52,6 +53,7 @@ li = liftIO
 
 cli :: IO ()
 cli = do
+  warnGitHubEnvVars
   (fsj, nio) <-
     execParserPure' Opts.defaultPrefs opts <$> getArgs
       >>= Opts.handleParseResult
