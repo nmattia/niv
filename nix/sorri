@@ -1,0 +1,471 @@
+# vim: ft=bash
+
+# sorri: a Simpler lORRI
+#
+# This is a simpler implementation of Tweag's lorri:
+#   https://github.com/target/lorri
+#
+# sorri reuses lorri's tricks for figuring out the files to track for changes,
+# but uses direnv's own mechanism for actually tracking those files.
+# sorri uses a local cache at '~/.cache/niv-sorri-vX/'. Each entry is a
+# directory containing two files:
+#
+#   ~/.cache/niv-sorri-v1/
+#   └── 0716a121e4f986f9f8cf11f7c579d332
+#       ├── link -> /nix/store/jfzkisfgmv3qgpzz3i8nai12y1cry77v-nix-shell
+#       └── manifest
+#
+# `link` is the result of a previous evaluation. `manifest` is used to find
+# that result of a previous evaluation. The directory name
+# (0716a121e4f986f9f8cf11f7c579d332 above) is the hash of the `manifest`.
+#
+# `link` is a symlink to a shell script that sets a shell's variables.
+#
+#   cat ~/.cache/niv-sorri-v1/0716a121e4f986f9f8cf11f7c579d332/link
+#   declare -x AR_x86_64_apple_darwin="/nix/store/amsm28x2hnsgp8c0nm4glkjc2gw2l9kw-cctools-binutils-darwin-927.0.2/bin/ar"
+#   declare -x BZ2_LIB_DIR="/nix/store/7yikqcm4v4b57xv3cqknhdnf0p1aakxp-bzip2-1.0.6.0.1/lib"
+#   declare -x BZ2_STATIC="1"
+#   declare -x CARGO_BUILD_TARGET="x86_64-apple-darwin"
+#   declare -x CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER="/nix/store/swiic36rl7njy6bfll5z0afl42c9q4s5-lld-9.0.1/bin/lld"
+#
+# `manifest` is a list of files used for an evaluation alongside their checksums:
+#
+#   $ cat ~/.cache/niv-sorri-v1/0716a121e4f986f9f8cf11f7c579d332/manifest
+#   /Users/nicolas/niv/shell.nix:029451f2a9bee59f4ce002bdbdf20554
+#   /Users/nicolas/niv/nix/default.nix:7ff8c9138044fc7e31f1d4ed2bf1c0ba
+#   /Users/nicolas/niv/nix/overlays/buf/default.nix:c4a24e0bba0178b73f0211d0f26147e6
+#   ...
+#
+# sorri first checks the existing cache entries (niv-sorry-v1/0716...,
+# etc); if it finds a cache entry with a manifest where all the _manifest_
+# entries (nix/default.nix:7ff...) match local files, the link is loaded; if no
+# manifest matches, a new entry is created and loaded.
+
+# NOTES:
+#  we use some functions from direnv's stdlib:
+#   - watch_file <foo>: updates $DIRENV_WATCHES to tell direnv to watch <foo>
+#   - expand_path: similar to realpath from coreutils
+
+# Print the line iff SORRI_DEBUG is set and not empty
+debug() {
+    if [ -n "${SORRI_DEBUG:-}" ]; then echo "debug:" "$@"; fi
+}
+
+log() {
+    echo "sorri:" "$@"
+}
+
+log_bold() {
+    tput bold
+    echo "sorri:" "!!!!" "$@" "!!!!"
+    tput sgr0
+}
+
+# Print in red and return with 1
+abort() {
+    tput setaf 1
+    echo sorri: ERROR: "$@"
+    echo sorri: please run "'direnv allow'" to reload the shell
+    tput sgr0
+    exit 1
+}
+
+# Removes duplicate lines in place
+remove_duplicates() {
+    file="$1"
+    tmpfile=$(mktemp)
+    sort <"$file" | uniq >"$tmpfile"
+    mv "$tmpfile" "$file"
+}
+
+# Adds the given file to the specified manifest:
+# echo "foo.nix:<hash of foo.nix>" >> manifest
+add_to_manifest() {
+    {
+        expand_path "$1" | tr -d '\n'
+        echo -n ":"
+        nix-hash "$1"
+    } >>"$2"
+}
+
+# Parses a Nix -vv log file and creates a manifest
+create_manifest_from_logs() {
+    logfile="$1"  # The path to the logfile
+    manifest="$2" # The path to the manifest (will be created)
+    while IFS= read -r line; do
+        case $line in
+            trace*)
+                # shellcheck disable=2001
+                copied=$(echo "$line" | sed 's/^trace: file read: '"'"'\([^'"'"']*\)'"'"'.*/\1/')
+                debug "found trace $copied"
+                if ! [[ $copied == /nix/store* ]]; then
+                    add_to_manifest "$copied" "$manifest"
+                fi
+                ;;
+            copied*)
+                # shellcheck disable=2001
+                copied=$(echo "$line" | sed 's/^copied source '"'"'\([^'"'"']*\)'"'"'.*/\1/')
+                debug "found copied $copied"
+                if ! [[ $copied == /nix/store* ]]; then
+                    add_to_manifest "$copied" "$manifest"
+                fi
+                ;;
+            evaluating*)
+                # shellcheck disable=2001
+                copied=$(echo "$line" | sed 's/^evaluating file '"'"'\([^'"'"']*\)'"'"'.*/\1/')
+                debug "found evaluated $copied"
+
+                # skip files if they're in the store (i.e. immutable)
+                if ! [[ $copied == /nix/store* ]]; then
+                    # when evaluating a `default.nix`, Nix sometimes prints the
+                    # path to the file, and sometimes to the directory...
+                    if [ -d "$copied" ]; then
+                        add_to_manifest "$copied/default.nix" "$manifest"
+                    else
+                        add_to_manifest "$copied" "$manifest"
+                    fi
+                fi
+                ;;
+        esac
+    done <"$logfile"
+
+    remove_duplicates "$manifest"
+}
+
+# Wrapper function for creating a new manifest based on the files currently
+# present in the source tree.
+# NOTE: The manifest (and link) is created atomically meaning this works fine
+# if two shells are opened concurrently
+create_manifest() {
+    debug creating manifest for "$PWD"
+
+    evallogs=$(mktemp)
+
+    # A nix wrapper that imports ./shell.nix. It modifies the resulting
+    # derivation in two ways:
+    #  - The builder is replaced with a bash function that calls `export >
+    #   $out`, which effectively writes all the environment variables to $out.
+    #   The variables can then be imported by sourcing this file.
+    #  - The readFile and readDir builtins are overriden to print their
+    #   arguments whenever they are called (so that we can parse that and track
+    #   those files)
+    local shellnix;
+    shellnix=$(cat <<EOF
+let
+  overrides = {
+    import = scopedImport overrides;
+    scopedImport = x: builtins.scopedImport (overrides // x);
+    builtins = builtins // {
+      readFile = file: builtins.trace "file read: '\${toString file}'" (builtins.readFile file);
+      readDir = path: builtins.trace "file read: '\${toString path}'" (builtins.readDir path);
+    };
+  };
+
+  # TODO: how do we deal with shellHook s?
+  # if the shell hook sets a variable, then it should be handled by the shell
+  # If it does other stuff then this is not gonna work since direnv runs this
+  # in a subshell.
+  builder = builtins.toFile "foo-bidou" ''
+    [ -e \$stdenv/setup ] && . \$stdenv/setup
+    export > \$out
+  '';
+
+  imported =
+    let
+      raw = overrides.scopedImport overrides $(expand_path ./shell.nix);
+    in
+      if builtins.isFunction raw
+      then raw {}
+      else raw;
+
+in
+derivation (
+  imported.drvAttrs // {
+    args = [ "-e" builder ];
+  }
+)
+EOF
+)
+
+    # The resulting link to the shell build (is used as a GC root)
+    buildout=$(mktemp -d)/result
+
+    log building shell, this may take a while
+
+    # We keep lines like these:
+    #  'copied source /niv/src to ...': source trees and files imported to the store
+    #  'evaluating file foo.nix ...' Nix files used for eval
+    #  'trace: file read: sources.json...' files from readFile & readDir
+    keepem=(grep -E "^copied source|^evaluating file|^trace: file read:")
+
+    # we drop all the lines like the above but that reference files in the
+    # store; those files are immutable so we don't want to watch them for
+    # changes
+    dropem=(grep -vE "^copied source '/nix|^evaluating file '/nix|^trace: file read: '/nix")
+
+    if [ -n "${SORRI_DEBUG:-}" ]; then
+        nix-build -E "$shellnix" -o "$buildout" -vv \
+            2> >(tee -a >("${keepem[@]}" | "${dropem[@]}" >"$evallogs")) || abort nix-build failed
+    else
+        logs=$(mktemp)
+        nix-build -E "$shellnix" -o "$buildout" -vv --max-jobs 8 \
+            2> >(tee -a "$logs" > >("${keepem[@]}" | "${dropem[@]}" >"$evallogs")) >/dev/null \
+            || abort nix-build failed, logs can be found at "${logs}:"$'\n'"---"$'\n'"$(tail -n 5 "$logs")"$'\n'"---"
+        rm "$logs"
+    fi
+
+    debug build finished "$buildout"
+
+    tmpmanifest=$(mktemp)
+    create_manifest_from_logs "$evallogs" "$tmpmanifest"
+
+    # The identifier for this new cache
+    manifest_hash=$(nix-hash "$tmpmanifest" | tr -d '\n')
+    mkdir -p "$CACHE_DIR/$manifest_hash"
+
+    # create the file atomically
+    mv -f "$tmpmanifest" "$CACHE_DIR/$manifest_hash/manifest"
+    mv -f "$buildout" "$CACHE_DIR/$manifest_hash/link"
+
+    rmdir "$(dirname "$buildout")"
+
+    log created cached shell "$manifest_hash"
+
+    import_link_of "$CACHE_DIR/$manifest_hash"
+}
+
+# Load the environment variables saved in a cache entry by importing the link
+# file
+import_link_of() {
+    manifest="$1/manifest"
+    if [ ! -f "$manifest" ]; then
+        abort no manifest found at "$manifest"
+    fi
+
+    link="$1"/link
+    if [ ! -f "$link" ]; then
+        abort no link found at "$link"
+    fi
+
+    debug importing manifest "$manifest" and link "$link"
+
+    # read the manifest line by line and issue direnv `watch_file` calls for
+    # every file
+    while IFS= read -r watched; do
+        watched_file=${watched%:*}
+        debug adding file "$watched_file" to watch
+        watch_file "$watched_file"
+    done <"$manifest"
+
+    # this overrides Bash's 'declare -x'. The 'link' is a bash that calls
+    # 'declare -x' (== export) on every environment variable in the built
+    # shell, but there are some variables (PATH, HOME) that we don't actually
+    # want to inherit from the shell.
+    function declare() {
+        if [ "$1" == "-x" ]; then shift; fi
+
+        # Some variables require special handling.
+        case "$1" in
+            # vars from: https://github.com/NixOS/nix/blob/92d08c02c84be34ec0df56ed718526c382845d1a/src/nix-build/nix-build.cc#L100
+            "HOME="*) ;;
+            "USER="*) ;;
+            "LOGNAME="*) ;;
+            "DISPLAY="*) ;;
+            "PATH="*)
+                # here we don't use PATH_add from direnv because it's too slow
+                # https://github.com/direnv/direnv/issues/671
+                PATH="${1#PATH=}:$PATH";;
+            "TERM="*) ;;
+            "IN_NIX_SHELL="*) ;;
+            "TZ="*) ;;
+            "PAGER="*) ;;
+            "NIX_BUILD_SHELL="*) ;;
+            "SHLVL="*) ;;
+
+                # vars from: https://github.com/NixOS/nix/blob/92d08c02c84be34ec0df56ed718526c382845d1a/src/nix-build/nix-build.cc#L385
+            "TEMPDIR="*) ;;
+            "TMPDIR="*) ;;
+            "TEMP="*) ;;
+            "TMP="*) ;;
+
+                # vars from: https://github.com/NixOS/nix/blob/92d08c02c84be34ec0df56ed718526c382845d1a/src/nix-build/nix-build.cc#L421
+            "NIX_ENFORCE_PURITY="*) ;;
+
+                # vars from: https://www.gnu.org/software/bash/manual/html_node/Bash-Variables.html (last checked: 2019-09-26)
+                # reported in https://github.com/target/lorri/issues/153
+            "OLDPWD="*) ;;
+            "PWD="*) ;;
+            "SHELL="*) ;;
+
+                # some stuff we don't want set
+                # TODO: find a proper way to deal with this
+            "__darwinAllowLocalNetworking="*) ;;
+            "__impureHostDeps="*) ;;
+            "__propagatedImpureHostDeps="*) ;;
+            "__propagatedSandboxProfile"*) ;;
+            "__sandboxProfile="*) ;;
+            "allowSubstitutes="*) ;;
+            "buildInputs="*) ;;
+            "buildPhase"*) ;;
+            "builder="*) ;;
+            "checkPhase="*) ;;
+            "cmakeFlags="*) ;;
+            "configureFlags="*) ;;
+            "depsBuildBuild="*) ;;
+            "depsBuildBuildPropagated="*) ;;
+            "depsBuildTarget="*) ;;
+            "depsBuildTargetPropagated="*) ;;
+            "depsHostHost="*) ;;
+            "depsHostHostPropagated="*) ;;
+            "depsTargetTarget="*) ;;
+            "depsTargetTargetPropagated="*) ;;
+            "doCheck="*) ;;
+            "doInstallCheck="*) ;;
+            "dontDisableStatic="*) ;;
+            "gl_cv"*) ;;
+            "installPhase="*) ;;
+            "mesonFlags="*) ;;
+            "name="*) ;;
+            "nativeBuildInputs="*) ;;
+            "nobuildPhase="*) ;;
+            "out="*) ;;
+            "outputs="*) ;;
+            "patches="*) ;;
+            "phases="*) ;;
+            "postUnpack="*) ;;
+            "preferLocalBuild="*) ;;
+            "propagatedBuildInputs="*) ;;
+            "propagatedNativeBuildInputs="*) ;;
+            "rs="*) ;;
+            "shell="*) ;;
+            "shellHook="*) ;;
+            "src="*) ;;
+            "stdenv="*) ;;
+            "strictDeps="*) ;;
+            "system="*) ;;
+            "version="*) ;;
+
+                # pretty sure these can stay the same
+            "NIX_SSL_CERT_FILE="*) ;;
+            "SSL_CERT_FILE="*) ;;
+
+            *) export "${@?}" ;;
+        esac
+    }
+
+    # shellcheck disable=1090
+    . "$link"
+
+    unset declare
+}
+
+# Checks if a particular cache entry can be used by comparing the tracked files
+# and their checksums.
+check_manifest_of() {
+    debug "looking for manifest in $1"
+    if [ ! -f "$1"/manifest ]; then
+        abort "error: no manifest in $1"
+    fi
+
+    # loop over the entries in the manifest, exiting if one doesn't match the
+    # local file it references.
+    ok=true
+    while IFS= read -r watched; do
+        debug "read: $watched"
+        watched_file=${watched%:*}
+        watched_hash=${watched#*:}
+        debug "file: '$watched_file'"
+        debug "hash: '$watched_hash'"
+        if [ -f "$watched_file" ] \
+            && [ "$(nix-hash "$watched_file" | tr -d '\n')" == "$watched_hash" ]; then
+            debug "$watched_file" "($watched_hash)" "ok"
+        else
+            debug "$watched_file" "($watched_hash)" "not ok"
+            debug giving up on "$1"
+            ok=false
+            break
+        fi
+    done <"$1/manifest"
+
+    "$ok"
+}
+
+# Lists the directories at "$1", most recent first.
+find_recent_first() {
+    if find --help 2>/dev/null | grep GNU >/dev/null; then
+        # this assumes find and stat are the GNU variants
+        find "$1" \
+            -maxdepth 1 -mindepth 1 \
+            -type d -printf "%T+\t%p\n" \
+            | sort -r \
+            | cut -f 2-
+    else
+        # this assumes find and stat are the Darwin variants
+        find "$1" \
+            -maxdepth 1 -mindepth 1 \
+            -type d -exec stat -lt "%Y-%m-%d" {} \+ \
+            | cut -d' ' -f6- \
+            | sort -n \
+            | cut -d ' ' -f 2-
+    fi
+}
+
+# removes all cache entries except the n most recent ones
+# (LRU style)
+prune_old_entries() {
+    local n_to_keep=${1:-5}
+    while IFS= read -r entry; do
+        log removing old cache entry "$entry"
+
+        # here we avoid rm -rf at all cost in case anything goes wrong with
+        # "$entry"'s content.
+        rm "$entry"/manifest
+        rm "$entry"/link
+        rmdir "$entry"
+    done < <(find_recent_first "$CACHE_DIR" | tail -n +"$(( n_to_keep + 1 ))")
+}
+
+if ! command -v nix &>/dev/null; then
+    abort nix executable not found
+fi
+
+CACHE_DIR=~/.cache/niv-sorri-v2
+v1_cache=~/.cache/niv-sorri-v1
+
+# The Nix evaluation may be using `lib.inNixShell`, so we play the game
+export IN_NIX_SHELL=impure
+
+debug cache directory is "$CACHE_DIR"
+
+# If there was a V1, then tell user to delete it to avoid zombie roots
+if [ -d "$v1_cache" ]; then
+    log_bold please delete "$v1_cache" unless you plan on going back to sorri v1
+fi
+
+mkdir -p "$CACHE_DIR"
+
+accepted=""
+
+log looking for matching cached shell in "$CACHE_DIR"
+
+while IFS= read -r candidate; do
+    debug checking manifest "$candidate"
+    if check_manifest_of "$candidate"; then
+        debug accepting sorri cache "$candidate"
+        touch "$candidate" # label as most recently used
+        accepted="$candidate"
+        break
+    fi
+done < <(find_recent_first "$CACHE_DIR")
+
+if [ -n "$accepted" ]; then
+    log using cache created "$(date -r "$accepted")" "($(basename "$accepted"))"
+    import_link_of "$accepted"
+else
+    log no candidate accepted, creating manifest
+    create_manifest
+
+    # we only keep the 5 latest entries to avoid superfluous cruft in $TMP and
+    # Nix GC roots.
+    prune_old_entries 5
+fi
