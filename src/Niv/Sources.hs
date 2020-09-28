@@ -170,6 +170,8 @@ data SourcesNixVersion
     V22
   | -- Allow to pass custom system to bootstrap niv in pure mode
     V23
+  | -- Fix NIV_OVERRIDE_{name} for sandbox
+    V24
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -198,6 +200,7 @@ sourcesVersionToText = \case
   V21 -> "21"
   V22 -> "22"
   V23 -> "23"
+  V24 -> "24"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -233,6 +236,7 @@ sourcesVersionToMD5 = \case
   V21 -> "c501eee378828f7f49828a140dbdbca3"
   V22 -> "935d1d2f0bf95fda977a6e3a7e548ed4"
   V23 -> "4111204b613ec688e2669516dd313440"
+  V24 -> "116c2d936f1847112fef0013771dab28"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text
