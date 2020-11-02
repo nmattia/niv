@@ -212,8 +212,6 @@ is not specified.
 $ niv update ghc -v 8.6.2
 ```
 
-The downloads 
-
 ### Commands
 
 ```
