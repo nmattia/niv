@@ -205,11 +205,14 @@ The option `-v` sets the "version" attribute to `8.4.3`. The option `-t` sets a
 template that can be reused by niv when fetching a new URL (see the
 documentation for [add](#add) and [update](#update)).
 
-For updating the version of GHC used run this command:
+The type of the dependency is guessed from the provided URL template, if `-T`
+is not specified.
 
 ``` shell
 $ niv update ghc -v 8.6.2
 ```
+
+The downloads 
 
 ### Commands
 
