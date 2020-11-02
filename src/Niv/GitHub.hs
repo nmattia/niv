@@ -34,9 +34,9 @@ githubUpdate prefetch latestRev ghRepo = proc () -> do
       <<< (useOrSet "url_template" <<< completeSpec) <+> (load "url_template") -<
       ()
   url <- update "url" -< urlTemplate
-  let isTar = (\u -> "tar.gz" `T.isSuffixOf` u || ".tgz" `T.isSuffixOf` u) <$> url
-  useOrSet "type" -< bool "file" "tarball" <$> isTar :: Box T.Text
-  let doUnpack = isTar
+  let isTarGuess = (\u -> "tar.gz" `T.isSuffixOf` u || ".tgz" `T.isSuffixOf` u) <$> url
+  type' <- useOrSet "type" -< bool "file" "tarball" <$> isTarGuess :: Box T.Text
+  let doUnpack = (== "tarball") <$> type'
   _sha256 <- update "sha256" <<< run (\(up, u) -> prefetch up u) -< (,) <$> doUnpack <*> url
   returnA -< ()
   where
