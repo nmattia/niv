@@ -208,6 +208,8 @@ documentation for [add](#add) and [update](#update)).
 The type of the dependency is guessed from the provided URL template, if `-T`
 is not specified.
 
+For updating the version of GHC used run this command:
+
 ``` shell
 $ niv update ghc -v 8.6.2
 ```
