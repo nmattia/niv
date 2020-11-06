@@ -181,9 +181,9 @@ latestRev repo branch = do
     abortNoOutput args =
       abortGitFailure
         args
-        "Git didn't produce any output."
+        $ "Git didn't produce any output. Does the branch '" <> branch <> "' exist?"
     abortTooMuchOutput args ls =
-      abortGitFailure args $ T.unlines $
+      abortGitBug args $ T.unlines $
         ["Git produced too much output:"] <> map ("  " <>) ls
 
 defaultBranchAndRev ::
@@ -195,7 +195,7 @@ defaultBranchAndRev repo = do
   case sout of
     (l1 : l2 : _) -> (,) <$> parseBranch l1 <*> parseRev l2
     _ ->
-      abortGitFailure args $ T.unlines $
+      abortGitBug args $ T.unlines $
         [ "Could not read reference and revision from stdout:"
         ]
           <> sout
@@ -211,10 +211,10 @@ defaultBranchAndRev repo = do
     checkRev t = if isRev t then Just t else Nothing
 
 abortNoRev :: [T.Text] -> T.Text -> IO a
-abortNoRev args l = abortGitFailure args $ "Could not read revision from: " <> l
+abortNoRev args l = abortGitBug args $ "Could not read revision from: " <> l
 
 abortNoRef :: [T.Text] -> T.Text -> IO a
-abortNoRef args l = abortGitFailure args $ "Could not read reference from: " <> l
+abortNoRef args l = abortGitBug args $ "Could not read reference from: " <> l
 
 -- | Run the "git" executable
 runGit :: [T.Text] -> IO [T.Text]
@@ -223,7 +223,7 @@ runGit args = do
   case (exitCode, lines sout) of
     (ExitSuccess, ls) -> pure $ T.pack <$> ls
     _ ->
-      abortGitFailure args $
+      abortGitBug args $
         T.unlines
           [ T.unwords ["stdout:", T.pack sout],
             T.unwords ["stderr:", T.pack serr]
@@ -239,6 +239,15 @@ isRev t =
 
 abortGitFailure :: [T.Text] -> T.Text -> IO a
 abortGitFailure args msg =
+  abort $
+    T.unlines
+      [ "Could not read the output of 'git'.",
+        T.unwords ("command:" : "git" : args),
+        msg
+      ]
+
+abortGitBug :: [T.Text] -> T.Text -> IO a
+abortGitBug args msg =
   abort $ bug $
     T.unlines
       [ "Could not read the output of 'git'.",
