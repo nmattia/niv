@@ -1,7 +1,6 @@
 { sources ? import ./nix/sources.nix
 , pkgs ? import ./nix { inherit sources; }
 }:
-
 let
   files = pkgs.callPackage ./nix/files.nix { };
 
@@ -147,7 +146,7 @@ let
   # `ghci` command.
   niv-devshell = haskellPackages.shellFor {
     buildInputs = [
-      pkgs.nixpkgs-fmt
+      pkgs.nixpkgs-fmt.defaultNix
       pkgs.haskellPackages.ormolu
       pkgs.jq
     ];

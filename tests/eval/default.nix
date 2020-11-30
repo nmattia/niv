@@ -1,7 +1,5 @@
 { pkgs ? import <nixpkgs> { }
 }:
-
-
 let
   mkTest = name: text:
     {
@@ -39,7 +37,6 @@ let
           '';
     };
 in
-
 mkTest "niv-override-eval" ''
 
         update_sources '.foo = { type: "tarball", url: "foo", sha256: "whocares" }'

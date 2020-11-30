@@ -239,7 +239,7 @@ sourcesVersionToMD5 = \case
   V22 -> "935d1d2f0bf95fda977a6e3a7e548ed4"
   V23 -> "4111204b613ec688e2669516dd313440"
   V24 -> "116c2d936f1847112fef0013771dab28"
-  V25 -> "06f30e27efdbd4081e603b53ca90aca9"
+  V25 -> "4cf403934ff68fd75a03951ef89346c9"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text

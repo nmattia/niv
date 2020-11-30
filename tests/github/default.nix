@@ -13,7 +13,6 @@
 # to serve GitHub API responses.
 
 { pkgs, niv }:
-
 let
   niv_HEAD = "a489b65a5c3a29983701069d1ce395b23d9bde64";
   niv_HEAD- = "abc51449406ba3279c466b4d356b4ae8522ceb58";
