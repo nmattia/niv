@@ -248,10 +248,11 @@ Examples:
   niv add NixOS/nixpkgs -n nixpkgs -b nixpkgs-unstable
   niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
 
-Usage: niv add PACKAGE [-n|--name NAME] ([-a|--attribute KEY=VAL] |
-               [-s|--string-attribute KEY=VAL] | [-b|--branch BRANCH] |
-               [-o|--owner OWNER] | [-r|--rev REV] | [-v|--version VERSION] |
-               [-t|--template URL] | [-T|--type TYPE])
+Usage: niv add PACKAGE [-n|--name NAME] 
+                 [(-a|--attribute KEY=VAL) | (-s|--string-attribute KEY=VAL) | 
+                   (-b|--branch BRANCH) | (-o|--owner OWNER) | (-r|--rev REV) | 
+                   (-v|--version VERSION) | (-t|--template URL) | 
+                   (-T|--type TYPE)]
   Add a GitHub dependency
 
 Available options:
@@ -286,10 +287,12 @@ Examples:
   niv update nixpkgs             # update nixpkgs
   niv update my-package -v beta-0.2 # update my-package to version "beta-0.2"
 
-Usage: niv update [PACKAGE] ([-a|--attribute KEY=VAL] |
-                  [-s|--string-attribute KEY=VAL] | [-b|--branch BRANCH] |
-                  [-o|--owner OWNER] | [-r|--rev REV] | [-v|--version VERSION] |
-                  [-t|--template URL] | [-T|--type TYPE])
+Usage: niv update [PACKAGE 
+                    [(-a|--attribute KEY=VAL) | 
+                      (-s|--string-attribute KEY=VAL) | (-b|--branch BRANCH) | 
+                      (-o|--owner OWNER) | (-r|--rev REV) | 
+                      (-v|--version VERSION) | (-t|--template URL) | 
+                      (-T|--type TYPE)]]
   Update dependencies
 
 Available options:
@@ -317,10 +320,11 @@ Examples:
   niv modify nixpkgs -v beta-0.2
   niv modify nixpkgs -a branch=nixpkgs-unstable
 
-Usage: niv modify PACKAGE [-n|--name NAME] ([-a|--attribute KEY=VAL] |
-                  [-s|--string-attribute KEY=VAL] | [-b|--branch BRANCH] |
-                  [-o|--owner OWNER] | [-r|--rev REV] | [-v|--version VERSION] |
-                  [-t|--template URL] | [-T|--type TYPE])
+Usage: niv modify PACKAGE [-n|--name NAME] 
+                  [(-a|--attribute KEY=VAL) | (-s|--string-attribute KEY=VAL) | 
+                    (-b|--branch BRANCH) | (-o|--owner OWNER) | (-r|--rev REV) |
+                    (-v|--version VERSION) | (-t|--template URL) | 
+                    (-T|--type TYPE)]
   Modify dependency attributes without performing an update
 
 Available options:
@@ -359,8 +363,8 @@ Available options:
 #### Init
 
 ```
-Usage: niv init ([--no-nixpkgs] | [-b|--nixpkgs-branch ARG]
-                [--nixpkgs OWNER/REPO])
+Usage: niv init [--no-nixpkgs | [-b|--nixpkgs-branch ARG] 
+                  [--nixpkgs OWNER/REPO]]
   Initialize a Nix project. Existing files won't be modified.
 
 Available options:
