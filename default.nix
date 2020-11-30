@@ -149,6 +149,7 @@ let
     buildInputs = [
       pkgs.nixpkgs-fmt
       pkgs.haskellPackages.ormolu
+      pkgs.jq
     ];
     packages = ps: [ ps.niv ];
     shellHook = ''
