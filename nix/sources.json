@@ -1,15 +1,16 @@
 {
     "nixpkgs": {
-        "branch": "release-20.03",
+        "branch": "nixpkgs-unstable",
         "description": "Nix Packages collection",
         "homepage": null,
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "6f7e39c768442fce08646c3fbccacb2808baff66",
-        "sha256": "0mkf96prhb3rlxvcxhd8xa5kd56gfrakhriv2s0cir9w6cmrfzbp",
+        "rev": "b6bca3d80619f1565ba0ea635b0d38234e41c6bd",
+        "sha256": "09d4f6h98rmxnxzm1x07jxgrc81k6mz7fjigq375fkmb41j2kdsi",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/6f7e39c768442fce08646c3fbccacb2808baff66.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+        "url": "https://github.com/NixOS/nixpkgs/archive/b6bca3d80619f1565ba0ea635b0d38234e41c6bd.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "version": "411f9e25d706e1e98ecaa743ad4d000637d5af21"
     },
     "nixpkgs-fmt": {
         "branch": "macos-big-sur",
