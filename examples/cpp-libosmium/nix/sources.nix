@@ -30,7 +30,8 @@ let
 
           $ niv modify <package> -a type=tarball -a builtin=true
       ''
-      builtins_fetchTarball { inherit (spec) url sha256; };
+      builtins_fetchTarball
+      { inherit (spec) url sha256; };
 
   fetch_builtin-url = spec:
     builtins.trace
@@ -52,19 +53,20 @@ let
     if hasNixpkgsPath
     then
       if hasThisAsNixpkgsPath
-      then import (builtins_fetchTarball { inherit (mkNixpkgs sources) url sha256; }) {}
-      else import <nixpkgs> {}
+      then import (builtins_fetchTarball { inherit (mkNixpkgs sources) url sha256; }) { }
+      else import <nixpkgs> { }
     else
-      import (builtins_fetchTarball { inherit (mkNixpkgs sources) url sha256; }) {};
+      import (builtins_fetchTarball { inherit (mkNixpkgs sources) url sha256; }) { };
 
   mkNixpkgs = sources:
     if builtins.hasAttr "nixpkgs" sources
     then sources.nixpkgs
-    else abort
-      ''
-        Please specify either <nixpkgs> (through -I or NIX_PATH=nixpkgs=...) or
-        add a package called "nixpkgs" to your sources.json.
-      '';
+    else
+      abort
+        ''
+          Please specify either <nixpkgs> (through -I or NIX_PATH=nixpkgs=...) or
+          add a package called "nixpkgs" to your sources.json.
+        '';
 
   hasNixpkgsPath = (builtins.tryEval <nixpkgs>).success;
   hasThisAsNixpkgsPath =
@@ -96,31 +98,34 @@ let
     let
       inherit (builtins) lessThan nixVersion fetchTarball;
     in
-      if lessThan nixVersion "1.12" then
-        fetchTarball { inherit url; }
-      else
-        fetchTarball attrs;
+    if lessThan nixVersion "1.12" then
+      fetchTarball { inherit url; }
+    else
+      fetchTarball attrs;
 
   # fetchurl version that is compatible between all the versions of Nix
   builtins_fetchurl = { url, sha256 }@attrs:
     let
       inherit (builtins) lessThan nixVersion fetchurl;
     in
-      if lessThan nixVersion "1.12" then
-        fetchurl { inherit url; }
-      else
-        fetchurl attrs;
+    if lessThan nixVersion "1.12" then
+      fetchurl { inherit url; }
+    else
+      fetchurl attrs;
 
   # Create the final "sources" from the config
   mkSources = config:
-    mapAttrs (
-      name: spec:
-        if builtins.hasAttr "outPath" spec
-        then abort
-          "The values in sources.json should not have an 'outPath' attribute"
-        else
-          spec // { outPath = fetch config.pkgs name spec; }
-    ) config.sources;
+    mapAttrs
+      (
+        name: spec:
+          if builtins.hasAttr "outPath" spec
+          then
+            abort
+              "The values in sources.json should not have an 'outPath' attribute"
+          else
+            spec // { outPath = fetch config.pkgs name spec; }
+      )
+      config.sources;
 
   # The "config" used by the fetchers
   mkConfig =
@@ -135,4 +140,4 @@ let
       inherit pkgs;
     };
 in
-mkSources (mkConfig {}) // { __functor = _: settings: mkSources (mkConfig settings); }
+mkSources (mkConfig { }) // { __functor = _: settings: mkSources (mkConfig settings); }

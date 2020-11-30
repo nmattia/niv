@@ -3,7 +3,7 @@
 # TODO: this doesn' test anything meaningful yet because "niv git PACKAGE"
 # doesn't parse yet
 pkgs.runCommand "git-test"
-  { nativeBuildInputs = [ pkgs.git niv pkgs.nix pkgs.jq ]; }
+{ nativeBuildInputs = [ pkgs.git niv pkgs.nix pkgs.jq ]; }
   (
 
     # make sure the tests run smoothly in multi-user install
