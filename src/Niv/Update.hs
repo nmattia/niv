@@ -295,8 +295,6 @@ renderTemplate vals = \case
       _ -> Nothing
   (T.uncons -> Just (c, str)) -> fmap (T.cons c) <$> renderTemplate vals str
   (T.uncons -> Nothing) -> Just $ pure T.empty
-  -- XXX: isn't this redundant?
-  _ -> Just $ pure T.empty
 
 template :: Update (Box T.Text) (Box T.Text)
 template = Template
