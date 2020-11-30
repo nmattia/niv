@@ -26,8 +26,9 @@ mapWithKeyM ::
   HMS.HashMap k v1 ->
   m (HMS.HashMap k v2)
 mapWithKeyM f m = do
-  fmap mconcat $ forM (HMS.toList m) $ \(k, v) ->
-    HMS.singleton k <$> f k v
+  fmap mconcat $
+    forM (HMS.toList m) $ \(k, v) ->
+      HMS.singleton k <$> f k v
 
 mapWithKeyM_ ::
   (Eq k, Hashable k, Monad m) =>
