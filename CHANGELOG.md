@@ -1,5 +1,9 @@
 # Changelog
 
+## UNRELEASED
+## Changed
+* Remove warnings about GITHUB_INSECURE and GITHUB_PATH
+
 ## [0.2.19] 2021-01-05
 ## Added
 * There is a new flag `--no-colors` for avoiding colors in the output
