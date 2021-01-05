@@ -8,6 +8,7 @@
 # * git checkout master
 # * make sure changelog is up-to-date
 # * bump version in package.yaml
+# * bump version in CHANGELOG
 # * run ./script/gen (twice...)
 # * run ./script/test
 # * git ci -am "Release 3.14.15"

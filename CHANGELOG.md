@@ -1,6 +1,8 @@
 # Changelog
 
-## UNRELEASED
+## [0.2.19] 2021-01-05
+## Added
+* There is a new flag `--no-colors` for avoiding colors in the output
 ## Changed
 * `GITHUB_PATH` was renamed to `NIV_GITHUB_PATH` https://github.com/nmattia/niv/issues/280
 * `GITHUB_INSECURE` was renamed to `NIV_GITHUB_INSECURE` https://github.com/nmattia/niv/issues/280
