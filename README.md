@@ -221,10 +221,11 @@ niv - dependency manager for Nix projects
 
 version: 0.2.18
 
-Usage: niv [-s|--sources-file FILE] COMMAND
+Usage: niv [-s|--sources-file FILE] [--no-colors] COMMAND
 
 Available options:
   -s,--sources-file FILE   Use FILE instead of nix/sources.json
+  --no-colors              Don't use colors in output
   -h,--help                Show this help text
   --version                Print version
 

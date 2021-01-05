@@ -54,16 +54,17 @@ li = liftIO
 cli :: IO ()
 cli = do
   warnGitHubEnvVars
-  (fsj, nio) <-
+  ((fsj, colors), nio) <-
     execParserPure' Opts.defaultPrefs opts <$> getArgs
       >>= Opts.handleParseResult
+  setColors colors
   runReaderT (runNIO nio) fsj
   where
     execParserPure' pprefs pinfo [] =
       Opts.Failure $
         Opts.parserFailure pprefs pinfo Opts.ShowHelpText mempty
     execParserPure' pprefs pinfo args = Opts.execParserPure pprefs pinfo args
-    opts = Opts.info ((,) <$> parseFindSourcesJson <*> (parseCommand <**> Opts.helper <**> versionflag)) $ mconcat desc
+    opts = Opts.info ((,) <$> ((,) <$> parseFindSourcesJson <*> parseColors) <*> (parseCommand <**> Opts.helper <**> versionflag)) $ mconcat desc
     desc =
       [ Opts.fullDesc,
         Opts.headerDoc $ Just $
@@ -80,6 +81,12 @@ cli = do
               <> Opts.help "Use FILE instead of nix/sources.json"
           )
         <|> pure Auto
+    parseColors =
+      (\case True -> Never; False -> Always)
+        <$> Opts.switch
+          ( Opts.long "no-colors"
+              <> Opts.help "Don't use colors in output"
+          )
     versionflag :: Opts.Parser (a -> a)
     versionflag =
       Opts.abortOption (Opts.InfoMsg (showVersion version)) $
