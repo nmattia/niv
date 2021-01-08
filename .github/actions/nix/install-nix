@@ -22,14 +22,14 @@ install_nix() {
 
       # macOS needs certificates hints
       cert_file=/nix/var/nix/profiles/default/etc/ssl/certs/ca-bundle.crt
-      echo "::set-env name=NIX_SSL_CERT_FILE::$cert_file"
-      export NIX_SSL_CERT_FILE=$cert_file
+      echo "NIX_SSL_CERT_FILE=$cert_file" >>"$GITHUB_ENV"
+      export NIX_SSL_CERT_FILE="$cert_file"
       sudo launchctl setenv NIX_SSL_CERT_FILE "$cert_file"
     fi
 
     # Set paths
-    echo "::add-path::/nix/var/nix/profiles/per-user/runner/profile/bin"
-    echo "::add-path::/nix/var/nix/profiles/default/bin"
+    echo "/nix/var/nix/profiles/per-user/runner/profile/bin" >>"$GITHUB_PATH"
+    echo "/nix/var/nix/profiles/default/bin" >>"$GITHUB_PATH"
     . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
 }
 
@@ -80,5 +80,5 @@ if [ "${INSTALL_NIX_WAS_RUN:-}" == "1" ]; then
 else
     install_nix
     install_cachix
-    echo "::set-env name=INSTALL_NIX_WAS_RUN::1"
+    echo "INSTALL_NIX_WAS_RUN=1" >>"$GITHUB_ENV"
 fi
