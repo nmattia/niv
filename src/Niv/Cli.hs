@@ -67,10 +67,11 @@ cli = do
     opts = Opts.info ((,) <$> ((,) <$> parseFindSourcesJson <*> parseColors) <*> (parseCommand <**> Opts.helper <**> versionflag)) $ mconcat desc
     desc =
       [ Opts.fullDesc,
-        Opts.headerDoc $ Just $
-          "niv - dependency manager for Nix projects"
-            Opts.<$$> ""
-            Opts.<$$> "version:" Opts.<+> Opts.text (showVersion version)
+        Opts.headerDoc $
+          Just $
+            "niv - dependency manager for Nix projects"
+              Opts.<$$> ""
+              Opts.<$$> "version:" Opts.<+> Opts.text (showVersion version)
       ]
     parseFindSourcesJson =
       AtPath
@@ -192,11 +193,12 @@ cmdInit nixpkgs = do
             cmdAdd
               githubCmd
               (PackageName "niv")
-              ( specToFreeAttrs $ PackageSpec $
-                  HMS.fromList
-                    [ "owner" .= ("nmattia" :: T.Text),
-                      "repo" .= ("niv" :: T.Text)
-                    ]
+              ( specToFreeAttrs $
+                  PackageSpec $
+                    HMS.fromList
+                      [ "owner" .= ("nmattia" :: T.Text),
+                        "repo" .= ("niv" :: T.Text)
+                      ]
               )
             case nixpkgs of
               NoNixpkgs -> say "Not importing 'nixpkgs'."
@@ -207,12 +209,13 @@ cmdInit nixpkgs = do
                 cmdAdd
                   githubCmd
                   (PackageName "nixpkgs")
-                  ( specToFreeAttrs $ PackageSpec $
-                      HMS.fromList
-                        [ "owner" .= owner,
-                          "repo" .= repo,
-                          "branch" .= branch
-                        ]
+                  ( specToFreeAttrs $
+                      PackageSpec $
+                        HMS.fromList
+                          [ "owner" .= owner,
+                            "repo" .= repo,
+                            "branch" .= branch
+                          ]
                   ),
           \path _content -> dontCreateFile path
         )
@@ -340,16 +343,18 @@ cmdAdd cmd packageName attrs = do
   job ("Adding package " <> T.unpack (unPackageName packageName)) $ do
     fsj <- getFindSourcesJson
     sources <- unSources <$> li (getSources fsj)
-    when (HMS.member packageName sources)
-      $ li
-      $ abortCannotAddPackageExists packageName
+    when (HMS.member packageName sources) $
+      li $
+        abortCannotAddPackageExists packageName
     eFinalSpec <- fmap attrsToSpec <$> li (doUpdate attrs cmd)
     case eFinalSpec of
       Left e -> li (abortUpdateFailed [(packageName, e)])
       Right finalSpec -> do
         say $ "Writing new sources file"
-        li $ setSources fsj $ Sources $
-          HMS.insert packageName finalSpec sources
+        li $
+          setSources fsj $
+            Sources $
+              HMS.insert packageName finalSpec sources
 
 -------------------------------------------------------------------------------
 -- SHOW
@@ -397,14 +402,16 @@ parseCmdUpdate =
     desc =
       [ Opts.fullDesc,
         Opts.progDesc "Update dependencies",
-        Opts.headerDoc $ Just $ Opts.nest 2 $
-          "Examples:"
-            Opts.<$$> ""
-            Opts.<$$> Opts.vcat
-              [ Opts.fill 30 "niv update" Opts.<+> "# update all packages",
-                Opts.fill 30 "niv update nixpkgs" Opts.<+> "# update nixpkgs",
-                Opts.fill 30 "niv update my-package -v beta-0.2" Opts.<+> "# update my-package to version \"beta-0.2\""
-              ]
+        Opts.headerDoc $
+          Just $
+            Opts.nest 2 $
+              "Examples:"
+                Opts.<$$> ""
+                Opts.<$$> Opts.vcat
+                  [ Opts.fill 30 "niv update" Opts.<+> "# update all packages",
+                    Opts.fill 30 "niv update nixpkgs" Opts.<+> "# update nixpkgs",
+                    Opts.fill 30 "niv update my-package -v beta-0.2" Opts.<+> "# update my-package to version \"beta-0.2\""
+                  ]
       ]
 
 specToFreeAttrs :: PackageSpec -> Attrs
@@ -433,8 +440,10 @@ cmdUpdate = \case
       case eFinalSpec of
         Left e -> li $ abortUpdateFailed [(packageName, e)]
         Right finalSpec ->
-          li $ setSources fsj $ Sources $
-            HMS.insert packageName finalSpec sources
+          li $
+            setSources fsj $
+              Sources $
+                HMS.insert packageName finalSpec sources
   Nothing -> job "Updating all packages" $ do
     fsj <- getFindSourcesJson
     sources <- unSources <$> li (getSources fsj)
@@ -451,9 +460,9 @@ cmdUpdate = \case
         finalSpec <- fmap attrsToSpec <$> li (doUpdate initialSpec cmd)
         pure finalSpec
     let (failed, sources') = partitionEithersHMS esources'
-    unless (HMS.null failed)
-      $ li
-      $ abortUpdateFailed (HMS.toList failed)
+    unless (HMS.null failed) $
+      li $
+        abortUpdateFailed (HMS.toList failed)
     li $ setSources fsj $ Sources sources'
 
 -- | pretty much tryEvalUpdate but we might issue some warnings first
@@ -484,11 +493,12 @@ parseCmdModify =
     desc =
       [ Opts.fullDesc,
         Opts.progDesc "Modify dependency attributes without performing an update",
-        Opts.headerDoc $ Just $
-          "Examples:"
-            Opts.<$$> ""
-            Opts.<$$> "  niv modify nixpkgs -v beta-0.2"
-            Opts.<$$> "  niv modify nixpkgs -a branch=nixpkgs-unstable"
+        Opts.headerDoc $
+          Just $
+            "Examples:"
+              Opts.<$$> ""
+              Opts.<$$> "  niv modify nixpkgs -v beta-0.2"
+              Opts.<$$> "  niv modify nixpkgs -a branch=nixpkgs-unstable"
       ]
     optName =
       Opts.optional $
@@ -510,9 +520,9 @@ cmdModify packageName mNewName cliSpec = do
     Nothing -> li $ abortCannotModifyNoSuchPackage packageName
   case mNewName of
     Just newName -> do
-      when (HMS.member newName sources)
-        $ li
-        $ abortCannotAddPackageExists newName
+      when (HMS.member newName sources) $
+        li $
+          abortCannotAddPackageExists newName
       li $ setSources fsj $ Sources $ HMS.insert newName finalSpec $ HMS.delete packageName sources
     Nothing ->
       li $ setSources fsj $ Sources $ HMS.insert packageName finalSpec sources
@@ -532,11 +542,12 @@ parseCmdDrop =
     desc =
       [ Opts.fullDesc,
         Opts.progDesc "Drop dependency",
-        Opts.headerDoc $ Just $
-          "Examples:"
-            Opts.<$$> ""
-            Opts.<$$> "  niv drop jq"
-            Opts.<$$> "  niv drop my-package version"
+        Opts.headerDoc $
+          Just $
+            "Examples:"
+              Opts.<$$> ""
+              Opts.<$$> "  niv drop jq"
+              Opts.<$$> "  niv drop my-package version"
       ]
     parseDropAttributes :: Opts.Parser [T.Text]
     parseDropAttributes =
@@ -549,11 +560,13 @@ cmdDrop packageName = \case
     tsay $ "Dropping package: " <> unPackageName packageName
     fsj <- getFindSourcesJson
     sources <- unSources <$> li (getSources fsj)
-    when (not $ HMS.member packageName sources)
-      $ li
-      $ abortCannotDropNoSuchPackage packageName
-    li $ setSources fsj $ Sources $
-      HMS.delete packageName sources
+    when (not $ HMS.member packageName sources) $
+      li $
+        abortCannotDropNoSuchPackage packageName
+    li $
+      setSources fsj $
+        Sources $
+          HMS.delete packageName sources
   attrs -> do
     tsay $ "Dropping attributes: " <> T.intercalate " " attrs
     tsay $ "In package: " <> unPackageName packageName
@@ -563,12 +576,15 @@ cmdDrop packageName = \case
       Nothing ->
         li $ abortCannotAttributesDropNoSuchPackage packageName
       Just (PackageSpec packageSpec) ->
-        pure $ PackageSpec $
-          HMS.mapMaybeWithKey
-            (\k v -> if k `elem` attrs then Nothing else Just v)
-            packageSpec
-    li $ setSources fsj $ Sources $
-      HMS.insert packageName packageSpec sources
+        pure $
+          PackageSpec $
+            HMS.mapMaybeWithKey
+              (\k v -> if k `elem` attrs then Nothing else Just v)
+              packageSpec
+    li $
+      setSources fsj $
+        Sources $
+          HMS.insert packageName packageSpec sources
 
 -------------------------------------------------------------------------------
 -- Files and their content
@@ -653,10 +669,11 @@ abortCannotAttributesDropNoSuchPackage (PackageName n) =
 
 abortUpdateFailed :: [(PackageName, SomeException)] -> IO a
 abortUpdateFailed errs =
-  abort $ T.unlines $
-    ["One or more packages failed to update:"]
-      <> map
-        ( \(PackageName pname, e) ->
-            pname <> ": " <> tshow e
-        )
-        errs
+  abort $
+    T.unlines $
+      ["One or more packages failed to update:"]
+        <> map
+          ( \(PackageName pname, e) ->
+              pname <> ": " <> tshow e
+          )
+          errs

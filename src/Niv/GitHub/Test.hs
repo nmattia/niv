@@ -16,9 +16,9 @@ test_githubInitsProperly :: IO ()
 test_githubInitsProperly = do
   actualState <- evalUpdate initialState $ proc () ->
     githubUpdate prefetch latestRev ghRepo -< ()
-  unless ((snd <$> actualState) == expectedState)
-    $ error
-    $ "State mismatch: " <> show actualState
+  unless ((snd <$> actualState) == expectedState) $
+    error $
+      "State mismatch: " <> show actualState
   where
     prefetch _ _ = pure "some-sha"
     latestRev _ _ _ = pure "some-rev"
@@ -52,9 +52,9 @@ test_githubUpdates :: IO ()
 test_githubUpdates = do
   actualState <- evalUpdate initialState $ proc () ->
     githubUpdate prefetch latestRev ghRepo -< ()
-  unless ((snd <$> actualState) == expectedState)
-    $ error
-    $ "State mismatch: " <> show actualState
+  unless ((snd <$> actualState) == expectedState) $
+    error $
+      "State mismatch: " <> show actualState
   where
     prefetch _ _ = pure "new-sha"
     latestRev _ _ _ = pure "new-rev"
@@ -96,9 +96,9 @@ test_githubDoesntOverrideRev :: IO ()
 test_githubDoesntOverrideRev = do
   actualState <- evalUpdate initialState $ proc () ->
     githubUpdate prefetch latestRev ghRepo -< ()
-  unless ((snd <$> actualState) == expectedState)
-    $ error
-    $ "State mismatch: " <> show actualState
+  unless ((snd <$> actualState) == expectedState) $
+    error $
+      "State mismatch: " <> show actualState
   where
     prefetch _ _ = pure "new-sha"
     latestRev _ _ _ = error "shouldn't fetch rev"
@@ -135,9 +135,9 @@ test_githubURLFallback :: IO ()
 test_githubURLFallback = do
   actualState <- evalUpdate initialState $ proc () ->
     githubUpdate prefetch latestRev ghRepo -< ()
-  unless ((snd <$> actualState) == expectedState)
-    $ error
-    $ "State mismatch: " <> show actualState
+  unless ((snd <$> actualState) == expectedState) $
+    error $
+      "State mismatch: " <> show actualState
   where
     prefetch _ _ = pure "some-sha"
     latestRev _ _ _ = error "shouldn't fetch rev"
@@ -161,16 +161,16 @@ test_githubUpdatesOnce = do
   ioref <- newIORef False
   tmpState <- evalUpdate initialState $ proc () ->
     githubUpdate (prefetch ioref) latestRev ghRepo -< ()
-  unless ((snd <$> tmpState) == expectedState)
-    $ error
-    $ "State mismatch: " <> show tmpState
+  unless ((snd <$> tmpState) == expectedState) $
+    error $
+      "State mismatch: " <> show tmpState
   -- Set everything free
   let tmpState' = HMS.map (first (\_ -> Free)) tmpState
   actualState <- evalUpdate tmpState' $ proc () ->
     githubUpdate (prefetch ioref) latestRev ghRepo -< ()
-  unless ((snd <$> actualState) == expectedState)
-    $ error
-    $ "State mismatch: " <> show actualState
+  unless ((snd <$> actualState) == expectedState) $
+    error $
+      "State mismatch: " <> show actualState
   where
     prefetch ioref _ _ = do
       readIORef ioref >>= \case

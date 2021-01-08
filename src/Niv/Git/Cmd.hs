@@ -126,13 +126,14 @@ describeGit =
   mconcat
     [ Opts.fullDesc,
       Opts.progDesc "Add a git dependency. Experimental.",
-      Opts.headerDoc $ Just $
-        "Examples:"
-          Opts.<$$> ""
-          Opts.<$$> "  niv add git git@github.com:stedolan/jq"
-          Opts.<$$> "  niv add git ssh://git@github.com/stedolan/jq --rev deadb33f"
-          Opts.<$$> "  niv add git https://github.com/stedolan/jq.git"
-          Opts.<$$> "  niv add git --repo /my/custom/repo --name custom --branch development"
+      Opts.headerDoc $
+        Just $
+          "Examples:"
+            Opts.<$$> ""
+            Opts.<$$> "  niv add git git@github.com:stedolan/jq"
+            Opts.<$$> "  niv add git ssh://git@github.com/stedolan/jq --rev deadb33f"
+            Opts.<$$> "  niv add git https://github.com/stedolan/jq.git"
+            Opts.<$$> "  niv add git --repo /my/custom/repo --name custom --branch development"
     ]
 
 gitUpdate ::
@@ -183,8 +184,9 @@ latestRev repo branch = do
         args
         $ "Git didn't produce any output. Does the branch '" <> branch <> "' exist?"
     abortTooMuchOutput args ls =
-      abortGitBug args $ T.unlines $
-        ["Git produced too much output:"] <> map ("  " <>) ls
+      abortGitBug args $
+        T.unlines $
+          ["Git produced too much output:"] <> map ("  " <>) ls
 
 defaultBranchAndRev ::
   -- | the repository
@@ -195,10 +197,11 @@ defaultBranchAndRev repo = do
   case sout of
     (l1 : l2 : _) -> (,) <$> parseBranch l1 <*> parseRev l2
     _ ->
-      abortGitBug args $ T.unlines $
-        [ "Could not read reference and revision from stdout:"
-        ]
-          <> sout
+      abortGitBug args $
+        T.unlines $
+          [ "Could not read reference and revision from stdout:"
+          ]
+            <> sout
   where
     args = ["ls-remote", "--symref", repo, "HEAD"]
     parseBranch l = maybe (abortNoRef args l) pure $ do
@@ -248,9 +251,10 @@ abortGitFailure args msg =
 
 abortGitBug :: [T.Text] -> T.Text -> IO a
 abortGitBug args msg =
-  abort $ bug $
-    T.unlines
-      [ "Could not read the output of 'git'.",
-        T.unwords ("command:" : "git" : args),
-        msg
-      ]
+  abort $
+    bug $
+      T.unlines
+        [ "Could not read the output of 'git'.",
+          T.unwords ("command:" : "git" : args),
+          msg
+        ]
