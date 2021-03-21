@@ -61,9 +61,9 @@ test_gitUpdateRev = do
   let interState' = HMS.map (first (\_ -> Free)) interState
   actualState <- evalUpdate interState' $ proc () ->
     gitUpdate latestRev' (error "should update") -< ()
-  unless ((snd <$> actualState) == expectedState)
-    $ error
-    $ "State mismatch: " <> show actualState
+  unless ((snd <$> actualState) == expectedState) $
+    error $
+      "State mismatch: " <> show actualState
   where
     latestRev' _ _ = pure "some-other-rev"
     defaultBranchAndHEAD' _ = pure ("some-branch", "some-rev")
@@ -111,9 +111,9 @@ test_gitCalledOnce = do
   let interState' = HMS.map (first (\_ -> Free)) interState
   actualState <- evalUpdate interState' $ proc () ->
     gitUpdate latestRev'' (error "should update") -< ()
-  unless ((snd <$> actualState) == expectedState)
-    $ error
-    $ "State mismatch: " <> show actualState
+  unless ((snd <$> actualState) == expectedState) $
+    error $
+      "State mismatch: " <> show actualState
   where
     latestRev' _ _ = pure "some-other-rev"
     defaultBranchAndHEAD' _ = pure ("some-branch", "some-rev")

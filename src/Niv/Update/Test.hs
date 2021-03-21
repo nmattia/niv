@@ -12,8 +12,9 @@ import Niv.Update
 
 simplyRuns :: IO ()
 simplyRuns =
-  void $ runUpdate attrs $ proc () -> do
-    returnA -< ()
+  void $
+    runUpdate attrs $ proc () -> do
+      returnA -< ()
   where
     attrs = HMS.empty
 
@@ -76,9 +77,9 @@ dirtyForcesUpdate :: IO ()
 dirtyForcesUpdate = do
   let f = constBox ("world" :: T.Text) >>> dirty >>> update "hello"
   attrs' <- evalUpdate attrs f
-  unless ((snd <$> HMS.lookup "hello" attrs') == Just "world")
-    $ error
-    $ "bad value for hello: " <> show attrs'
+  unless ((snd <$> HMS.lookup "hello" attrs') == Just "world") $
+    error $
+      "bad value for hello: " <> show attrs'
   where
     attrs = HMS.singleton "hello" (Free, "foo")
 
@@ -88,16 +89,16 @@ shouldNotRunWhenNoChanges = do
         update "hello" -< ("world" :: Box T.Text)
         run (\() -> error "io shouldn't be run") -< pure ()
   attrs <- evalUpdate HMS.empty f
-  unless ((snd <$> HMS.lookup "hello" attrs) == Just "world")
-    $ error
-    $ "bad value for hello: " <> show attrs
+  unless ((snd <$> HMS.lookup "hello" attrs) == Just "world") $
+    error $
+      "bad value for hello: " <> show attrs
   let f' = proc () -> do
         run (\() -> error "io shouldn't be run") -< pure ()
         update "hello" -< ("world" :: Box T.Text)
   attrs' <- evalUpdate HMS.empty f'
-  unless ((snd <$> HMS.lookup "hello" attrs') == Just "world")
-    $ error
-    $ "bad value for hello: " <> show attrs'
+  unless ((snd <$> HMS.lookup "hello" attrs') == Just "world") $
+    error $
+      "bad value for hello: " <> show attrs'
   v3 <- execUpdate
     (HMS.fromList [("hello", (Free, "world")), ("bar", (Free, "baz"))])
     $ proc () -> do

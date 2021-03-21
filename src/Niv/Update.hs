@@ -120,13 +120,12 @@ data UpdateReady b
 runBox :: Box a -> IO a
 runBox = boxOp
 
-data Box a
-  = Box
-      { -- | Whether the value is new or was retrieved (or derived) from old
-        -- attributes
-        boxNew :: Bool,
-        boxOp :: IO a
-      }
+data Box a = Box
+  { -- | Whether the value is new or was retrieved (or derived) from old
+    -- attributes
+    boxNew :: Bool,
+    boxOp :: IO a
+  }
   deriving (Functor)
 
 mkBox :: Box a -> IO (Box a)
@@ -188,28 +187,35 @@ runUpdate' attrs = \case
   Id -> pure $ UpdateNeedMore $ pure . UpdateSuccess attrs
   Arr f -> pure $ UpdateNeedMore $ pure . UpdateSuccess attrs . f
   Zero -> pure $ UpdateReady (UpdateFailed FailZero)
-  Plus l r -> runUpdate' attrs l >>= \case
-    UpdateReady (UpdateFailed {}) -> runUpdate' attrs r
-    UpdateReady (UpdateSuccess f v) -> pure $ UpdateReady (UpdateSuccess f v)
-    UpdateNeedMore next -> pure $ UpdateNeedMore $ \v -> next v >>= \case
-      UpdateSuccess f res -> pure $ UpdateSuccess f res
-      UpdateFailed {} -> runUpdate' attrs r >>= \case
-        UpdateReady res -> pure res
-        UpdateNeedMore next' -> next' v
-  Load k -> pure $ UpdateReady $ do
-    case HMS.lookup k attrs of
-      Just (_, v') -> UpdateSuccess attrs v'
-      Nothing -> UpdateFailed $ FailNoSuchKey k
+  Plus l r ->
+    runUpdate' attrs l >>= \case
+      UpdateReady (UpdateFailed {}) -> runUpdate' attrs r
+      UpdateReady (UpdateSuccess f v) -> pure $ UpdateReady (UpdateSuccess f v)
+      UpdateNeedMore next -> pure $
+        UpdateNeedMore $ \v ->
+          next v >>= \case
+            UpdateSuccess f res -> pure $ UpdateSuccess f res
+            UpdateFailed {} ->
+              runUpdate' attrs r >>= \case
+                UpdateReady res -> pure res
+                UpdateNeedMore next' -> next' v
+  Load k -> pure $
+    UpdateReady $ do
+      case HMS.lookup k attrs of
+        Just (_, v') -> UpdateSuccess attrs v'
+        Nothing -> UpdateFailed $ FailNoSuchKey k
   First a -> do
     runUpdate' attrs a >>= \case
       UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
-      UpdateReady (UpdateSuccess fo ba) -> pure $ UpdateNeedMore $ \gtt -> do
-        pure $ UpdateSuccess fo (ba, snd gtt)
-      UpdateNeedMore next -> pure $ UpdateNeedMore $ \gtt -> do
-        next (fst gtt) >>= \case
-          UpdateFailed e -> pure $ UpdateFailed e
-          UpdateSuccess f res -> do
-            pure $ UpdateSuccess f (res, snd gtt)
+      UpdateReady (UpdateSuccess fo ba) -> pure $
+        UpdateNeedMore $ \gtt -> do
+          pure $ UpdateSuccess fo (ba, snd gtt)
+      UpdateNeedMore next -> pure $
+        UpdateNeedMore $ \gtt -> do
+          next (fst gtt) >>= \case
+            UpdateFailed e -> pure $ UpdateFailed e
+            UpdateSuccess f res -> do
+              pure $ UpdateSuccess f (res, snd gtt)
   Run act ->
     pure
       ( UpdateNeedMore $ \gtt -> do
@@ -249,28 +255,33 @@ runUpdate' attrs = \case
           pure $ UpdateSuccess attrs v
     Nothing -> UpdateNeedMore $ \gtt -> do
       pure $ UpdateSuccess (HMS.insert k (Locked, gtt) attrs) gtt
-  Compose (Compose' f g) -> runUpdate' attrs g >>= \case
-    UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
-    UpdateReady (UpdateSuccess attrs' act) -> runUpdate' attrs' f >>= \case
+  Compose (Compose' f g) ->
+    runUpdate' attrs g >>= \case
       UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
-      UpdateReady (UpdateSuccess attrs'' act') -> pure $ UpdateReady $ UpdateSuccess attrs'' act'
-      UpdateNeedMore next -> UpdateReady <$> next act
-    UpdateNeedMore next -> pure $ UpdateNeedMore $ \gtt -> do
-      next gtt >>= \case
-        UpdateFailed e -> pure $ UpdateFailed e
-        UpdateSuccess attrs' act -> runUpdate' attrs' f >>= \case
-          UpdateReady ready -> pure ready
-          UpdateNeedMore next' -> next' act
-  Template -> pure $ UpdateNeedMore $ \v -> do
-    v' <- runBox v
-    case renderTemplate
-      ( \k ->
-          ((decodeBox $ "When rendering template " <> v') . snd)
-            <$> HMS.lookup k attrs
-      )
-      v' of
-      Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
-      Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
+      UpdateReady (UpdateSuccess attrs' act) ->
+        runUpdate' attrs' f >>= \case
+          UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
+          UpdateReady (UpdateSuccess attrs'' act') -> pure $ UpdateReady $ UpdateSuccess attrs'' act'
+          UpdateNeedMore next -> UpdateReady <$> next act
+      UpdateNeedMore next -> pure $
+        UpdateNeedMore $ \gtt -> do
+          next gtt >>= \case
+            UpdateFailed e -> pure $ UpdateFailed e
+            UpdateSuccess attrs' act ->
+              runUpdate' attrs' f >>= \case
+                UpdateReady ready -> pure ready
+                UpdateNeedMore next' -> next' act
+  Template -> pure $
+    UpdateNeedMore $ \v -> do
+      v' <- runBox v
+      case renderTemplate
+        ( \k ->
+            ((decodeBox $ "When rendering template " <> v') . snd)
+              <$> HMS.lookup k attrs
+        )
+        v' of
+        Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
+        Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
 
 decodeBox :: FromJSON a => T.Text -> Box Value -> Box a
 decodeBox msg v = v {boxOp = boxOp v >>= decodeValue msg}
