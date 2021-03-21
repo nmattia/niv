@@ -7,31 +7,31 @@ let
     ];
   };
 in
-  with pkgs;
+with pkgs;
 
-  stdenv.mkDerivation {
-    name = "nix-cpp-demo";
-    nativeBuildInputs = [ cmake pkgconfig ];
-    src = pkgs.lib.cleanSource ./.;
+stdenv.mkDerivation {
+  name = "nix-cpp-demo";
+  nativeBuildInputs = [ cmake pkgconfig ];
+  src = pkgs.lib.cleanSource ./.;
 
-    # tell Cmake location of all headers
-    cmakeFlags = [
-      "-DEXTERNAL_INCLUDE_DIRECTORIES=${stdenv.lib.strings.makeSearchPathOutput "dev" "include" libosmium.buildInputs}"
-    ];
+  # tell Cmake location of all headers
+  cmakeFlags = [
+    "-DEXTERNAL_INCLUDE_DIRECTORIES=${lib.strings.makeSearchPathOutput "dev" "include" libosmium.buildInputs}"
+  ];
 
-    buildInputs = stdenv.lib.lists.concatLists [
-      # We want to check if dependencies exist using find_package
-      [
-        libosmium.buildInputs
-      ]
-      # dependencies
-      [
-        libosmium
-      ]
-    ];
+  buildInputs = lib.lists.concatLists [
+    # We want to check if dependencies exist using find_package
+    [
+      libosmium.buildInputs
+    ]
+    # dependencies
+    [
+      libosmium
+    ]
+  ];
 
-    installPhase = ''
-      mkdir -p $out/bin
-      cp bin/hello-world $out/bin
-    '';
-  }
+  installPhase = ''
+    mkdir -p $out/bin
+    cp bin/hello-world $out/bin
+  '';
+}

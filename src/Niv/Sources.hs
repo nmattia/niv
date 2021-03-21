@@ -43,9 +43,8 @@ data SourcesError
   | SourceIsntJSON
   | SpecIsntAMap
 
-newtype Sources
-  = Sources
-      {unSources :: HMS.HashMap PackageName PackageSpec}
+newtype Sources = Sources
+  {unSources :: HMS.HashMap PackageName PackageSpec}
   deriving newtype (FromJSON, ToJSON)
 
 getSourcesEither :: FindSourcesJson -> IO (Either SourcesError Sources)
@@ -172,6 +171,8 @@ data SourcesNixVersion
     V23
   | -- Fix NIV_OVERRIDE_{name} for sandbox
     V24
+  | -- Format sources.nix after nixpkgs-fmt upgrade
+    V25
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -201,6 +202,7 @@ sourcesVersionToText = \case
   V22 -> "22"
   V23 -> "23"
   V24 -> "24"
+  V25 -> "25"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -237,6 +239,7 @@ sourcesVersionToMD5 = \case
   V22 -> "935d1d2f0bf95fda977a6e3a7e548ed4"
   V23 -> "4111204b613ec688e2669516dd313440"
   V24 -> "116c2d936f1847112fef0013771dab28"
+  V25 -> "06f30e27efdbd4081e603b53ca90aca9"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text

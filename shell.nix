@@ -1,2 +1,2 @@
-{ pkgs ? import ./nix {} }:
+{ pkgs ? import ./nix { } }:
 (import ./default.nix { inherit pkgs; }).niv-devshell

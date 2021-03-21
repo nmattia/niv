@@ -31,8 +31,9 @@ githubUpdate ::
 githubUpdate prefetch latestRev ghRepo = proc () -> do
   urlTemplate <-
     template
-      <<< (useOrSet "url_template" <<< completeSpec) <+> (load "url_template") -<
-      ()
+      <<< (useOrSet "url_template" <<< completeSpec) <+> (load "url_template")
+      -<
+        ()
   url <- update "url" -< urlTemplate
   let isTarGuess = (\u -> "tar.gz" `T.isSuffixOf` u || ".tgz" `T.isSuffixOf` u) <$> url
   type' <- useOrSet "type" -< bool "file" "tarball" <$> isTarGuess :: Box T.Text
@@ -46,13 +47,15 @@ githubUpdate prefetch latestRev ghRepo = proc () -> do
       repo <- load "repo" -< ()
       repoInfo <- run (\(a, b) -> ghRepo a b) -< (,) <$> owner <*> repo
       branch <-
-        useOrSet "branch" <<< arr (fmap $ fromMaybe "master") -<
-          repoDefaultBranch <$> repoInfo
+        useOrSet "branch" <<< arr (fmap $ fromMaybe "master")
+          -<
+            repoDefaultBranch <$> repoInfo
       _description <- useOrSet "description" -< repoDescription <$> repoInfo
       _homepage <- useOrSet "homepage" -< repoHomepage <$> repoInfo
       _ <-
-        update "rev" <<< run' (\(a, b, c) -> latestRev a b c) -<
-          (,,) <$> owner <*> repo <*> branch
+        update "rev" <<< run' (\(a, b, c) -> latestRev a b c)
+          -<
+            (,,) <$> owner <*> repo <*> branch
       returnA -< pure githubURLTemplate
 
 githubURLTemplate :: T.Text
