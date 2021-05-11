@@ -3,7 +3,7 @@
 # TODO: this doesn' test anything meaningful yet because "niv git PACKAGE"
 # doesn't parse yet
 pkgs.runCommand "git-test"
-  { nativeBuildInputs = [ pkgs.git niv pkgs.nix pkgs.jq ]; }
+{ nativeBuildInputs = [ pkgs.git niv pkgs.nix pkgs.jq ]; }
   (
 
     # make sure the tests run smoothly in multi-user install
@@ -35,8 +35,8 @@ pkgs.runCommand "git-test"
       git checkout master
       popd > /dev/null
     '' + # Then we `niv add` that repo and check some properties, like the revision
-    # and revCount, to make sure it was imported properly, and that sources.nix
-    # does what it's supposed to do.
+      # and revCount, to make sure it was imported properly, and that sources.nix
+      # does what it's supposed to do.
     ''
       nivdir=$(mktemp -d)
       pushd $nivdir > /dev/null

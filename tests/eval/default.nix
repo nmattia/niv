@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> {}
+{ pkgs ? import <nixpkgs> { }
 }:
 
 
@@ -72,7 +72,7 @@ mkTest "niv-override-eval" ''
     eq "$res" "hello"
   ''
 
-// mkTest "sanitize-source-name"
+  // mkTest "sanitize-source-name"
   ''
     file=$(mktemp -d)/foo%%.bar
     touch "$file"
