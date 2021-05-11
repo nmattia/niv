@@ -43,9 +43,8 @@ data SourcesError
   | SourceIsntJSON
   | SpecIsntAMap
 
-newtype Sources
-  = Sources
-      {unSources :: HMS.HashMap PackageName PackageSpec}
+newtype Sources = Sources
+  {unSources :: HMS.HashMap PackageName PackageSpec}
   deriving newtype (FromJSON, ToJSON)
 
 getSourcesEither :: FindSourcesJson -> IO (Either SourcesError Sources)

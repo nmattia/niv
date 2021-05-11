@@ -40,7 +40,7 @@ fmt() {
     else
         echo The following files need formatting:
         for i in "${needs_formatting[@]}"; do
-            echo " - $f"
+            echo " - $i"
         done
         if [ "$mode" == "check" ]; then
             exit 1
