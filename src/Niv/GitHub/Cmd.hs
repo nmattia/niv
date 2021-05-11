@@ -124,12 +124,13 @@ describeGitHub =
   mconcat
     [ Opts.fullDesc,
       Opts.progDesc "Add a GitHub dependency",
-      Opts.headerDoc $ Just $
-        "Examples:"
-          Opts.<$$> ""
-          Opts.<$$> "  niv add stedolan/jq"
-          Opts.<$$> "  niv add NixOS/nixpkgs -n nixpkgs -b nixpkgs-unstable"
-          Opts.<$$> "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
+      Opts.headerDoc $
+        Just $
+          "Examples:"
+            Opts.<$$> ""
+            Opts.<$$> "  niv add stedolan/jq"
+            Opts.<$$> "  niv add NixOS/nixpkgs -n nixpkgs -b nixpkgs-unstable"
+            Opts.<$$> "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
     ]
 
 -- parse a github shortcut of the form "owner/repo"
