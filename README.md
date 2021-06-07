@@ -364,15 +364,19 @@ Available options:
 #### Init
 
 ```
-Usage: niv init [--no-nixpkgs | [-b|--nixpkgs-branch ARG] 
-                  [--nixpkgs OWNER/REPO]]
+Usage: niv init [--fast | --latest | --nixpkgs OWNER/REPO
+                  (-b|--nixpkgs-branch ARG) |
+                  --no-nixpkgs]
   Initialize a Nix project. Existing files won't be modified.
 
 Available options:
-  --no-nixpkgs             Don't add a nixpkgs entry to sources.json.
-  -b,--nixpkgs-branch ARG  The nixpkgs branch to use. (default: "release-20.03")
+  --fast                   Use the latest nixpkgs cached at
+                           'https://github.com/nmattia/niv/blob/master/data/nixpkgs.json'.
+                           This is the default.
+  --latest                 Pull the latest unstable nixpkgs from NixOS/nixpkgs.
   --nixpkgs OWNER/REPO     Use a custom nixpkgs repository from GitHub.
-                           (default: NixOS/nixpkgs)
+  -b,--nixpkgs-branch ARG  The nixpkgs branch when using --nixpkgs ....
+  --no-nixpkgs             Don't add a nixpkgs entry to sources.json.
   -h,--help                Show this help text
 ```
 

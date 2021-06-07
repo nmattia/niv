@@ -77,6 +77,7 @@ pkgs.runCommand "test"
       mock/NixOS/nixpkgs-channels/archive/${nixpkgs-channels_HEAD}.tar.gz
 
     niv init --nixpkgs NixOS/nixpkgs-channels --nixpkgs-branch nixos-19.09
+    niv add nmattia/niv
     diff -h ${./expected/niv-init.json} nix/sources.json || \
       (echo "Mismatched sources.json"; \
       echo "Reference: tests/expected/niv-init.json"; \
