@@ -76,7 +76,7 @@
               description = spec.synopsis;
               license =
                 if builtins.hasAttr "license" spec && spec.license == "MIT"
-                then stdenv.lib.licenses.mit
+                then lib.licenses.mit
                 else throw "Don't know how to handle license: ${builtins.toJSON spec.license}";
             }
         ) {};
