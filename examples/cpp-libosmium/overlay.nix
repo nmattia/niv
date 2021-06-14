@@ -1,3 +1,3 @@
 self: super: {
-  libosmium = self.callPackage ./overlay/libosmium.nix {};
+  libosmium = self.callPackage ./overlay/libosmium.nix { };
 }

@@ -20,15 +20,15 @@ let
   nixpkgs-channels_HEAD = "571b40d3f50466d3e91c1e609d372de96d782793";
 in
 pkgs.runCommand "test"
-  {
-    buildInputs = [
-      pkgs.haskellPackages.wai-app-static
-      niv
-      pkgs.nix
-      pkgs.jq
-      pkgs.netcat-gnu
-    ];
-  }
+{
+  buildInputs = [
+    pkgs.haskellPackages.wai-app-static
+    niv
+    pkgs.nix
+    pkgs.jq
+    pkgs.netcat-gnu
+  ];
+}
   ''
     set -euo pipefail
 
