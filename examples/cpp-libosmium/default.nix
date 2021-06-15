@@ -16,10 +16,10 @@ in
 
     # tell Cmake location of all headers
     cmakeFlags = [
-      "-DEXTERNAL_INCLUDE_DIRECTORIES=${stdenv.lib.strings.makeSearchPathOutput "dev" "include" libosmium.buildInputs}"
+      "-DEXTERNAL_INCLUDE_DIRECTORIES=${lib.strings.makeSearchPathOutput "dev" "include" libosmium.buildInputs}"
     ];
 
-    buildInputs = stdenv.lib.lists.concatLists [
+    buildInputs = lib.lists.concatLists [
       # We want to check if dependencies exist using find_package
       [
         libosmium.buildInputs
