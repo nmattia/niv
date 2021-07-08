@@ -145,14 +145,9 @@ let
   # In order to make `Paths_niv(version)` available in `ghci`, we parse the
   # version from `package.yaml` and create a dummy module that we inject in the
   # `ghci` command.
-  niv-devshell = haskellPackages.shellFor {
-    buildInputs = [
-      pkgs.nixpkgs-fmt
-      pkgs.haskellPackages.ormolu
-    ];
-    packages = ps: [ ps.niv ];
-    shellHook = ''
-      repl_for() {
+
+  repl_for = pkg:
+    ''
         haskell_version=$(jq <./package.yaml -cMr '.version' | sed 's/\./,/g')
 
         paths_niv=$(mktemp -d)/Paths_niv.hs
@@ -162,20 +157,22 @@ let
         echo "version :: Data.Version.Version" >> $paths_niv
         echo "version = Data.Version.Version [$haskell_version] []" >> $paths_niv
 
-        niv_main=""
-
         shopt -s globstar
-        ghci -clear-package-db -global-package-db -Wall app/$1.hs src/**/*.hs $paths_niv
-      }
+        ghci -clear-package-db -global-package-db -Wall app/${pkg}.hs src/**/*.hs $paths_niv
+    '';
 
-      repl() {
-        repl_for NivTest
-      }
+  repl_niv = pkgs.writeScriptBin "repl_niv" (repl_for "Niv");
+  repl = pkgs.writeScriptBin "repl" (repl_for "NivTest");
 
-      repl_niv() {
-        repl_for Niv
-      }
-
+  niv-devshell = haskellPackages.shellFor {
+    buildInputs = [
+      pkgs.nixpkgs-fmt
+      pkgs.haskellPackages.ormolu
+      repl_niv
+      repl
+    ];
+    packages = ps: [ ps.niv ];
+    shellHook = ''
       echo "To start a REPL for the test suite, run:"
       echo "  > repl"
       echo "  > :main"
