@@ -4,7 +4,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Niv.Logger
-  ( job,
+  ( Colors (Always, Never),
+    job,
+    setColors,
     bug,
     tsay,
     say,
@@ -34,6 +36,27 @@ import qualified System.Console.ANSI as ANSI
 import System.Exit (exitFailure)
 import System.IO.Unsafe (unsafePerformIO)
 import UnliftIO
+
+-- A somewhat hacky way of deciding whether or not to use SGR codes, by writing
+-- and reading a global variable unsafely.
+-- This should be fine as long as the IORef is written right after argument
+-- parsing, and as long as the value is never changed.
+-- NOTE: this won't work in GHCi.
+
+data Colors
+  = Always
+  | Never
+  deriving (Eq)
+
+colors :: IORef Colors
+colors = unsafePerformIO $ newIORef Always
+{-# NOINLINE colors #-}
+
+setColors :: Colors -> IO ()
+setColors = writeIORef colors
+
+useColors :: Bool
+useColors = unsafePerformIO $ (\c -> c == Always) <$> readIORef colors
 
 type S = String -> String
 
@@ -85,61 +108,58 @@ twarn = tsay . mkWarn
 mkNote :: T.Text -> T.Text
 mkNote w = tbold (tblue "NOTE") <> ": " <> w
 
+color :: ANSI.Color -> String -> String
+color c str =
+  if useColors
+    then
+      ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity]
+        <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid c]
+        <> str
+        <> ANSI.setSGRCode [ANSI.Reset]
+    else str
+
+colorFaint :: ANSI.Color -> String -> String
+colorFaint c str =
+  if useColors
+    then
+      ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.FaintIntensity]
+        <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid c]
+        <> str
+        <> ANSI.setSGRCode [ANSI.Reset]
+    else str
+
 green :: S
-green str =
-  ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity]
-    <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Green]
-    <> str
-    <> ANSI.setSGRCode [ANSI.Reset]
+green = color ANSI.Green
 
 tgreen :: T
 tgreen = t green
 
 yellow :: S
-yellow str =
-  ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity]
-    <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Yellow]
-    <> str
-    <> ANSI.setSGRCode [ANSI.Reset]
+yellow = color ANSI.Yellow
 
 tyellow :: T
 tyellow = t yellow
 
 blue :: S
-blue str =
-  ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity]
-    <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Blue]
-    <> str
-    <> ANSI.setSGRCode [ANSI.Reset]
+blue = color ANSI.Blue
 
 tblue :: T
 tblue = t blue
 
 red :: S
-red str =
-  ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.Red]
-    <> str
-    <> ANSI.setSGRCode [ANSI.Reset]
+red = color ANSI.Red
 
 tred :: T
 tred = t red
 
 bold :: S
-bold str =
-  ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity]
-    <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.White]
-    <> str
-    <> ANSI.setSGRCode [ANSI.Reset]
+bold = color ANSI.White
 
 tbold :: T
 tbold = t bold
 
 faint :: String -> String
-faint str =
-  ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.FaintIntensity]
-    <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid ANSI.White]
-    <> str
-    <> ANSI.setSGRCode [ANSI.Reset]
+faint = colorFaint ANSI.White
 
 tfaint :: T
 tfaint = t faint

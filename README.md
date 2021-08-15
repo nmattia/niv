@@ -140,7 +140,7 @@ To use those dependencies `import` the file `nix/sources.nix`, e.g.:
 { sources ? import ./sources.nix }:     # import the sources
 with
   { overlay = _: pkgs:
-      { niv = import sources.niv {};    # use the sources :)
+      { niv = (import sources.niv {}).niv;    # use the sources :)
       };
   };
 import sources.nixpkgs                  # and use them again!
@@ -219,12 +219,13 @@ $ niv update ghc -v 8.6.2
 ```
 niv - dependency manager for Nix projects
 
-version: 0.2.18
+version: 0.2.19
 
-Usage: niv [-s|--sources-file FILE] COMMAND
+Usage: niv [-s|--sources-file FILE] [--no-colors] COMMAND
 
 Available options:
   -s,--sources-file FILE   Use FILE instead of nix/sources.json
+  --no-colors              Don't use colors in output
   -h,--help                Show this help text
   --version                Print version
 
@@ -363,15 +364,19 @@ Available options:
 #### Init
 
 ```
-Usage: niv init [--no-nixpkgs | [-b|--nixpkgs-branch ARG] 
-                  [--nixpkgs OWNER/REPO]]
+Usage: niv init [--fast | --latest | --nixpkgs OWNER/REPO
+                  (-b|--nixpkgs-branch ARG) |
+                  --no-nixpkgs]
   Initialize a Nix project. Existing files won't be modified.
 
 Available options:
+  --fast                   Use the latest nixpkgs cached at
+                           'https://github.com/nmattia/niv/blob/master/data/nixpkgs.json'.
+                           This is the default.
+  --latest                 Pull the latest unstable nixpkgs from NixOS/nixpkgs.
+  --nixpkgs OWNER/REPO     Use a custom nixpkgs repository from GitHub.
+  -b,--nixpkgs-branch ARG  The nixpkgs branch when using --nixpkgs ....
   --no-nixpkgs             Don't add a nixpkgs entry to sources.json.
-  -b,--nixpkgs-branch ARG  The nixpkgs branch to use. (default: "release-20.03")
-  --nixpkgs OWNER/REPO     Use a custom nixpkgs repository from
-                           GitHub. (default: NixOS/nixpkgs)
   -h,--help                Show this help text
 ```
 

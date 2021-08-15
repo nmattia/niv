@@ -22,9 +22,9 @@ import Data.Hashable (Hashable)
 import qualified Data.Text as T
 import Data.Text.Extended
 import Data.Version (showVersion)
+import qualified Network.HTTP.Simple as HTTP
 import Niv.Cmd
 import Niv.Git.Cmd
-import Niv.GitHub.API (warnGitHubEnvVars)
 import Niv.GitHub.Cmd
 import Niv.Local.Cmd
 import Niv.Logger
@@ -53,17 +53,17 @@ li = liftIO
 
 cli :: IO ()
 cli = do
-  warnGitHubEnvVars
-  (fsj, nio) <-
+  ((fsj, colors), nio) <-
     execParserPure' Opts.defaultPrefs opts <$> getArgs
       >>= Opts.handleParseResult
+  setColors colors
   runReaderT (runNIO nio) fsj
   where
     execParserPure' pprefs pinfo [] =
       Opts.Failure $
-        Opts.parserFailure pprefs pinfo Opts.ShowHelpText mempty
+        Opts.parserFailure pprefs pinfo (Opts.ShowHelpText Nothing) mempty
     execParserPure' pprefs pinfo args = Opts.execParserPure pprefs pinfo args
-    opts = Opts.info ((,) <$> parseFindSourcesJson <*> (parseCommand <**> Opts.helper <**> versionflag)) $ mconcat desc
+    opts = Opts.info ((,) <$> ((,) <$> parseFindSourcesJson <*> parseColors) <*> (parseCommand <**> Opts.helper <**> versionflag)) $ mconcat desc
     desc =
       [ Opts.fullDesc,
         Opts.headerDoc $
@@ -81,6 +81,12 @@ cli = do
               <> Opts.help "Use FILE instead of nix/sources.json"
           )
         <|> pure Auto
+    parseColors =
+      (\case True -> Never; False -> Always)
+        <$> Opts.switch
+          ( Opts.long "no-colors"
+              <> Opts.help "Don't use colors in output"
+          )
     versionflag :: Opts.Parser (a -> a)
     versionflag =
       Opts.abortOption (Opts.InfoMsg (showVersion version)) $
@@ -113,54 +119,65 @@ parsePackage = (,) <$> parsePackageName <*> (parsePackageSpec githubCmd)
 -- | Whether or not to fetch nixpkgs
 data FetchNixpkgs
   = NoNixpkgs
-  | YesNixpkgs T.Text Nixpkgs -- branch, nixpkgs
+  | NixpkgsFast -- Pull latest known nixpkgs
+  | NixpkgsCustom T.Text Nixpkgs -- branch, nixpkgs
+  deriving (Show)
 
 data Nixpkgs = Nixpkgs T.Text T.Text -- owner, repo
 
 instance Show Nixpkgs where
   show (Nixpkgs o r) = T.unpack o <> "/" <> T.unpack r
 
--- | The default nixpkgs
-defaultNixpkgsRepo, defaultNixpkgsUser, defaultNixpkgsBranch :: T.Text
-defaultNixpkgsRepo = "nixpkgs"
-defaultNixpkgsUser = "NixOS"
-defaultNixpkgsBranch = "release-20.03"
-
 parseCmdInit :: Opts.ParserInfo (NIO ())
 parseCmdInit = Opts.info (cmdInit <$> parseNixpkgs <**> Opts.helper) $ mconcat desc
   where
-    customNixpkgsReader = Opts.maybeReader $ \(T.pack -> repo) -> case T.splitOn "/" repo of
-      [owner, reponame] -> Just (Nixpkgs owner reponame)
-      _ -> Nothing
-    parseNixpkgs =
-      Opts.flag'
-        NoNixpkgs
-        ( Opts.long "no-nixpkgs"
-            <> Opts.help "Don't add a nixpkgs entry to sources.json."
-        )
-        <|> ( YesNixpkgs
-                <$> ( Opts.strOption
-                        ( Opts.long "nixpkgs-branch"
-                            <> Opts.short 'b'
-                            <> Opts.help "The nixpkgs branch to use."
-                            <> Opts.showDefault
-                            <> Opts.value defaultNixpkgsBranch
-                        )
-                    )
-                  <*> Opts.option
-                    customNixpkgsReader
-                    ( Opts.long "nixpkgs"
-                        <> Opts.showDefault
-                        <> Opts.help "Use a custom nixpkgs repository from GitHub."
-                        <> Opts.metavar "OWNER/REPO"
-                        <> Opts.value (Nixpkgs defaultNixpkgsUser defaultNixpkgsRepo)
-                    )
-            )
     desc =
       [ Opts.fullDesc,
         Opts.progDesc
           "Initialize a Nix project. Existing files won't be modified."
       ]
+
+parseNixpkgs :: Opts.Parser FetchNixpkgs
+parseNixpkgs = parseNixpkgsFast <|> parseNixpkgsLatest <|> parseNixpkgsCustom <|> parseNoNixpkgs <|> pure NixpkgsFast
+  where
+    parseNixpkgsFast =
+      Opts.flag'
+        NixpkgsFast
+        ( Opts.long "fast"
+            <> Opts.help "Use the latest nixpkgs cached at 'https://github.com/nmattia/niv/blob/master/data/nixpkgs.json'. This is the default."
+        )
+    parseNixpkgsLatest =
+      Opts.flag'
+        (NixpkgsCustom "master" (Nixpkgs "NixOS" "nixpkgs"))
+        ( Opts.long "latest"
+            <> Opts.help "Pull the latest unstable nixpkgs from NixOS/nixpkgs."
+        )
+    parseNixpkgsCustom =
+      (flip NixpkgsCustom)
+        <$> ( Opts.option
+                customNixpkgsReader
+                ( Opts.long "nixpkgs"
+                    <> Opts.showDefault
+                    <> Opts.help "Use a custom nixpkgs repository from GitHub."
+                    <> Opts.metavar "OWNER/REPO"
+                )
+            )
+          <*> ( Opts.strOption
+                  ( Opts.long "nixpkgs-branch"
+                      <> Opts.short 'b'
+                      <> Opts.help "The nixpkgs branch when using --nixpkgs ...."
+                      <> Opts.showDefault
+                  )
+              )
+    parseNoNixpkgs =
+      Opts.flag'
+        NoNixpkgs
+        ( Opts.long "no-nixpkgs"
+            <> Opts.help "Don't add a nixpkgs entry to sources.json."
+        )
+    customNixpkgsReader = Opts.maybeReader $ \(T.pack -> repo) -> case T.splitOn "/" repo of
+      [owner, reponame] -> Just (Nixpkgs owner reponame)
+      _ -> Nothing
 
 cmdInit :: FetchNixpkgs -> NIO ()
 cmdInit nixpkgs = do
@@ -181,35 +198,9 @@ cmdInit nixpkgs = do
         ( pathNixSourcesJson fsj,
           \path -> do
             createFile path initNixSourcesJsonContent
-            -- Imports @niv@ and @nixpkgs@
-            say "Importing 'niv' ..."
-            cmdAdd
-              githubCmd
-              (PackageName "niv")
-              ( specToFreeAttrs $
-                  PackageSpec $
-                    HMS.fromList
-                      [ "owner" .= ("nmattia" :: T.Text),
-                        "repo" .= ("niv" :: T.Text)
-                      ]
-              )
-            case nixpkgs of
-              NoNixpkgs -> say "Not importing 'nixpkgs'."
-              YesNixpkgs branch nixpkgs' -> do
-                say "Importing 'nixpkgs' ..."
-                let (owner, repo) = case nixpkgs' of
-                      Nixpkgs o r -> (o, r)
-                cmdAdd
-                  githubCmd
-                  (PackageName "nixpkgs")
-                  ( specToFreeAttrs $
-                      PackageSpec $
-                        HMS.fromList
-                          [ "owner" .= owner,
-                            "repo" .= repo,
-                            "branch" .= branch
-                          ]
-                  ),
+
+            -- Import nixpkgs, if necessary
+            initNixpkgs nixpkgs,
           \path _content -> dontCreateFile path
         )
       ]
@@ -243,6 +234,34 @@ cmdInit nixpkgs = do
       B.writeFile path content
     dontCreateFile :: FilePath -> NIO ()
     dontCreateFile path = say $ "Not creating " <> path
+
+initNixpkgs :: FetchNixpkgs -> NIO ()
+initNixpkgs nixpkgs =
+  case nixpkgs of
+    NoNixpkgs -> say "Not importing 'nixpkgs'."
+    NixpkgsFast -> do
+      say "Using known 'nixpkgs' ..."
+      packageSpec <- HTTP.getResponseBody <$> HTTP.httpJSON "https://raw.githubusercontent.com/nmattia/niv/master/data/nixpkgs.json"
+      cmdAdd
+        githubCmd
+        (PackageName "nixpkgs")
+        (specToLockedAttrs packageSpec)
+      pure ()
+    NixpkgsCustom branch nixpkgs' -> do
+      say "Importing 'nixpkgs' ..."
+      let (owner, repo) = case nixpkgs' of
+            Nixpkgs o r -> (o, r)
+      cmdAdd
+        githubCmd
+        (PackageName "nixpkgs")
+        ( specToFreeAttrs $
+            PackageSpec $
+              HMS.fromList
+                [ "owner" .= owner,
+                  "repo" .= repo,
+                  "branch" .= branch
+                ]
+        )
 
 -------------------------------------------------------------------------------
 -- ADD

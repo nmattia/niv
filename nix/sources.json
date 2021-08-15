@@ -1,39 +1,38 @@
 {
-    "nixpkgs": {
-        "branch": "nixpkgs-unstable",
-        "description": "Nix Packages collection",
-        "homepage": null,
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "b6bca3d80619f1565ba0ea635b0d38234e41c6bd",
-        "sha256": "09d4f6h98rmxnxzm1x07jxgrc81k6mz7fjigq375fkmb41j2kdsi",
-        "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/b6bca3d80619f1565ba0ea635b0d38234e41c6bd.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "version": "411f9e25d706e1e98ecaa743ad4d000637d5af21"
-    },
-    "nixpkgs-fmt": {
-        "branch": "master",
-        "description": "Nix code formatter for nixpkgs [maintainer=@zimbatm]",
-        "homepage": "https://nix-community.github.io/nixpkgs-fmt/",
-        "owner": "nix-community",
-        "repo": "nixpkgs-fmt",
-        "rev": "6854afe2ad76f11e15d0cc6ce65e1aca0ccd851e",
-        "sha256": "0lw29i5hzmizgr8xwaz3w3ssnlv5w4qdlx3wy86sv9jr25pbmmar",
-        "type": "tarball",
-        "url": "https://github.com/nix-community/nixpkgs-fmt/archive/6854afe2ad76f11e15d0cc6ce65e1aca0ccd851e.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "termtosvg": {
-        "branch": "develop",
-        "description": "Record terminal sessions as SVG animations",
-        "homepage": "https://nbedos.github.io/termtosvg/",
-        "owner": "nbedos",
-        "repo": "termtosvg",
-        "rev": "b97cc0132073111cec37f64c95539e869202ff99",
-        "sha256": "1c86622sda98zm3q3dzwmm37i09yca661kn860svl191nqbh2l68",
-        "type": "tarball",
-        "url": "https://github.com/nbedos/termtosvg/archive/b97cc0132073111cec37f64c95539e869202ff99.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    }
+  "nixpkgs": {
+    "branch": "master",
+    "description": "Nix Packages collection",
+    "homepage": null,
+    "owner": "NixOS",
+    "repo": "nixpkgs",
+    "rev": "491a0bbc69c053c2a4fca69be7960ec8ffab56a4",
+    "sha256": "0agd8xhm5ddww9m4v7lbp782zn0fi5rw2f3z1rlw89lph307vxlz",
+    "type": "tarball",
+    "url": "https://github.com/NixOS/nixpkgs/archive/491a0bbc69c053c2a4fca69be7960ec8ffab56a4.tar.gz",
+    "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+  },
+  "nixpkgs-fmt": {
+    "branch": "master",
+    "description": "Nix code formatter for nixpkgs [maintainer=@zimbatm]",
+    "homepage": "https://nix-community.github.io/nixpkgs-fmt/",
+    "owner": "nix-community",
+    "repo": "nixpkgs-fmt",
+    "rev": "6854afe2ad76f11e15d0cc6ce65e1aca0ccd851e",
+    "sha256": "0lw29i5hzmizgr8xwaz3w3ssnlv5w4qdlx3wy86sv9jr25pbmmar",
+    "type": "tarball",
+    "url": "https://github.com/nix-community/nixpkgs-fmt/archive/6854afe2ad76f11e15d0cc6ce65e1aca0ccd851e.tar.gz",
+    "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+  },
+  "termtosvg": {
+    "branch": "develop",
+    "description": "Record terminal sessions as SVG animations",
+    "homepage": "https://nbedos.github.io/termtosvg/",
+    "owner": "nbedos",
+    "repo": "termtosvg",
+    "rev": "b97cc0132073111cec37f64c95539e869202ff99",
+    "sha256": "1c86622sda98zm3q3dzwmm37i09yca661kn860svl191nqbh2l68",
+    "type": "tarball",
+    "url": "https://github.com/nbedos/termtosvg/archive/b97cc0132073111cec37f64c95539e869202ff99.tar.gz",
+    "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+  }
 }

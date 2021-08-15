@@ -2,6 +2,12 @@
 
 ## UNRELEASED
 ## Changed
+* Remove warnings about GITHUB_INSECURE and GITHUB_PATH
+
+## [0.2.19] 2021-01-05
+## Added
+* There is a new flag `--no-colors` for avoiding colors in the output
+## Changed
 * `GITHUB_PATH` was renamed to `NIV_GITHUB_PATH` https://github.com/nmattia/niv/issues/280
 * `GITHUB_INSECURE` was renamed to `NIV_GITHUB_INSECURE` https://github.com/nmattia/niv/issues/280
 * If `-T` is provided on the command line for `niv add` it will be respected and no guessing from the url is done.

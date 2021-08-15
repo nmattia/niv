@@ -297,15 +297,15 @@ decodeValue msg v = case Aeson.fromJSON v of
 --  renderTemplate ("foo" -> "bar") "<foo>" -> pure (Just "bar")
 --  renderTemplate ("foo" -> "bar") "<baz>" -> pure Nothing
 renderTemplate :: (T.Text -> Maybe (Box T.Text)) -> T.Text -> Maybe (Box T.Text)
-renderTemplate vals = \case
-  (T.uncons -> Just ('<', str)) -> do
+renderTemplate vals tpl = case T.uncons tpl of
+  Just ('<', str) -> do
     case T.span (/= '>') str of
       (key, T.uncons -> Just ('>', rest)) -> do
         let v = vals key
         (liftA2 (<>) v) (renderTemplate vals rest)
       _ -> Nothing
-  (T.uncons -> Just (c, str)) -> fmap (T.cons c) <$> renderTemplate vals str
-  (T.uncons -> Nothing) -> Just $ pure T.empty
+  Just (c, str) -> fmap (T.cons c) <$> renderTemplate vals str
+  Nothing -> Just $ pure T.empty
 
 template :: Update (Box T.Text) (Box T.Text)
 template = Template
