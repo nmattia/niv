@@ -106,52 +106,43 @@ $ tree
 ```
 
 The file `nix/sources.json` is the file used by niv to store versions and is
-initialized with niv and nixpkgs:
+initialized with nixpkgs:
 
 ``` json
 {
     "nixpkgs": {
-        "url": "https://github.com/NixOS/nixpkgs/archive/109a28ab954a0ad129f7621d468f829981b8b96c.tar.gz",
-        "owner": "NixOS",
-        "branch": "nixos-19.09",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "nixpkgs",
-        "sha256": "12wnxla7ld4cgpdndaipdh3j4zdalifk287ihxhnmrzrghjahs3q",
+        "branch": "release-21.05",
         "description": "Nix Packages collection",
-        "rev": "109a28ab954a0ad129f7621d468f829981b8b96c"
-    },
-    "niv": {
-        "homepage": "https://github.com/nmattia/niv",
-        "url": "https://github.com/nmattia/niv/archive/72e77204544527279e8f1e2d982d29503482b8f4.tar.gz",
-        "owner": "nmattia",
-        "branch": "master",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "niv",
-        "sha256": "1zjcyzxhq9iwxh58j5d7sx1vz5s3r1f6gpmnfgj2a3rxmclwvn3c",
-        "description": "Easy dependency management for Nix projects",
-        "rev": "72e77204544527279e8f1e2d982d29503482b8f4"
+        "homepage": "",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "5f244caea76105b63d826911b2a1563d33ff1cdc",
+        "sha256": "1xlgynfw9svy7nvh9nkxsxdzncv9hg99gbvbwv3gmrhmzc3sar75",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/5f244caea76105b63d826911b2a1563d33ff1cdc.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
 ```
 
-To use those dependencies `import` the file `nix/sources.nix`, e.g.:
+To use this dependency, `import` the file `nix/sources.nix`, e.g.:
 
 ``` nix
 { sources ? import ./sources.nix }:     # import the sources
-with
-  { overlay = _: pkgs:
-      { niv = (import sources.niv {}).niv;    # use the sources :)
-      };
-  };
 import sources.nixpkgs                  # and use them again!
-  { overlays = [ overlay ] ; config = {}; }
+  { overlays = [] ; config = {}; }
 ```
+
+For more information about importing sources to your nix files, check
+the [frequently asked questions](#Frequently-asked-questions).
 
 #### Tracking a nixpkgs branch
 
-The `init` command sets the `nix/sources.json` file to track the latest commit
-present on nixpkgs 19.09 when the command was run. Run the following command to
-update it:
+The `init` command sets the `nix/sources.json` to the content of the file
+[data/nixpkgs.json](data/nixpkgs.json). Currently, you would be tracking the
+`release-21.05` branch.
+Run the following command to
+update it to the last commit of the configured branch:
 
 ``` shell
 $ niv update nixpkgs
@@ -160,7 +151,7 @@ $ niv update nixpkgs
 To change the branch being tracked run this command:
 
 ``` shell
-$ niv update nixpkgs -b nixos-19.09     # equivalent to --branch nixos-19.09
+$ niv update nixpkgs -b master     # equivalent to --branch master
 ```
 
 #### Importing packages from GitHub
@@ -264,6 +255,7 @@ replace_niv_show_help
 ## Frequently Asked Questions
 
 * [Can I use private GitHub repositories?](#can-i-use-private-github-repositories)
+* [How do I import and use the content of a source?](#how-do-i-import-and-use-the-content-of-a-source)
 * [How do I import a subpath of a source?](#how-do-i-import-a-subpath-of-a-source)
 * [How do I import NixOS modules](#how-do-i-import-nixos-modules)
 * [Can I use local packages?](#can-i-use-local-packages)
@@ -301,6 +293,74 @@ netrc-file = /PATH/TO/.netrc
 ```
 GITHUB_TOKEN=$YOUR_GITHUB_TOKEN niv add ...
 ```
+
+### How do I import and use the content of a source?
+
+The way to import a source depend mainly on the content targetted by this
+source. A source could be a file, a repository with no knowledge of nix
+or a repository already in the nix ecosystem.
+
+#### 1. Direct import of a nix based source
+
+In the case of a nix based source, you'll often find a `default.nix`  at the
+root. Let's take this repository as example. We can add it to our `sources.json`
+with the following command.
+
+``` shell
+$ niv add nmattia/niv
+```
+
+We can now import niv to use it a nix expression, e.g.:
+
+``` nix
+{ sources ? import nix/sources.nix }:
+let niv = import sources.niv {};
+in { inherit niv; } # A glorious expression using the reference to niv
+```
+
+#### 2. Import of a nix based source via an overlay
+
+Rather than use the resulting derivation directly, you can add it to your custom 
+nixpkgs via the overlay system.
+
+``` nix
+{ sources ? import nix/sources.nix}:
+let overlay = _: pkgs: {
+      niv = (import sources.niv {}).niv;
+    };
+    nixpkgs = import sources.nixpkgs { overlays = [ overlay ]; config = {}; };
+in { inherit (nixpkgs) niv; } # A glorious expression where nixpkgs.niv is referenced
+```
+
+#### 3. Reference to the source's files in the nix store
+
+You can also reference a simple file, a folder or a repo without nix knowledge
+with niv. In these cases, you can use the source in your nix expression without
+importing it.
+
+The following exemple will compile gnu hello while using this technique to retrieve
+the source. First, we need to add the new source.
+
+``` shell
+$ niv add hello-src -v 2.10 -t 'https://ftp.gnu.org/gnu/hello/hello-<version>.tar.gz'
+```
+
+Then, we can use it inside a nix expression.
+
+``` nix
+{ sources ? import nix/sources.nix }:
+let hello_src = sources.hello-src;
+    nixpkgs =  import sources.nixpkgs {};
+in nixpkgs.stdenv.mkDerivation {
+    pname = "hello";
+    version = "custom";
+    src = hello_src;
+}
+```
+
+:warning: If you have problems, consider using the outPath of the source
+(e.g. `sources.hello-src.outPath`) instead of the source directly. See 
+[this issue](https://github.com/nmattia/niv/issues/325) for more details.
 
 ### How do I import a subpath of a source?
 
