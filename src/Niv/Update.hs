@@ -69,12 +69,12 @@ instance Show (Update b c) where
 data Compose a c = forall b. Compose' (Update b c) (Update a b)
 
 -- | Run an 'Update' and return the new attributes and result.
-runUpdate :: Attrs -> Update () a -> IO (Attrs, a)
-runUpdate (attrs) a = boxAttrs attrs >>= flip runUpdate' a >>= feed
+runUpdate :: a -> Attrs -> Update a b -> IO (Attrs, b)
+runUpdate a attrs updateArr = boxAttrs attrs >>= flip runUpdate' updateArr >>= feed
   where
     feed = \case
       UpdateReady res -> hndl res
-      UpdateNeedMore next -> next (()) >>= hndl
+      UpdateNeedMore next -> next (a) >>= hndl
     hndl = \case
       UpdateSuccess f v -> (,v) <$> unboxAttrs f
       UpdateFailed e -> error $ "Update failed: " <> T.unpack (prettyFail e)
@@ -89,14 +89,14 @@ runUpdate (attrs) a = boxAttrs attrs >>= flip runUpdate' a >>= feed
             "with keys: " <> T.intercalate ", " keys
           ]
 
-execUpdate :: Attrs -> Update () a -> IO a
-execUpdate attrs a = snd <$> runUpdate attrs a
+execUpdate :: a -> Attrs -> Update a b -> IO b
+execUpdate a attrs updateArr = snd <$> runUpdate a attrs updateArr
 
-evalUpdate :: Attrs -> Update () a -> IO Attrs
-evalUpdate attrs a = fst <$> runUpdate attrs a
+evalUpdate :: a -> Attrs -> Update a b -> IO Attrs
+evalUpdate a attrs updateArr = fst <$> runUpdate a attrs updateArr
 
-tryEvalUpdate :: Attrs -> Update () a -> IO (Either SomeException Attrs)
-tryEvalUpdate attrs upd = tryAny (evalUpdate attrs upd)
+tryEvalUpdate :: a -> Attrs -> Update a b -> IO (Either SomeException Attrs)
+tryEvalUpdate a attrs updateArr = tryAny (evalUpdate a attrs updateArr)
 
 type JSON a = (ToJSON a, FromJSON a)
 

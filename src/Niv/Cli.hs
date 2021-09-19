@@ -358,7 +358,7 @@ cmdAdd cmd packageName attrs = do
     when (HMS.member packageName sources) $
       li $
         abortCannotAddPackageExists packageName
-    eFinalSpec <- fmap attrsToSpec <$> li (doUpdate attrs cmd)
+    eFinalSpec <- fmap attrsToSpec <$> li (doUpdate packageName attrs cmd)
     case eFinalSpec of
       Left e -> li (abortUpdateFailed [(packageName, e)])
       Right finalSpec -> do
@@ -447,7 +447,7 @@ cmdUpdate = \case
                 Just "local" -> localCmd
                 _ -> githubCmd
               spec = specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec
-          fmap attrsToSpec <$> li (doUpdate spec cmd)
+          fmap attrsToSpec <$> li (doUpdate packageName spec cmd)
         Nothing -> li $ abortCannotUpdateNoSuchPackage packageName
       case eFinalSpec of
         Left e -> li $ abortUpdateFailed [(packageName, e)]
@@ -469,7 +469,7 @@ cmdUpdate = \case
               Just "git" -> gitCmd
               Just "local" -> localCmd
               _ -> githubCmd
-        finalSpec <- fmap attrsToSpec <$> li (doUpdate initialSpec cmd)
+        finalSpec <- fmap attrsToSpec <$> li (doUpdate packageName initialSpec cmd)
         pure finalSpec
     let (failed, sources') = partitionEithersHMS esources'
     unless (HMS.null failed) $
@@ -478,10 +478,10 @@ cmdUpdate = \case
     li $ setSources fsj $ Sources sources'
 
 -- | pretty much tryEvalUpdate but we might issue some warnings first
-doUpdate :: Attrs -> Cmd -> IO (Either SomeException Attrs)
-doUpdate attrs cmd = do
+doUpdate :: PackageName -> Attrs -> Cmd -> IO (Either SomeException Attrs)
+doUpdate packageName attrs cmd = do
   forM_ (extraLogs cmd attrs) $ tsay
-  tryEvalUpdate attrs (updateCmd cmd)
+  tryEvalUpdate packageName attrs (updateCmd cmd)
 
 partitionEithersHMS ::
   (Eq k, Hashable k) =>

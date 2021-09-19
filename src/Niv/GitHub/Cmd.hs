@@ -152,20 +152,20 @@ parseAddShortcutGitHub str =
     _ -> Just (PackageName str, HMS.empty)
 
 -- | The IO (real) github update
-githubUpdate' :: Update () ()
+githubUpdate' :: Update PackageName ()
 githubUpdate' = githubUpdate nixPrefetchURL githubLatestRev githubRepo
 
-nixPrefetchURL :: Bool -> T.Text -> IO T.Text
-nixPrefetchURL unpack turl@(T.unpack -> url) = do
+nixPrefetchURL :: Bool -> PackageName -> T.Text -> IO T.Text
+nixPrefetchURL unpack packageName (T.unpack -> url) = do
   (exitCode, sout, serr) <- runNixPrefetch
   case (exitCode, lines sout) of
     (ExitSuccess, l : _) -> pure $ T.pack l
     _ -> abortNixPrefetchExpectedOutput (T.pack <$> args) (T.pack sout) (T.pack serr)
   where
-    args = (if unpack then ["--unpack"] else []) <> [url, "--name", sanitizeName basename]
+    args = (if unpack then ["--unpack"] else []) <> [url, "--name", sanitizeName basename <> "-src"]
     runNixPrefetch = readProcessWithExitCode "nix-prefetch-url" args ""
     sanitizeName = T.unpack . T.filter isOk
-    basename = last $ T.splitOn "/" turl
+    basename = unPackageName packageName
     -- From the nix-prefetch-url documentation:
     --  Path names are alphanumeric and can include the symbols +-._?= and must
     --  not begin with a period.

@@ -12,6 +12,7 @@ import Data.Bool
 import Data.Maybe
 import qualified Data.Text as T
 import Niv.GitHub.API
+import Niv.Sources
 import Niv.Update
 
 -- | The GitHub update function
@@ -22,13 +23,13 @@ import Niv.Update
 --  * ... ?
 githubUpdate ::
   -- | prefetch
-  (Bool -> T.Text -> IO T.Text) ->
+  (Bool -> PackageName -> T.Text -> IO T.Text) ->
   -- | latest revision
   (T.Text -> T.Text -> T.Text -> IO T.Text) ->
   -- | get repo
   (T.Text -> T.Text -> IO GithubRepo) ->
-  Update () ()
-githubUpdate prefetch latestRev ghRepo = proc () -> do
+  Update PackageName ()
+githubUpdate prefetch latestRev ghRepo = proc packageName -> do
   urlTemplate <-
     template
       <<< (useOrSet "url_template" <<< completeSpec) <+> (load "url_template")
@@ -38,7 +39,7 @@ githubUpdate prefetch latestRev ghRepo = proc () -> do
   let isTarGuess = (\u -> "tar.gz" `T.isSuffixOf` u || ".tgz" `T.isSuffixOf` u) <$> url
   type' <- useOrSet "type" -< bool "file" "tarball" <$> isTarGuess :: Box T.Text
   let doUnpack = (== "tarball") <$> type'
-  _sha256 <- update "sha256" <<< run (\(up, u) -> prefetch up u) -< (,) <$> doUnpack <*> url
+  _sha256 <- update "sha256" <<< run (\(up, p, u) -> prefetch up p u) -< (,,) <$> doUnpack <*> pure packageName <*> url
   returnA -< ()
   where
     completeSpec :: Update () (Box T.Text)

@@ -56,11 +56,13 @@ test_gitUpdates =
 
 test_gitUpdateRev :: IO ()
 test_gitUpdateRev = do
-  interState <- evalUpdate initialState $ proc () ->
-    gitUpdate (error "should be def") defaultBranchAndHEAD' -< ()
+  interState <-
+    evalUpdate (PackageName "Test") initialState $
+      gitUpdate (error "should be def") defaultBranchAndHEAD'
   let interState' = HMS.map (first (\_ -> Free)) interState
-  actualState <- evalUpdate interState' $ proc () ->
-    gitUpdate latestRev' (error "should update") -< ()
+  actualState <-
+    evalUpdate (PackageName "Test") interState' $
+      gitUpdate latestRev' (error "should update")
   unless ((snd <$> actualState) == expectedState) $
     error $
       "State mismatch: " <> show actualState
@@ -106,11 +108,13 @@ test_gitCalledOnce :: IO ()
 test_gitCalledOnce = do
   defaultBranchAndHEAD'' <- once1 defaultBranchAndHEAD'
   latestRev'' <- once2 latestRev'
-  interState <- evalUpdate initialState $ proc () ->
-    gitUpdate (error "should be def") defaultBranchAndHEAD'' -< ()
+  interState <-
+    evalUpdate (PackageName "Test") initialState $
+      gitUpdate (error "should be def") defaultBranchAndHEAD''
   let interState' = HMS.map (first (\_ -> Free)) interState
-  actualState <- evalUpdate interState' $ proc () ->
-    gitUpdate latestRev'' (error "should update") -< ()
+  actualState <-
+    evalUpdate (PackageName "Test") interState' $
+      gitUpdate latestRev'' (error "should update")
   unless ((snd <$> actualState) == expectedState) $
     error $
       "State mismatch: " <> show actualState

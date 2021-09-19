@@ -82,7 +82,8 @@ pkgs.runCommand "test"
       (echo "Mismatched sources.json"; \
       echo "Reference: tests/expected/niv-init.json"; \
       exit 1)
-
+    niv_output_path=$(nix eval --json '(import ./nix/sources.nix).niv.outPath' | jq -r)
+    nix-store --delete $niv_output_path
     echo "*** ok."
 
 
@@ -113,7 +114,20 @@ pkgs.runCommand "test"
 
     echo -e "\n*** niv update niv"
     cat ${./data/repos/nmattia/niv/commits.json} | jq -j '.[0] | .sha' > mock/repos/nmattia/niv/commits/master
+
+    echo -n "Check that the expected store path does not exist before niv update ($niv_output_path): "
+    test ! -e $niv_output_path; echo OK
+
     niv update niv
+
+    echo -n "Check that the expected store path exist after niv update ($niv_output_path): "
+    test -e $niv_output_path; echo OK
+
+    new_niv_output_path=$(nix eval --json '(import ./nix/sources.nix).niv.outPath' | jq -r)
+    echo -n "Check that the resulting outPath is the one that we expect ($niv_output_path): "
+    test $niv_output_path = $new_niv_output_path; echo OK
+
+
     echo -n "niv.rev == ${niv_HEAD} (HEAD): "
     cat nix/sources.json | jq -e '.niv | .rev == "${niv_HEAD}"'
     echo -e "*** ok."

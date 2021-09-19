@@ -13,7 +13,7 @@ data Cmd = Cmd
   { description :: forall a. Opts.InfoMod a,
     parseCmdShortcut :: T.Text -> Maybe (PackageName, Aeson.Object),
     parsePackageSpec :: Opts.Parser PackageSpec,
-    updateCmd :: Update () (),
+    updateCmd :: Update PackageName (),
     name :: T.Text,
     -- | Some notes to print
     extraLogs :: Attrs -> [T.Text]
