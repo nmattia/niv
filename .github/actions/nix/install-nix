@@ -12,7 +12,7 @@ install_nix() {
     sudo sh -c 'echo max-jobs = auto >> /tmp/nix.conf'
     # Allow binary caches for runner user
     sudo sh -c 'echo trusted-users = root runner >> /tmp/nix.conf'
-    sudo sh -c 'echo extra-experimental-features = nix-command >> /tmp/nix.conf'
+    sudo sh -c 'echo experimental-features = nix-command flakes >> /tmp/nix.conf'
 
     sh <(curl -L ${INPUT_INSTALL_URL:-https://nixos.org/nix/install}) \
       --daemon --daemon-user-count 4 --nix-extra-conf-file /tmp/nix.conf --darwin-use-unencrypted-nix-store-volume --no-channel-add
