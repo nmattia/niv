@@ -95,7 +95,7 @@ let
             pkgs.haskell.lib.disableExecutableProfiling (
               pkgs.haskell.lib.disableLibraryProfiling (
                 pkgs.haskell.lib.generateOptparseApplicativeCompletion "niv" (
-                  (pkgs.callPackage ./foo {haskellPackages=self;}).buildPackage { root = ./.; src = niv-source; }
+                  (pkgs.callPackage ./foo { haskellPackages = self; }).buildPackage { root = ./.; src = niv-source; }
                 )
               )
             )
