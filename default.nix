@@ -44,14 +44,58 @@ let
   ];
 
   haskellPackages = pkgs.haskellPackages.override {
-    overrides = _: haskellPackages: {
+    overrides = self: super: rec {
+      aeson =
+        super.aeson_2_0_3_0;
+
+      attoparsec =
+        super.attoparsec_0_14_4;
+
+      semialign =
+        super.semialign_1_2_0_1;
+
+      time-compat =
+        super.time-compat_1_9_6_1;
+
+      # Need to disable the test suite as otherwise we have a
+      # circular dependency with quickcheck-instances.
+      text-short =
+        pkgs.haskell.lib.dontCheck super.text-short_0_1_5;
+
+      quickcheck-instances =
+        super.quickcheck-instances_0_3_27;
+
+      hashable =
+        super.hashable_1_4_0_2;
+
+      OneTuple =
+        super.OneTuple_0_3_1;
+
+      path =
+        super.path_0_9_2;
+
+      genvalidity =
+        super.genvalidity_1_0_0_1;
+
+      validity =
+        super.validity_0_12_0_0;
+
+      http2 =
+        super.http2_3_0_3;
+
+      genvalidity-property =
+        super.genvalidity-property_1_0_0_0;
+
+      genvalidity-hspec =
+        super.genvalidity-hspec_1_0_0_0;
+
       niv =
         pkgs.haskell.lib.justStaticExecutables (
           pkgs.haskell.lib.failOnAllWarnings (
             pkgs.haskell.lib.disableExecutableProfiling (
               pkgs.haskell.lib.disableLibraryProfiling (
                 pkgs.haskell.lib.generateOptparseApplicativeCompletion "niv" (
-                  (pkgs.callPackage ./foo {}).buildPackage { root = ./.; src = niv-source; }
+                  (pkgs.callPackage ./foo {haskellPackages=self;}).buildPackage { root = ./.; src = niv-source; }
                 )
               )
             )
