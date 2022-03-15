@@ -13,10 +13,11 @@ where
 import Control.Applicative
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Key as K
+import qualified Data.Aeson.KeyMap as KM
 import Data.Bifunctor
 import qualified Data.ByteString.Char8 as B8
 import Data.Char (isAlphaNum)
-import qualified Data.HashMap.Strict as HMS
 import Data.Maybe
 import Data.String.QQ (s)
 import qualified Data.Text as T
@@ -45,10 +46,10 @@ githubCmd =
 
 parseGitHubPackageSpec :: Opts.Parser PackageSpec
 parseGitHubPackageSpec =
-  (PackageSpec . HMS.fromList)
+  (PackageSpec . KM.fromList)
     <$> many parseAttribute
   where
-    parseAttribute :: Opts.Parser (T.Text, Aeson.Value)
+    parseAttribute :: Opts.Parser (K.Key, Aeson.Value)
     parseAttribute =
       Opts.option
         (Opts.maybeReader parseKeyValJSON)
@@ -88,22 +89,22 @@ parseGitHubPackageSpec =
       -- | how to convert to JSON
       (String -> Aeson.Value) ->
       String ->
-      Maybe (T.Text, Aeson.Value)
+      Maybe (K.Key, Aeson.Value)
     parseKeyVal toJSON str = case span (/= '=') str of
-      (key, '=' : val) -> Just (T.pack key, toJSON val)
+      (key, '=' : val) -> Just (K.fromString key, toJSON val)
       _ -> Nothing
     -- Shortcuts for common attributes
-    shortcutAttributes :: Opts.Parser (T.Text, Aeson.Value)
+    shortcutAttributes :: Opts.Parser (K.Key, Aeson.Value)
     shortcutAttributes =
       foldr (<|>) empty $
         mkShortcutAttribute
           <$> ["branch", "owner", "rev", "version"]
     -- TODO: infer those shortcuts from 'Update' keys
-    mkShortcutAttribute :: T.Text -> Opts.Parser (T.Text, Aeson.Value)
+    mkShortcutAttribute :: T.Text -> Opts.Parser (K.Key, Aeson.Value)
     mkShortcutAttribute = \case
       attr@(T.uncons -> Just (c, _)) ->
         fmap (second Aeson.String) $
-          (attr,)
+          (K.fromText attr,)
             <$> Opts.strOption
               ( Opts.long (T.unpack attr)
                   <> Opts.short c
@@ -144,12 +145,12 @@ parseAddShortcutGitHub str =
       ) ->
         Just
           ( PackageName repo,
-            HMS.fromList ["owner" .= owner, "repo" .= repo]
+            KM.fromList ["owner" .= owner, "repo" .= repo]
           )
     -- XXX: this should be "Nothing" but for the time being we keep
     -- backwards compatibility with "niv add foo" adding "foo" as a
     -- package name.
-    _ -> Just (PackageName str, HMS.empty)
+    _ -> Just (PackageName str, KM.empty)
 
 -- | The IO (real) github update
 githubUpdate' :: Update () ()

@@ -10,6 +10,7 @@ module Niv.Sources where
 import Data.Aeson (FromJSON, FromJSONKey, ToJSON, ToJSONKey)
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Extended as Aeson
+import qualified Data.Aeson.KeyMap as KM
 import Data.Bifunctor (first)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy.Char8 as BL8
@@ -61,7 +62,7 @@ getSourcesEither fsj = do
     valueToSources :: Aeson.Value -> Maybe Sources
     valueToSources = \case
       Aeson.Object obj ->
-        fmap (Sources . mapKeys PackageName) $
+        fmap (Sources . mapKeys PackageName . KM.toHashMapText) $
           traverse
             ( \case
                 Aeson.Object obj' -> Just (PackageSpec obj')
@@ -95,7 +96,7 @@ newtype PackageSpec = PackageSpec {unPackageSpec :: Aeson.Object}
 
 -- | Simply discards the 'Freedom'
 attrsToSpec :: Attrs -> PackageSpec
-attrsToSpec = PackageSpec . fmap snd
+attrsToSpec = PackageSpec . KM.fromHashMapText . fmap snd
 
 -- | @nix/sources.json@ or pointed at by 'FindSourcesJson'
 pathNixSourcesJson :: FindSourcesJson -> FilePath

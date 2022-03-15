@@ -6,9 +6,9 @@
 module Niv.GitHub.API where
 
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Char8 as BS8
 import Data.Functor
-import qualified Data.HashMap.Strict as HMS
 import Data.Maybe
 import Data.String.QQ (s)
 import qualified Data.Text as T
@@ -37,7 +37,7 @@ githubRepo owner repo = do
   let resp = fmap Aeson.eitherDecodeStrict resp0
   case (HTTP.getResponseStatusCode resp, HTTP.getResponseBody resp) of
     (200, Right (Aeson.Object m)) -> do
-      let lookupText k = case HMS.lookup k m of
+      let lookupText k = case KM.lookup k m of
             Just (Aeson.String t) -> Just t
             _ -> Nothing
       pure

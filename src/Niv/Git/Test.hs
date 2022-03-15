@@ -7,6 +7,7 @@ module Niv.Git.Test
 where
 
 import Control.Monad
+import qualified Data.Aeson.KeyMap as KM
 import Data.Bifunctor
 import qualified Data.HashMap.Strict as HMS
 import Data.IORef
@@ -29,21 +30,21 @@ test_repositoryParse =
       Tasty.testCase "git@github.com:nmattia/niv" $
         parseGitShortcut "git@github.com:nmattia/niv"
           @=? Just
-            (PackageName "niv", HMS.singleton "repo" "git@github.com:nmattia/niv"),
+            (PackageName "niv", KM.singleton "repo" "git@github.com:nmattia/niv"),
       Tasty.testCase "ssh://git@github.com/stedolan/jq" $
         parseGitShortcut "ssh://git@github.com/stedolan/jq"
           @=? Just
-            (PackageName "jq", HMS.singleton "repo" "ssh://git@github.com/stedolan/jq"),
+            (PackageName "jq", KM.singleton "repo" "ssh://git@github.com/stedolan/jq"),
       Tasty.testCase "https://github.com/stedolan/jq.git" $
         parseGitShortcut "https://github.com/stedolan/jq.git"
           @=? Just
-            (PackageName "jq", HMS.singleton "repo" "https://github.com/stedolan/jq.git"),
+            (PackageName "jq", KM.singleton "repo" "https://github.com/stedolan/jq.git"),
       Tasty.testCase "https://github.com/stedolan/jq" $
         parseGitShortcut "https://github.com/stedolan/jq" @=? Nothing,
       Tasty.testCase "~/path/to/repo.git" $
         parseGitShortcut "~/path/to/repo.git"
           @=? Just
-            (PackageName "repo", HMS.singleton "repo" "~/path/to/repo.git")
+            (PackageName "repo", KM.singleton "repo" "~/path/to/repo.git")
     ]
 
 test_gitUpdates :: Tasty.TestTree

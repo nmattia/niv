@@ -10,6 +10,8 @@ module Niv.Git.Cmd where
 import Control.Applicative
 import Control.Arrow
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Key as K
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.HashMap.Strict as HMS
 import Data.Maybe
@@ -60,8 +62,8 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
     then case T.splitOn "/" txt of
       [] -> Nothing
       (last -> w) -> case T.stripSuffix ".git" w of
-        Nothing -> Just (PackageName w, HMS.singleton "repo" (Aeson.String txt'))
-        Just w' -> Just (PackageName w', HMS.singleton "repo" (Aeson.String txt'))
+        Nothing -> Just (PackageName w, KM.singleton "repo" (Aeson.String txt'))
+        Just w' -> Just (PackageName w', KM.singleton "repo" (Aeson.String txt'))
     else Nothing
   where
     isGitURL =
@@ -71,7 +73,7 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
 
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec =
-  (PackageSpec . HMS.fromList)
+  (PackageSpec . KM.fromList)
     <$> many (parseRepo <|> parseBranch <|> parseRev <|> parseAttr <|> parseSAttr)
   where
     parseRepo =
@@ -116,9 +118,9 @@ parseGitPackageSpec =
       -- | how to convert to JSON
       (String -> Aeson.Value) ->
       String ->
-      Maybe (T.Text, Aeson.Value)
+      Maybe (K.Key, Aeson.Value)
     parseKeyVal toJSON str = case span (/= '=') str of
-      (key, '=' : val) -> Just (T.pack key, toJSON val)
+      (key, '=' : val) -> Just (K.fromString key, toJSON val)
       _ -> Nothing
 
 describeGit :: Opts.InfoMod a

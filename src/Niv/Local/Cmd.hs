@@ -10,7 +10,8 @@ module Niv.Local.Cmd where
 
 import Control.Arrow
 import qualified Data.Aeson as Aeson
-import qualified Data.HashMap.Strict as HMS
+import qualified Data.Aeson.Key as K
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Text as T
 import Niv.Cmd
 import Niv.Sources
@@ -36,13 +37,13 @@ parseLocalShortcut txt =
   if (T.isPrefixOf "./" txt || T.isPrefixOf "/" txt)
     then do
       let n = last $ T.splitOn "/" txt
-      Just (PackageName n, HMS.fromList [("path", Aeson.String txt)])
+      Just (PackageName n, KM.fromList [("path", Aeson.String txt)])
     else Nothing
 
 parseLocalPackageSpec :: Opts.Parser PackageSpec
-parseLocalPackageSpec = PackageSpec . HMS.fromList <$> parseParams
+parseLocalPackageSpec = PackageSpec . KM.fromList <$> parseParams
   where
-    parseParams :: Opts.Parser [(T.Text, Aeson.Value)]
+    parseParams :: Opts.Parser [(K.Key, Aeson.Value)]
     parseParams = maybe [] pure <$> Opts.optional parsePath
     parsePath =
       ("path",) . Aeson.String

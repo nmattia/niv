@@ -20,7 +20,7 @@
     "README.md"
   ],
   "dependencies": [
-    "aeson",
+    "aeson >= 2",
     "aeson-pretty",
     "ansi-terminal",
     "base < 5",
