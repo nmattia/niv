@@ -13,6 +13,8 @@ import Control.Monad
 import Control.Monad.Reader
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Key as K
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import Data.Char (isSpace)
@@ -256,7 +258,7 @@ initNixpkgs nixpkgs =
         (PackageName "nixpkgs")
         ( specToFreeAttrs $
             PackageSpec $
-              HMS.fromList
+              KM.fromList
                 [ "owner" .= owner,
                   "repo" .= repo,
                   "branch" .= branch
@@ -330,8 +332,8 @@ parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
         (pname, baseSpec) = case specAndName of
           (Just (_, spec), Just pname') -> (pname', PackageSpec spec)
           (Just (pname', spec), Nothing) -> (pname', PackageSpec spec)
-          (Nothing, Just pname') -> (pname', PackageSpec HMS.empty)
-          (Nothing, Nothing) -> (PackageName "unnamed", PackageSpec HMS.empty)
+          (Nothing, Just pname') -> (pname', PackageSpec KM.empty)
+          (Nothing, Nothing) -> (PackageName "unnamed", PackageSpec KM.empty)
     parseNameAndShortcut =
       (,)
         <$> Opts.optional
@@ -395,11 +397,11 @@ cmdShow = \case
 showPackage :: MonadIO io => PackageName -> PackageSpec -> io ()
 showPackage (PackageName pname) (PackageSpec spec) = do
   tsay $ tbold pname
-  forM_ (HMS.toList spec) $ \(attrName, attrValValue) -> do
+  forM_ (KM.toList spec) $ \(attrName, attrValValue) -> do
     let attrValue = case attrValValue of
           Aeson.String str -> str
           _ -> tfaint "<barabajagal>"
-    tsay $ "  " <> attrName <> ": " <> attrValue
+    tsay $ "  " <> K.toText attrName <> ": " <> attrValue
 
 -------------------------------------------------------------------------------
 -- UPDATE
@@ -427,10 +429,10 @@ parseCmdUpdate =
       ]
 
 specToFreeAttrs :: PackageSpec -> Attrs
-specToFreeAttrs = fmap (Free,) . unPackageSpec
+specToFreeAttrs = KM.toHashMapText . fmap (Free,) . unPackageSpec
 
 specToLockedAttrs :: PackageSpec -> Attrs
-specToLockedAttrs = fmap (Locked,) . unPackageSpec
+specToLockedAttrs = KM.toHashMapText . fmap (Locked,) . unPackageSpec
 
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
 cmdUpdate = \case
@@ -442,7 +444,7 @@ cmdUpdate = \case
         Just defaultSpec -> do
           -- lookup the "type" to find a Cmd to run, defaulting to legacy
           -- github
-          let cmd = case HMS.lookup "type" (unPackageSpec defaultSpec) of
+          let cmd = case KM.lookup "type" (unPackageSpec defaultSpec) of
                 Just "git" -> gitCmd
                 Just "local" -> localCmd
                 _ -> githubCmd
@@ -465,7 +467,7 @@ cmdUpdate = \case
         let initialSpec = specToFreeAttrs defaultSpec
         -- lookup the "type" to find a Cmd to run, defaulting to legacy
         -- github
-        let cmd = case HMS.lookup "type" (unPackageSpec defaultSpec) of
+        let cmd = case KM.lookup "type" (unPackageSpec defaultSpec) of
               Just "git" -> gitCmd
               Just "local" -> localCmd
               _ -> githubCmd
@@ -590,8 +592,8 @@ cmdDrop packageName = \case
       Just (PackageSpec packageSpec) ->
         pure $
           PackageSpec $
-            HMS.mapMaybeWithKey
-              (\k v -> if k `elem` attrs then Nothing else Just v)
+            KM.mapMaybeWithKey
+              (\k v -> if K.toText k `elem` attrs then Nothing else Just v)
               packageSpec
     li $
       setSources fsj $
