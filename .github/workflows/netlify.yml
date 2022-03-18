@@ -7,7 +7,7 @@ jobs:
   netlify:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: "deploy to netlify"
       uses: netlify/actions/cli@6c34c3fcafc69ac2e1d6dbf226560329c6dfc51b
       with:
