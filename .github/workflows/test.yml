@@ -12,13 +12,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
-    - id: set_var
-      run: |
-        content=$(jq -r .nixpkgs.url <./nix/sources.json)
-        echo "::set-output name=nivSourcesJson::$content"
     - uses: cachix/install-nix-action@v16
       with:
-        nix_path: ${{ format('nixpkgs={0}', steps.set_var.outputs.nivSourcesJson) }}
+        nix_path: 'nixpkgs=./nix'
     - name: "Install Cachix"
       uses: cachix/cachix-action@v10
       with:
