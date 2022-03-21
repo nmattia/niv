@@ -34,7 +34,7 @@ let
       submodules = if spec ? submodules then spec.submodules else false;
     in
       builtins.fetchGit { url = spec.repo; inherit (spec) rev; inherit ref; }
-      // (if builtins.compareVersions builtins.nixVersion "2.4" >= 0 then { inherit submodules; } else { });
+      // (if builtins.compareVersions builtins.nixVersion "2.4" >= 0 then { inherit submodules; } else {});
 
   fetch_local = spec: spec.path;
 

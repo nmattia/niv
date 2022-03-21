@@ -173,6 +173,8 @@ data SourcesNixVersion
     V24
   | -- Add the ability to pass submodules to fetchGit
     V25
+  | -- formatting fix
+    V26
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -203,6 +205,7 @@ sourcesVersionToText = \case
   V23 -> "23"
   V24 -> "24"
   V25 -> "25"
+  V26 -> "26"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -240,6 +243,7 @@ sourcesVersionToMD5 = \case
   V23 -> "4111204b613ec688e2669516dd313440"
   V24 -> "116c2d936f1847112fef0013771dab28"
   V25 -> "6612caee5814670e5e4d9dd1b71b5f70"
+  V26 -> "937bff93370a064c9000f13cec5867f9"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text
