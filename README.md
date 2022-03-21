@@ -1,6 +1,6 @@
 # niv
 
-![GitHub Actions](https://github.com/nmattia/niv/workflows/Test/badge.svg?branch=master)
+[![Test](https://github.com/nmattia/niv/actions/workflows/test.yml/badge.svg)](https://github.com/nmattia/niv/actions/workflows/test.yml)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/48532eaa-259f-4ca2-aadf-67f7c6b957fd/deploy-status)](https://niv.nmattia.com)
 
 Painless dependencies for [Nix] projects. Read more in the [Getting started](#getting-started) section below.
