@@ -44,7 +44,7 @@ pkgs.runCommand "git-test"
       echo "{}" > nix/sources.json
       niv init --latest
       niv add git -n my-git-repo --repo file://$gitdir
-      nivrev=$(nix eval --json '(import ./nix/sources.nix).my-git-repo.rev' | jq -r)
+      nivrev=$(nix --extra-experimental-features nix-command eval --json --impure --expr '(import ./nix/sources.nix).my-git-repo.rev' | jq -r)
       if [ ! "$gitrev" = "$nivrev" ]; then
         echo "Mismatched revs: $gitrev != $nivrev"
         exit 42
@@ -52,19 +52,19 @@ pkgs.runCommand "git-test"
 
       # here we cheat a bit and use "outPath", which actually is the result of
       # builtins.fetchGit.
-      nivnixrev=$(nix eval --json '(import ./nix/sources.nix).my-git-repo.outPath.rev' | jq -r)
+      nivnixrev=$(nix --extra-experimental-features nix-command eval --json --impure --expr '(import ./nix/sources.nix).my-git-repo.outPath.rev' | jq -r)
       if [ ! "$gitrev" = "$nivnixrev" ]; then
         echo "Mismatched revs: $gitrev != $nivnixrev"
         exit 42
       fi
-      nivnixrevcount=$(nix eval --json '(import ./nix/sources.nix).my-git-repo.outPath.revCount')
+      nivnixrevcount=$(nix --extra-experimental-features nix-command eval --impure --json --expr '(import ./nix/sources.nix).my-git-repo.outPath.revCount')
       if [ ! "1" -eq "$nivnixrevcount" ]; then
         echo "Mismatched revCount: 1 != $nivnixrevcount"
         exit 42
       fi
 
       niv update my-git-repo -b branch
-      nivrev2=$(nix eval --json '(import ./nix/sources.nix).my-git-repo.rev' | jq -r)
+      nivrev2=$(nix --extra-experimental-features nix-command eval --impure --json --expr '(import ./nix/sources.nix).my-git-repo.rev' | jq -r)
       if [ ! "$gitrev2" = "$nivrev2" ]; then
         echo "Mismatched revs: $gitrev2 != $nivrev2"
         exit 42
