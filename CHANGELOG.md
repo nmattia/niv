@@ -1,8 +1,19 @@
 # Changelog
 
-## UNRELEASED
+## [0.2.20] 2022-04-04
+
+## Added
+* Add ability to pass submodules to `builtins.fetchGit`
+
 ## Changed
 * Remove warnings about GITHUB_INSECURE and GITHUB_PATH
+* Support newer GHC
+* Update optparse-applicative and aeson (aeson 2)
+* Update nixpkgs and track master
+* Speed up initialization (skip `nix-prefetch-url`)
+* Bunch of documentation fixes
+* Fix badges and GitHub Actions
+
 
 ## [0.2.19] 2021-01-05
 ## Added
