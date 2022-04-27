@@ -176,6 +176,8 @@ data SourcesNixVersion
     V25
   | -- formatting fix
     V26
+  | -- Support submodules for git repos
+    V27
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -207,6 +209,7 @@ sourcesVersionToText = \case
   V24 -> "24"
   V25 -> "25"
   V26 -> "26"
+  V27 -> "27"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -245,6 +248,7 @@ sourcesVersionToMD5 = \case
   V24 -> "116c2d936f1847112fef0013771dab28"
   V25 -> "6612caee5814670e5e4d9dd1b71b5f70"
   V26 -> "937bff93370a064c9000f13cec5867f9"
+  V27 -> "8031ba9d8fbbc7401c800d0b84278ec8"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text
