@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.21] 2022-05-06
+
+## Added
+* Fetch submodules (if supported, otherwise warn)
+
 ## [0.2.20] 2022-04-04
 
 ## Added
