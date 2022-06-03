@@ -48,15 +48,16 @@ newtype Sources = Sources
   {unSources :: HMS.HashMap PackageName PackageSpec}
   deriving newtype (FromJSON, ToJSON)
 
-getSourcesEither :: FindSourcesJson -> IO (Either SourcesError Sources)
+getSourcesEither :: FindSourcesJson -> IO (Either SourcesError (FilePath, Sources))
 getSourcesEither fsj = do
-  Dir.doesFileExist (pathNixSourcesJson fsj) >>= \case
+  let path = pathNixSourcesJson fsj
+  Dir.doesFileExist path >>= \case
     False -> pure $ Left SourcesDoesntExist
     True ->
       Aeson.decodeFileStrict (pathNixSourcesJson fsj) >>= \case
         Just value -> case valueToSources value of
           Nothing -> pure $ Left SpecIsntAMap
-          Just srcs -> pure $ Right srcs
+          Just srcs -> pure $ Right (path, srcs)
         Nothing -> pure $ Left SourceIsntJSON
   where
     valueToSources :: Aeson.Value -> Maybe Sources
@@ -76,7 +77,7 @@ getSourcesEither fsj = do
 getSources :: FindSourcesJson -> IO Sources
 getSources fsj = do
   warnIfOutdated
-  getSourcesEither fsj
+  fmap snd <$> getSourcesEither fsj
     >>= either
       ( \case
           SourcesDoesntExist -> (abortSourcesDoesntExist fsj)
@@ -260,36 +261,45 @@ pathNixSourcesNix = "nix" </> "sources.nix"
 
 warnIfOutdated :: IO ()
 warnIfOutdated = do
+  sourcesNixStatus >>= \case
+    SourcesNixNotFound ->
+      twarn $ T.unwords ["Could not read", T.pack pathNixSourcesNix]
+    SourcesNixCustom -> pure ()
+    SourcesNixFound v
+      -- The file is the latest
+      | v == maxBound -> pure ()
+      -- The file is older than than latest
+      | otherwise -> do
+        tsay $
+          T.unlines
+            [ T.unwords
+                [ tbold $ tblue "INFO:",
+                  "new sources.nix available:",
+                  sourcesVersionToText v,
+                  "->",
+                  sourcesVersionToText maxBound
+                ],
+              "  Please run 'niv init' or add the following line in the "
+                <> T.pack pathNixSourcesNix
+                <> " file:",
+              "  # niv: no_update"
+            ]
+
+data SourcesNixStatus
+  = SourcesNixNotFound
+  | SourcesNixCustom
+  | SourcesNixFound SourcesNixVersion
+
+-- | Get the status of the sources.nix
+sourcesNixStatus :: IO SourcesNixStatus
+sourcesNixStatus = do
   tryAny (BL8.readFile pathNixSourcesNix) >>= \case
-    Left e ->
-      twarn $
-        T.unlines
-          [ T.unwords ["Could not read", T.pack pathNixSourcesNix],
-            T.unwords ["  ", "(", tshow e, ")"]
-          ]
+    Left {} -> pure SourcesNixNotFound
     Right content -> do
       case md5ToSourcesVersion (T.pack $ show $ MD5.md5 content) of
         -- This is a custom or newer version, we don't do anything
-        Nothing -> pure ()
-        Just v
-          -- The file is the latest
-          | v == maxBound -> pure ()
-          -- The file is older than than latest
-          | otherwise -> do
-            tsay $
-              T.unlines
-                [ T.unwords
-                    [ tbold $ tblue "INFO:",
-                      "new sources.nix available:",
-                      sourcesVersionToText v,
-                      "->",
-                      sourcesVersionToText maxBound
-                    ],
-                  "  Please run 'niv init' or add the following line in the "
-                    <> T.pack pathNixSourcesNix
-                    <> " file:",
-                  "  # niv: no_update"
-                ]
+        Nothing -> pure SourcesNixCustom
+        Just v -> pure $ SourcesNixFound v
 
 -- | Glue code between nix and sources.json
 initNixSourcesNixContent :: B.ByteString

@@ -104,6 +104,7 @@ parseCommand =
         <> Opts.command "update" parseCmdUpdate
         <> Opts.command "modify" parseCmdModify
         <> Opts.command "drop" parseCmdDrop
+        <> Opts.command "status" parseCmdStatus
     )
 
 parsePackageName :: Opts.Parser PackageName
@@ -599,6 +600,46 @@ cmdDrop packageName = \case
       setSources fsj $
         Sources $
           HMS.insert packageName packageSpec sources
+
+-------------------------------------------------------------------------------
+-- STATUS
+-------------------------------------------------------------------------------
+
+parseCmdStatus :: Opts.ParserInfo (NIO ())
+parseCmdStatus =
+  Opts.info
+    ( pure cmdStatus
+        <**> Opts.helper
+    )
+    $ mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc,
+        Opts.progDesc "Status of niv files"
+      ]
+
+cmdStatus :: NIO ()
+cmdStatus = do
+  sourcesJsonStatus
+  sourcesNixStatus'
+  where
+    sourcesJsonStatus = do
+      fsj <- getFindSourcesJson
+      liftIO (getSourcesEither fsj) >>= \case
+        Right (fp, sources) -> do
+          tsay $ "sources.json: " <> (T.pack fp)
+          tsay $ "sources.json # of packages: " <> tshow (HMS.size (unSources sources))
+        Left SourcesDoesntExist -> tsay "sources.json: not found"
+        Left SourceIsntJSON -> tsay "sources.json: not json"
+        Left SpecIsntAMap -> tsay "sources.json: bad format, not a map"
+    sourcesNixStatus' = liftIO sourcesNixStatus >>= \case
+      SourcesNixNotFound -> tsay $ "sources.nix: not found"
+      SourcesNixCustom -> do
+        tsay $ "sources.nix: " <> T.pack pathNixSourcesNix
+        tsay $ "sources.nix version: custom"
+      SourcesNixFound v -> do
+        tsay $ "sources.nix: " <> T.pack pathNixSourcesNix
+        tsay $ "sources.nix version: " <> sourcesVersionToText v
 
 -------------------------------------------------------------------------------
 -- Files and their content
