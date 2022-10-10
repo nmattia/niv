@@ -129,7 +129,7 @@ NOTE: You may want to retry with an authentication token:
 
 For more information on rate-limiting, see
 
-    https://developer.github.com/v3/#rate-limiting
+    https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting
 
 |]
 
