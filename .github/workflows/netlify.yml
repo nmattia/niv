@@ -7,9 +7,9 @@ jobs:
   netlify:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: "deploy to netlify"
-      uses: netlify/actions/cli@6c34c3fcafc69ac2e1d6dbf226560329c6dfc51b
+      uses: netlify/actions/cli@375963b92b795c7b979927c580dd6f2a65ebcf28
       with:
         args: deploy --dir=./site --message="$GITHUB_SHA" --prod
       env:
