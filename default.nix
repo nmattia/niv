@@ -45,49 +45,6 @@ let
 
   haskellPackages = pkgs.haskellPackages.override {
     overrides = self: super: rec {
-      aeson =
-        super.aeson_2_0_3_0;
-
-      attoparsec =
-        super.attoparsec_0_14_4;
-
-      semialign =
-        super.semialign_1_2_0_1;
-
-      time-compat =
-        super.time-compat_1_9_6_1;
-
-      # Need to disable the test suite as otherwise we have a
-      # circular dependency with quickcheck-instances.
-      text-short =
-        pkgs.haskell.lib.dontCheck super.text-short_0_1_5;
-
-      quickcheck-instances =
-        super.quickcheck-instances_0_3_27;
-
-      hashable =
-        super.hashable_1_4_0_2;
-
-      OneTuple =
-        super.OneTuple_0_3_1;
-
-      path =
-        super.path_0_9_2;
-
-      genvalidity =
-        super.genvalidity_1_0_0_1;
-
-      validity =
-        super.validity_0_12_0_0;
-
-      http2 =
-        super.http2_3_0_3;
-
-      genvalidity-property =
-        super.genvalidity-property_1_0_0_0;
-
-      genvalidity-hspec =
-        super.genvalidity-hspec_1_0_0_0;
 
       niv =
         pkgs.haskell.lib.justStaticExecutables (
@@ -259,29 +216,33 @@ rec
         doCheck = true;
       };
 
-  readme = pkgs.runCommand "README.md" { nativeBuildInputs = [ niv ]; }
+  readme = pkgs.runCommand "README.md" { nativeBuildInputs = [ niv pkgs.moreutils ]; }
     ''
       cp ${./README.tpl.md} $out
-      sed -i "/replace_niv_help/r"<(niv --help) $out
-      sed -i "/replace_niv_help/d" $out
+      chmod +w $out
 
-      sed -i "/replace_niv_add_help/r"<(niv add --help) $out
-      sed -i "/replace_niv_add_help/d" $out
+      sed "/replace_niv_help/r"<(niv --help) $out | sponge $out
+      sed "/replace_niv_help/d" $out | sponge $out
 
-      sed -i "/replace_niv_update_help/r"<(niv update --help) $out
-      sed -i "/replace_niv_update_help/d" $out
+      sed "/replace_niv_add_help/r"<(niv add --help) $out | sponge $out $out
+      sed "/replace_niv_add_help/d" $out | sponge $out
 
-      sed -i "/replace_niv_modify_help/r"<(niv modify --help) $out
-      sed -i "/replace_niv_modify_help/d" $out
+      sed "/replace_niv_update_help/r"<(niv update --help) $out| sponge $out $out
+      sed "/replace_niv_update_help/d" $out | sponge $out
 
-      sed -i "/replace_niv_drop_help/r"<(niv drop --help) $out
-      sed -i "/replace_niv_drop_help/d" $out
+      sed "/replace_niv_modify_help/r"<(niv modify --help) $out | sponge $out
+      sed "/replace_niv_modify_help/d" $out | sponge $out
 
-      sed -i "/replace_niv_init_help/r"<(niv init --help) $out
-      sed -i "/replace_niv_init_help/d" $out
+      sed "/replace_niv_drop_help/r"<(niv drop --help) $out | sponge $out
+      sed "/replace_niv_drop_help/d" $out | sponge $out
 
-      sed -i "/replace_niv_show_help/r"<(niv show --help) $out
-      sed -i "/replace_niv_show_help/d" $out
+      sed "/replace_niv_init_help/r"<(niv init --help) $out | sponge $out
+      sed "/replace_niv_init_help/d" $out | sponge $out
+
+      sed "/replace_niv_show_help/r"<(niv show --help) $out | sponge $out
+      sed "/replace_niv_show_help/d" $out | sponge $out
+
+      echo done
     '';
 
   readme-test = pkgs.runCommand "README-test" {}
