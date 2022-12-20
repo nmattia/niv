@@ -86,7 +86,7 @@ parseGitHubPackageSpec =
       fromMaybe (Aeson.toJSON x) (Aeson.decodeStrict (B8.pack x))
     -- Parse "key=val" into ("key", val)
     parseKeyVal ::
-      -- | how to convert to JSON
+      -- how to convert to JSON
       (String -> Aeson.Value) ->
       String ->
       Maybe (K.Key, Aeson.Value)
