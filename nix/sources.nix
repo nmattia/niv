@@ -27,11 +27,12 @@ let
   fetch_git = name: spec:
     let
       ref =
-        if spec ? ref then spec.ref else
-        if spec ? branch then "refs/heads/${spec.branch}" else
-        if spec ? tag then "refs/tags/${spec.tag}" else
-        abort "In git source '${name}': Please specify `ref`, `tag` or `branch`!";
-      submodules = if spec ? submodules then spec.submodules else false;
+        spec.ref or (
+          if spec ? branch then "refs/heads/${spec.branch}" else
+          if spec ? tag then "refs/tags/${spec.tag}" else
+          abort "In git source '${name}': Please specify `ref`, `tag` or `branch`!"
+        );
+      submodules = spec.submodules or false;
       submoduleArg =
         let
           nixSupportsSubmodules = builtins.compareVersions builtins.nixVersion "2.4" >= 0;
