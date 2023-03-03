@@ -65,7 +65,7 @@
         { mkDerivation }:
         mkDerivation {
           pname = spec.name;
-          version = spec.version;
+          inherit (spec) version;
           inherit src;
           isLibrary = builtins.hasAttr "library" spec;
           isExecutable = builtins.hasAttr "executables" spec;
