@@ -115,7 +115,7 @@ let
   # the path directly as opposed to the fetched source.
   replace = name: drv:
     let
-      saneName = stringAsChars (c: if isNull (builtins.match "[a-zA-Z0-9]" c) then "_" else c) name;
+      saneName = stringAsChars (c: if (builtins.match "[a-zA-Z0-9]" c) == null then "_" else c) name;
       ersatz = builtins.getEnv "NIV_OVERRIDE_${saneName}";
     in
     if ersatz == "" then drv else
@@ -151,7 +151,7 @@ let
       inherit (builtins) lessThan nixVersion fetchTarball;
     in
     if lessThan nixVersion "1.12" then
-      fetchTarball ({ inherit url; } // (optionalAttrs (!isNull name) { inherit name; }))
+      fetchTarball ({ inherit url; } // (optionalAttrs (name != null) { inherit name; }))
     else
       fetchTarball attrs;
 
@@ -161,7 +161,7 @@ let
       inherit (builtins) lessThan nixVersion fetchurl;
     in
     if lessThan nixVersion "1.12" then
-      fetchurl ({ inherit url; } // (optionalAttrs (!isNull name) { inherit name; }))
+      fetchurl ({ inherit url; } // (optionalAttrs (name != null) { inherit name; }))
     else
       fetchurl attrs;
 
@@ -182,7 +182,7 @@ let
   # The "config" used by the fetchers
   mkConfig =
     { sourcesFile ? if builtins.pathExists ./sources.json then ./sources.json else null
-    , sources ? if isNull sourcesFile then { } else builtins.fromJSON (builtins.readFile sourcesFile)
+    , sources ? if sourcesFile == null then { } else builtins.fromJSON (builtins.readFile sourcesFile)
     , system ? builtins.currentSystem
     , pkgs ? mkPkgs sources system
     }: rec {
