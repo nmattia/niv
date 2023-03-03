@@ -61,7 +61,7 @@ let
     };
   };
 
-  niv = haskellPackages.niv;
+  inherit (haskellPackages) niv;
 
   niv-sdist = pkgs.haskell.lib.sdistTarball niv;
 
