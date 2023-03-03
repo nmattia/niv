@@ -36,7 +36,7 @@ let
         let
           nixSupportsSubmodules = builtins.compareVersions builtins.nixVersion "2.4" >= 0;
           emptyArgWithWarning =
-            if submodules == true
+            if submodules
             then
               builtins.trace
                 (
