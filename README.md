@@ -33,7 +33,13 @@ $ nix-env -iA niv -f https://github.com/nmattia/niv/tarball/master \
 
 ## Build
 
-Inside the provided nix shell:
+When using [direnv](https://direnv.net), create the following `.envrc`:
+
+```
+. nix/sorri
+```
+
+then run (you can also run this in a nix-shell):
 
 ``` bash
 $ repl
