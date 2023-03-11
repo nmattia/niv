@@ -5,22 +5,10 @@
         "homepage": null,
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "6844c91781fdad8ad523b77ec9d1f35ff407a8e6",
-        "sha256": "199d0g2i3aph2c7sjkngr722l9yqzk40b7wr6dklnx4pxssgwbrp",
+        "rev": "5d6d90c3bf3d95902427c64dae883715de1fae19",
+        "sha256": "027l7f1533wb8cb55dq11dfvkpi48s5m15cq3aj0f84m715682vn",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/6844c91781fdad8ad523b77ec9d1f35ff407a8e6.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "nixpkgs-fmt": {
-        "branch": "master",
-        "description": "Nix code formatter for nixpkgs [maintainer=@zimbatm]",
-        "homepage": "https://nix-community.github.io/nixpkgs-fmt/",
-        "owner": "nix-community",
-        "repo": "nixpkgs-fmt",
-        "rev": "2a64f4b6a597d0d62004ffcec3ae4fd83cd1efc8",
-        "sha256": "01kx4y1d4c5fjvpcffk92pk9hdbgg5j9h2ryqy2hfm54s7mb0k63",
-        "type": "tarball",
-        "url": "https://github.com/nix-community/nixpkgs-fmt/archive/2a64f4b6a597d0d62004ffcec3ae4fd83cd1efc8.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/5d6d90c3bf3d95902427c64dae883715de1fae19.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "termtosvg": {

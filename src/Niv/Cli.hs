@@ -164,13 +164,13 @@ parseNixpkgs = parseNixpkgsFast <|> parseNixpkgsLatest <|> parseNixpkgsCustom <|
                     <> Opts.metavar "OWNER/REPO"
                 )
             )
-          <*> ( Opts.strOption
-                  ( Opts.long "nixpkgs-branch"
-                      <> Opts.short 'b'
-                      <> Opts.help "The nixpkgs branch when using --nixpkgs ...."
-                      <> Opts.showDefault
-                  )
-              )
+        <*> ( Opts.strOption
+                ( Opts.long "nixpkgs-branch"
+                    <> Opts.short 'b'
+                    <> Opts.help "The nixpkgs branch when using --nixpkgs ...."
+                    <> Opts.showDefault
+                )
+            )
     parseNoNixpkgs =
       Opts.flag'
         NoNixpkgs

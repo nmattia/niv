@@ -80,17 +80,17 @@ defaultRequest :: [T.Text] -> IO HTTP.Request
 defaultRequest (map T.encodeUtf8 -> parts) = do
   let path = T.encodeUtf8 githubPath <> BS8.intercalate "/" (parts)
   mtoken <- lookupEnv' "GITHUB_TOKEN"
-  pure $
-    ( flip (maybe id) mtoken $ \token ->
-        HTTP.addRequestHeader "authorization" ("token " <> BS8.pack token)
-    )
-      $ HTTP.setRequestPath path $
-        HTTP.addRequestHeader "user-agent" "niv" $
-          HTTP.addRequestHeader "accept" "application/vnd.github.v3+json" $
-            HTTP.setRequestSecure githubSecure $
-              HTTP.setRequestHost (T.encodeUtf8 githubApiHost) $
-                HTTP.setRequestPort githubApiPort $
-                  HTTP.defaultRequest
+  pure
+    $ ( flip (maybe id) mtoken $ \token ->
+          HTTP.addRequestHeader "authorization" ("token " <> BS8.pack token)
+      )
+    $ HTTP.setRequestPath path
+    $ HTTP.addRequestHeader "user-agent" "niv"
+    $ HTTP.addRequestHeader "accept" "application/vnd.github.v3+json"
+    $ HTTP.setRequestSecure githubSecure
+    $ HTTP.setRequestHost (T.encodeUtf8 githubApiHost)
+    $ HTTP.setRequestPort githubApiPort
+    $ HTTP.defaultRequest
 
 -- | Get the latest revision for owner, repo and branch.
 -- TODO: explain no error handling

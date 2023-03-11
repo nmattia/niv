@@ -178,6 +178,8 @@ data SourcesNixVersion
     V26
   | -- Support submodules for git repos
     V27
+  | -- formatting fix
+    V28
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -210,6 +212,7 @@ sourcesVersionToText = \case
   V25 -> "25"
   V26 -> "26"
   V27 -> "27"
+  V28 -> "28"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -249,6 +252,7 @@ sourcesVersionToMD5 = \case
   V25 -> "6612caee5814670e5e4d9dd1b71b5f70"
   V26 -> "937bff93370a064c9000f13cec5867f9"
   V27 -> "8031ba9d8fbbc7401c800d0b84278ec8"
+  V28 -> "2ed0d91d652b28d99f14659144a0af28"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text
@@ -276,20 +280,20 @@ warnIfOutdated = do
           | v == maxBound -> pure ()
           -- The file is older than than latest
           | otherwise -> do
-            tsay $
-              T.unlines
-                [ T.unwords
-                    [ tbold $ tblue "INFO:",
-                      "new sources.nix available:",
-                      sourcesVersionToText v,
-                      "->",
-                      sourcesVersionToText maxBound
-                    ],
-                  "  Please run 'niv init' or add the following line in the "
-                    <> T.pack pathNixSourcesNix
-                    <> " file:",
-                  "  # niv: no_update"
-                ]
+              tsay $
+                T.unlines
+                  [ T.unwords
+                      [ tbold $ tblue "INFO:",
+                        "new sources.nix available:",
+                        sourcesVersionToText v,
+                        "->",
+                        sourcesVersionToText maxBound
+                      ],
+                    "  Please run 'niv init' or add the following line in the "
+                      <> T.pack pathNixSourcesNix
+                      <> " file:",
+                    "  # niv: no_update"
+                  ]
 
 -- | Glue code between nix and sources.json
 initNixSourcesNixContent :: B.ByteString
