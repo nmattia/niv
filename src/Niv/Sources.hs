@@ -179,6 +179,7 @@ data SourcesNixVersion
   | -- Support submodules for git repos
     V27
   | -- formatting fix
+    -- Apply statix suggestions
     V28
   deriving stock (Bounded, Enum, Eq)
 
@@ -252,7 +253,7 @@ sourcesVersionToMD5 = \case
   V25 -> "6612caee5814670e5e4d9dd1b71b5f70"
   V26 -> "937bff93370a064c9000f13cec5867f9"
   V27 -> "8031ba9d8fbbc7401c800d0b84278ec8"
-  V28 -> "2ed0d91d652b28d99f14659144a0af28"
+  V28 -> "26ed55356db7673935329210a4f8c4a5"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text
