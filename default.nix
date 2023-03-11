@@ -3,7 +3,7 @@
 }:
 
 let
-  files = pkgs.callPackage ./nix/files.nix {};
+  files = pkgs.callPackage ./nix/files.nix { };
 
   sourceByRegex = name: src: regexes:
     builtins.path {
@@ -13,7 +13,7 @@ let
             relPath = pkgs.lib.removePrefix (toString src + "/") (toString path);
             accept = pkgs.lib.any (re: builtins.match re relPath != null) regexes;
           in
-            accept
+          accept
       );
       inherit name;
       path = src;
@@ -69,10 +69,10 @@ let
     let
       niv-version = niv.version;
     in
-      pkgs.writeShellScript "cabal-upload"
-        ''
-          cabal upload "$@" "${niv-sdist}/niv-${niv-version}.tar.gz"
-        '';
+    pkgs.writeShellScript "cabal-upload"
+      ''
+        cabal upload "$@" "${niv-sdist}/niv-${niv-version}.tar.gz"
+      '';
 
   # WARNING: extremely disgusting hack below.
   #
@@ -193,7 +193,7 @@ rec
 
   tests-github = pkgs.callPackage ./tests/github { inherit niv; };
   tests-git = pkgs.callPackage ./tests/git { inherit niv; };
-  tests-eval = pkgs.callPackage ./tests/eval {};
+  tests-eval = pkgs.callPackage ./tests/eval { };
 
   fmt-check =
     pkgs.stdenv.mkDerivation
@@ -242,7 +242,7 @@ rec
       echo done
     '';
 
-  readme-test = pkgs.runCommand "README-test" {}
+  readme-test = pkgs.runCommand "README-test" { }
     ''
       err() {
         echo
@@ -255,7 +255,7 @@ rec
       diff ${./README.md} ${readme} && echo dummy > $out || err ;
     '';
 
-  niv-svg-test = pkgs.runCommand "niv-svg-test" {}
+  niv-svg-test = pkgs.runCommand "niv-svg-test" { }
     ''
       # XXX: This test means that the svg needs to be regenerated
       # by hand on (virtually) every commit.

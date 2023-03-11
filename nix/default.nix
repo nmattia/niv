@@ -2,7 +2,7 @@
 import sources.nixpkgs {
   overlays = [
     (_: pkgs: { inherit sources; })
-    (_: pkgs: { termtosvg = pkgs.callPackage ./termtosvg.nix {}; })
+    (_: pkgs: { termtosvg = pkgs.callPackage ./termtosvg.nix { }; })
   ];
-  config = {};
+  config = { };
 }
