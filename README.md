@@ -247,6 +247,7 @@ Usage: niv add PACKAGE [-n|--name NAME]
                    (-b|--branch BRANCH) | (-o|--owner OWNER) | (-r|--rev REV) | 
                    (-v|--version VERSION) | (-t|--template URL) | 
                    (-T|--type TYPE)]
+
   Add a GitHub dependency
 
 Available options:
@@ -287,6 +288,7 @@ Usage: niv update [PACKAGE
                       (-o|--owner OWNER) | (-r|--rev REV) | 
                       (-v|--version VERSION) | (-t|--template URL) | 
                       (-T|--type TYPE)]]
+
   Update dependencies
 
 Available options:
@@ -319,6 +321,7 @@ Usage: niv modify PACKAGE [-n|--name NAME]
                     (-b|--branch BRANCH) | (-o|--owner OWNER) | (-r|--rev REV) |
                     (-v|--version VERSION) | (-t|--template URL) | 
                     (-T|--type TYPE)]
+
   Modify dependency attributes without performing an update
 
 Available options:
@@ -348,6 +351,7 @@ Examples:
   niv drop my-package version
 
 Usage: niv drop PACKAGE [ATTRIBUTE]
+
   Drop dependency
 
 Available options:
@@ -360,6 +364,7 @@ Available options:
 Usage: niv init [--fast | --latest | --nixpkgs OWNER/REPO
                   (-b|--nixpkgs-branch ARG) |
                   --no-nixpkgs]
+
   Initialize a Nix project. Existing files won't be modified.
 
 Available options:

@@ -30,7 +30,7 @@ fmt() {
     for f in $(find . -name '*.hs')
     do
         echo "checking: $f"
-        if ! ormolu --mode "$mode" "$f"; then
+        if ! ormolu --no-cabal --mode "$mode" "$f"; then
             needs_formatting+=( "$f" )
         fi
     done

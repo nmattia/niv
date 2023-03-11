@@ -148,6 +148,7 @@ let
   # `ghci` command.
   niv-devshell = haskellPackages.shellFor {
     packages = ps: [ ps.niv ];
+    buildInputs = [ pkgs.ormolu pkgs.glibcLocales ];
     shellHook = ''
       repl_for() {
         haskell_version=$(jq <./package.yaml -cMr '.version' | sed 's/\./,/g')
