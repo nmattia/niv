@@ -9,11 +9,11 @@ let
     builtins.path {
       filter =
         path: type:
-          let
-            relPath = pkgs.lib.removePrefix (toString src + "/") (toString path);
-            accept = pkgs.lib.any (re: builtins.match re relPath != null) regexes;
-          in
-          accept
+        let
+          relPath = pkgs.lib.removePrefix (toString src + "/") (toString path);
+          accept = pkgs.lib.any (re: builtins.match re relPath != null) regexes;
+        in
+        accept
       ;
       inherit name;
       path = src;

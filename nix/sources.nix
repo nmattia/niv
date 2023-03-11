@@ -28,9 +28,10 @@ let
     let
       ref =
         spec.ref or (
-        if spec ? branch then "refs/heads/${spec.branch}" else
-        if spec ? tag then "refs/tags/${spec.tag}" else
-        abort "In git source '${name}': Please specify `ref`, `tag` or `branch`!");
+          if spec ? branch then "refs/heads/${spec.branch}" else
+          if spec ? tag then "refs/tags/${spec.tag}" else
+          abort "In git source '${name}': Please specify `ref`, `tag` or `branch`!"
+        );
       submodules = spec.submodules or false;
       submoduleArg =
         let
