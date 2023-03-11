@@ -276,20 +276,20 @@ warnIfOutdated = do
           | v == maxBound -> pure ()
           -- The file is older than than latest
           | otherwise -> do
-            tsay $
-              T.unlines
-                [ T.unwords
-                    [ tbold $ tblue "INFO:",
-                      "new sources.nix available:",
-                      sourcesVersionToText v,
-                      "->",
-                      sourcesVersionToText maxBound
-                    ],
-                  "  Please run 'niv init' or add the following line in the "
-                    <> T.pack pathNixSourcesNix
-                    <> " file:",
-                  "  # niv: no_update"
-                ]
+              tsay $
+                T.unlines
+                  [ T.unwords
+                      [ tbold $ tblue "INFO:",
+                        "new sources.nix available:",
+                        sourcesVersionToText v,
+                        "->",
+                        sourcesVersionToText maxBound
+                      ],
+                    "  Please run 'niv init' or add the following line in the "
+                      <> T.pack pathNixSourcesNix
+                      <> " file:",
+                    "  # niv: no_update"
+                  ]
 
 -- | Glue code between nix and sources.json
 initNixSourcesNixContent :: B.ByteString
