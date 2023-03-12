@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.22] 2023-03-12
+
+## Changed
+* Add statix sugegstions
+
 ## [0.2.21] 2022-05-06
 
 ## Added
