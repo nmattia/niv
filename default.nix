@@ -7,14 +7,12 @@ let
 
   sourceByRegex = name: src: regexes:
     builtins.path {
-      filter = (
-        path: type:
-          let
-            relPath = pkgs.lib.removePrefix (toString src + "/") (toString path);
-            accept = pkgs.lib.any (re: builtins.match re relPath != null) regexes;
-          in
-          accept
-      );
+      filter = path: type:
+        let
+          relPath = pkgs.lib.removePrefix (toString src + "/") (toString path);
+          accept = pkgs.lib.any (re: builtins.match re relPath != null) regexes;
+        in
+        accept;
       inherit name;
       path = src;
     };
@@ -61,7 +59,7 @@ let
     };
   };
 
-  niv = haskellPackages.niv;
+  inherit (haskellPackages) niv;
 
   niv-sdist = pkgs.haskell.lib.sdistTarball niv;
 
