@@ -149,7 +149,7 @@ instance Applicative Box where
         boxOp = boxOp f <*> boxOp v
       }
 
-instance Semigroup a => Semigroup (Box a) where
+instance (Semigroup a) => Semigroup (Box a) where
   (<>) = liftA2 (<>)
 
 instance IsString (Box T.Text) where
@@ -283,10 +283,10 @@ runUpdate' attrs = \case
         Nothing -> pure $ UpdateFailed $ FailTemplate v' (HMS.keys attrs)
         Just v'' -> pure $ UpdateSuccess attrs (v'' <* v) -- carries over v's newness
 
-decodeBox :: FromJSON a => T.Text -> Box Value -> Box a
+decodeBox :: (FromJSON a) => T.Text -> Box Value -> Box a
 decodeBox msg v = v {boxOp = boxOp v >>= decodeValue msg}
 
-decodeValue :: FromJSON a => T.Text -> Value -> IO a
+decodeValue :: (FromJSON a) => T.Text -> Value -> IO a
 decodeValue msg v = case Aeson.fromJSON v of
   Aeson.Success x -> pure x
   Aeson.Error str ->
@@ -313,17 +313,17 @@ template = Template
 check :: (a -> Bool) -> Update (Box a) ()
 check = Check
 
-load :: FromJSON a => T.Text -> Update () (Box a)
+load :: (FromJSON a) => T.Text -> Update () (Box a)
 load k = Load k >>> arr (decodeBox $ "When loading key " <> k)
 
 -- TODO: should input really be Box?
-useOrSet :: JSON a => T.Text -> Update (Box a) (Box a)
+useOrSet :: (JSON a) => T.Text -> Update (Box a) (Box a)
 useOrSet k =
   arr (fmap Aeson.toJSON)
     >>> UseOrSet k
     >>> arr (decodeBox $ "When trying to use or set key " <> k)
 
-update :: JSON a => T.Text -> Update (Box a) (Box a)
+update :: (JSON a) => T.Text -> Update (Box a) (Box a)
 update k =
   arr (fmap Aeson.toJSON)
     >>> Update k

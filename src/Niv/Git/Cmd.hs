@@ -70,9 +70,9 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
       ".git"
         `T.isSuffixOf` txt
         || "git@"
-        `T.isPrefixOf` txt
+          `T.isPrefixOf` txt
         || "ssh://"
-        `T.isPrefixOf` txt
+          `T.isPrefixOf` txt
 
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec =
