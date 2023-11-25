@@ -50,7 +50,7 @@ instance MonadUnliftIO NIO where
 getFindSourcesJson :: NIO FindSourcesJson
 getFindSourcesJson = ask
 
-li :: MonadIO io => IO a -> io a
+li :: (MonadIO io) => IO a -> io a
 li = liftIO
 
 cli :: IO ()
@@ -72,7 +72,8 @@ cli = do
           Just $
             "niv - dependency manager for Nix projects"
               Opts.<$$> ""
-              Opts.<$$> "version:" Opts.<+> Opts.text (showVersion version)
+              Opts.<$$> "version:"
+              Opts.<+> Opts.text (showVersion version)
       ]
     parseFindSourcesJson =
       AtPath
@@ -394,7 +395,7 @@ cmdShow = \case
     sources <- unSources <$> li (getSources fsj)
     forWithKeyM_ sources $ showPackage
 
-showPackage :: MonadIO io => PackageName -> PackageSpec -> io ()
+showPackage :: (MonadIO io) => PackageName -> PackageSpec -> io ()
 showPackage (PackageName pname) (PackageSpec spec) = do
   tsay $ tbold pname
   forM_ (KM.toList spec) $ \(attrName, attrValValue) -> do

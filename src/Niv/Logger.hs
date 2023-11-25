@@ -80,7 +80,7 @@ job str act = do
     indent = void $ atomicModifyIORef jobStack (\x -> (x + 1, undefined))
     deindent = void $ atomicModifyIORef jobStack (\x -> (x - 1, undefined))
 
-jobStackSize :: MonadIO io => io Int
+jobStackSize :: (MonadIO io) => io Int
 jobStackSize = readIORef jobStack
 
 jobStack :: IORef Int
@@ -88,10 +88,10 @@ jobStack = unsafePerformIO $ newIORef 0
 
 {-# NOINLINE jobStackSize #-}
 
-tsay :: MonadIO io => T.Text -> io ()
+tsay :: (MonadIO io) => T.Text -> io ()
 tsay = say . T.unpack
 
-say :: MonadIO io => String -> io ()
+say :: (MonadIO io) => String -> io ()
 say msg = do
   stackSize <- jobStackSize
   let indent = replicate (stackSize * 2) ' '
@@ -102,7 +102,7 @@ say msg = do
 mkWarn :: T.Text -> T.Text
 mkWarn w = tbold (tyellow "WARNING") <> ": " <> w
 
-twarn :: MonadIO io => T.Text -> io ()
+twarn :: (MonadIO io) => T.Text -> io ()
 twarn = tsay . mkWarn
 
 mkNote :: T.Text -> T.Text
