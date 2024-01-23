@@ -59,7 +59,9 @@ describeLocal =
       Opts.progDesc "Add a local dependency. Experimental.",
       Opts.headerDoc $
         Just $
-          "Examples:"
-            Opts.<$$> ""
-            Opts.<$$> "  niv add local ./foo/bar"
+          Opts.vcat
+            [ "Examples:",
+              "",
+              "  niv add local ./foo/bar"
+            ]
     ]
