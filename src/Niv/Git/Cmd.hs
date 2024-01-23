@@ -133,12 +133,14 @@ describeGit =
       Opts.progDesc "Add a git dependency. Experimental.",
       Opts.headerDoc $
         Just $
-          "Examples:"
-            Opts.<$$> ""
-            Opts.<$$> "  niv add git git@github.com:stedolan/jq"
-            Opts.<$$> "  niv add git ssh://git@github.com/stedolan/jq --rev deadb33f"
-            Opts.<$$> "  niv add git https://github.com/stedolan/jq.git"
-            Opts.<$$> "  niv add git --repo /my/custom/repo --name custom --branch development"
+          Opts.vcat
+            [ "Examples:",
+              "",
+              "  niv add git git@github.com:stedolan/jq",
+              "  niv add git ssh://git@github.com/stedolan/jq --rev deadb33f",
+              "  niv add git https://github.com/stedolan/jq.git",
+              "  niv add git --repo /my/custom/repo --name custom --branch development"
+            ]
     ]
 
 gitUpdate ::

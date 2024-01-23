@@ -70,10 +70,12 @@ cli = do
       [ Opts.fullDesc,
         Opts.headerDoc $
           Just $
-            "niv - dependency manager for Nix projects"
-              Opts.<$$> ""
-              Opts.<$$> "version:"
-              Opts.<+> Opts.text (showVersion version)
+            Opts.vcat
+              [ "niv - dependency manager for Nix projects",
+                "",
+                "version:"
+                  Opts.<+> Opts.pretty (showVersion version)
+              ]
       ]
     parseFindSourcesJson =
       AtPath
@@ -420,13 +422,13 @@ parseCmdUpdate =
         Opts.headerDoc $
           Just $
             Opts.nest 2 $
-              "Examples:"
-                Opts.<$$> ""
-                Opts.<$$> Opts.vcat
-                  [ Opts.fill 30 "niv update" Opts.<+> "# update all packages",
-                    Opts.fill 30 "niv update nixpkgs" Opts.<+> "# update nixpkgs",
-                    Opts.fill 30 "niv update my-package -v beta-0.2" Opts.<+> "# update my-package to version \"beta-0.2\""
-                  ]
+              Opts.vcat
+                [ "Examples:",
+                  "",
+                  Opts.fill 30 "niv update" Opts.<+> "# update all packages",
+                  Opts.fill 30 "niv update nixpkgs" Opts.<+> "# update nixpkgs",
+                  Opts.fill 30 "niv update my-package -v beta-0.2" Opts.<+> "# update my-package to version \"beta-0.2\""
+                ]
       ]
 
 specToFreeAttrs :: PackageSpec -> Attrs
@@ -510,10 +512,12 @@ parseCmdModify =
         Opts.progDesc "Modify dependency attributes without performing an update",
         Opts.headerDoc $
           Just $
-            "Examples:"
-              Opts.<$$> ""
-              Opts.<$$> "  niv modify nixpkgs -v beta-0.2"
-              Opts.<$$> "  niv modify nixpkgs -a branch=nixpkgs-unstable"
+            Opts.vcat
+              [ "Examples:",
+                "",
+                "  niv modify nixpkgs -v beta-0.2",
+                "  niv modify nixpkgs -a branch=nixpkgs-unstable"
+              ]
       ]
     optName =
       Opts.optional $
@@ -559,10 +563,12 @@ parseCmdDrop =
         Opts.progDesc "Drop dependency",
         Opts.headerDoc $
           Just $
-            "Examples:"
-              Opts.<$$> ""
-              Opts.<$$> "  niv drop jq"
-              Opts.<$$> "  niv drop my-package version"
+            Opts.vcat
+              [ "Examples:",
+                "",
+                "  niv drop jq",
+                "  niv drop my-package version"
+              ]
       ]
     parseDropAttributes :: Opts.Parser [T.Text]
     parseDropAttributes =
