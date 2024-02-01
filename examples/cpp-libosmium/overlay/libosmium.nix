@@ -1,6 +1,6 @@
 { stdenv, cmake, protozero, expat, zlib, bzip2, boost, sources }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   name = "libosmium";
   src = sources.libosmium;
 
