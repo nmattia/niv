@@ -181,6 +181,8 @@ data SourcesNixVersion
   | -- formatting fix
     -- Apply statix suggestions
     V28
+  | -- Remove unnecessary recs
+    V29
   deriving stock (Bounded, Enum, Eq)
 
 -- | A user friendly version
@@ -214,6 +216,7 @@ sourcesVersionToText = \case
   V26 -> "26"
   V27 -> "27"
   V28 -> "28"
+  V29 -> "29"
 
 latestVersionMD5 :: T.Text
 latestVersionMD5 = sourcesVersionToMD5 maxBound
@@ -254,6 +257,7 @@ sourcesVersionToMD5 = \case
   V26 -> "937bff93370a064c9000f13cec5867f9"
   V27 -> "8031ba9d8fbbc7401c800d0b84278ec8"
   V28 -> "26ed55356db7673935329210a4f8c4a5"
+  V29 -> "a8751de841ac5e0a60f4c2db7e8bbade"
 
 -- | The MD5 sum of ./nix/sources.nix
 sourcesNixMD5 :: IO T.Text
