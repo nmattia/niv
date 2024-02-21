@@ -186,7 +186,7 @@ let
     , sources ? if sourcesFile == null then { } else builtins.fromJSON (builtins.readFile sourcesFile)
     , system ? builtins.currentSystem
     , pkgs ? mkPkgs sources system
-    }: rec {
+    }: {
       # The sources, i.e. the attribute set of spec name to spec
       inherit sources;
 

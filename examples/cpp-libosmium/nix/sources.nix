@@ -132,7 +132,7 @@ let
     { sourcesFile ? ./sources.json
     , sources ? builtins.fromJSON (builtins.readFile sourcesFile)
     , pkgs ? mkPkgs sources
-    }: rec {
+    }: {
       # The sources, i.e. the attribute set of spec name to spec
       inherit sources;
 

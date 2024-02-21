@@ -1,6 +1,6 @@
 { sources, lib, python3Packages }:
 
-python3Packages.buildPythonApplication rec {
+python3Packages.buildPythonApplication {
   pname = "termtosvg";
   version = "0.0.0";
 

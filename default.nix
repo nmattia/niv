@@ -3,8 +3,6 @@
 }:
 
 let
-  files = pkgs.callPackage ./nix/files.nix { };
-
   sourceByRegex = name: src: regexes:
     builtins.path {
       filter = path: type:
@@ -42,7 +40,7 @@ let
   ];
 
   haskellPackages = pkgs.haskellPackages.override {
-    overrides = self: super: rec {
+    overrides = self: super: {
 
       niv =
         pkgs.haskell.lib.justStaticExecutables (
