@@ -399,6 +399,7 @@ Available options:
 * [How do I import a subpath of a source?](#how-do-i-import-a-subpath-of-a-source)
 * [How do I import NixOS modules](#how-do-i-import-nixos-modules)
 * [Can I use local packages?](#can-i-use-local-packages)
+* [Can I use git submodules?](#can-i-use-git-submodules)
 
 ### Can I use private GitHub repositories?
 
@@ -542,3 +543,25 @@ have a source named `<name>` then `niv` will use the value of
 characters in the source name are escaped to the character `_`; i.e. to
 override the package `my package-foo` you need to set the environment variable
 `NIV_OVERRIDE_my_package_foo`.
+
+### Can I use a git dependency with submodules?
+
+Yes, however you need to follow some steps.
+
+Add your dependency as git dependency to your `sources.json`:
+```
+niv add git git@github.com:user/repo -n name
+```
+
+Add `"submodules": true,` to your dependecy in the source.json:
+```
+{
+    "name": {
+        "branch": "main",
+        "repo": "git@github.com:user/repo",
+        "rev": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "submodules": true,
+        "type": "git"
+    }
+}
+```
