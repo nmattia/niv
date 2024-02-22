@@ -1,4 +1,4 @@
-{ stdenv, cmake, protozero, expat, zlib, bzip2, boost, sources }:
+{ stdenv, cmake, protozero, expat, zlib, lz4, bzip2, boost, sources }:
 
 stdenv.mkDerivation {
   name = "libosmium";
@@ -16,6 +16,7 @@ stdenv.mkDerivation {
     protozero
     expat
     zlib
+    lz4
     bzip2
     boost
   ];

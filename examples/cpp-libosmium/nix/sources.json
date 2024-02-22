@@ -5,10 +5,10 @@
         "homepage": "https://osmcode.org/libosmium/",
         "owner": "osmcode",
         "repo": "libosmium",
-        "rev": "a43ffb61cba34a07c240bcc591d88c9a863e9618",
-        "sha256": "0mlcvqrhp40bzj5r5j9nfc5vbis8hmzcq9xi8jylkciyydaynhz4",
+        "rev": "bf61abd59f3ded669da2bb98fd066ea05ec17c04",
+        "sha256": "0pj29hihlnpz1dnjxm87qlzxzlcvyhkv5zq3x3919i55f2xyjd5s",
         "type": "tarball",
-        "url": "https://github.com/osmcode/libosmium/archive/a43ffb61cba34a07c240bcc591d88c9a863e9618.tar.gz",
+        "url": "https://github.com/osmcode/libosmium/archive/bf61abd59f3ded669da2bb98fd066ea05ec17c04.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs": {
@@ -17,10 +17,10 @@
         "homepage": null,
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "41e7ce9a0a29b26e5ca97fd0a4bd85765ed8f9ac",
-        "sha256": "1gp9qwyqwfv8x8k8rj11w7ajlb96a9njxsb5vg14dzadhn97slrc",
+        "rev": "2e4dec050ba7613b98043181d5ca82d1e943ef0a",
+        "sha256": "0bcnx3izyfzl8c0k468fgf3895zkmma9k6kjw0igzlak1k53rjvn",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/41e7ce9a0a29b26e5ca97fd0a4bd85765ed8f9ac.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/2e4dec050ba7613b98043181d5ca82d1e943ef0a.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
