@@ -544,7 +544,7 @@ characters in the source name are escaped to the character `_`; i.e. to
 override the package `my package-foo` you need to set the environment variable
 `NIV_OVERRIDE_my_package_foo`.
 
-### Can I use git submodules?
+### Can I use a git dependency with submodules?
 
 Yes, however you need to follow some steps.
 
