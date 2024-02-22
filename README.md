@@ -548,7 +548,7 @@ override the package `my package-foo` you need to set the environment variable
 
 Yes, however you need to follow some steps.
 
-Add dependecy as git dependecy to your source.json:
+Add your dependency as git dependency to your `sources.json`:
 ```
 niv add git git@github.com:user/repo -n name
 ```
