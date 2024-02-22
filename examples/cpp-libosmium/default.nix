@@ -11,7 +11,7 @@ with pkgs;
 
 stdenv.mkDerivation {
   name = "nix-cpp-demo";
-  nativeBuildInputs = [ cmake pkgconfig ];
+  nativeBuildInputs = [ cmake pkg-config ];
   src = pkgs.lib.cleanSource ./.;
 
   # tell Cmake location of all headers
