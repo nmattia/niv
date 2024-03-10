@@ -148,8 +148,8 @@ gitUpdate ::
   (T.Text -> T.Text -> IO T.Text) ->
   -- | latest rev and default ref
   (T.Text -> IO (T.Text, T.Text)) ->
-  Update () ()
-gitUpdate latestRev' defaultBranchAndRev' = proc () -> do
+  Update PackageName ()
+gitUpdate latestRev' defaultBranchAndRev' = proc _packageName -> do
   useOrSet "type" -< ("git" :: Box T.Text)
   repository <- load "repo" -< ()
   discoverRev <+> discoverRefAndRev -< repository
@@ -166,7 +166,7 @@ gitUpdate latestRev' defaultBranchAndRev' = proc () -> do
       returnA -< ()
 
 -- | The "real" (IO) update
-gitUpdate' :: Update () ()
+gitUpdate' :: Update PackageName ()
 gitUpdate' = gitUpdate latestRev defaultBranchAndRev
 
 latestRev ::

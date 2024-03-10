@@ -25,7 +25,7 @@ localCmd =
     { description = describeLocal,
       parseCmdShortcut = parseLocalShortcut,
       parsePackageSpec = parseLocalPackageSpec,
-      updateCmd = proc () -> do
+      updateCmd = proc _packageName -> do
         useOrSet "type" -< ("local" :: Box T.Text)
         returnA -< (),
       name = "local",

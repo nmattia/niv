@@ -13,7 +13,7 @@ import Niv.Update
 simplyRuns :: IO ()
 simplyRuns =
   void $
-    runUpdate attrs $ proc () -> do
+    runUpdate () attrs $ proc () -> do
       returnA -< ()
   where
     attrs = HMS.empty
@@ -21,7 +21,7 @@ simplyRuns =
 picksFirst :: IO ()
 picksFirst = do
   v <-
-    execUpdate HMS.empty $
+    execUpdate () HMS.empty $
       let l = proc () -> do
             returnA -< 2
           r = proc () -> do
@@ -31,7 +31,7 @@ picksFirst = do
 
 loads :: IO ()
 loads = do
-  v <- execUpdate attrs $ load "foo"
+  v <- execUpdate () attrs $ load "foo"
   v' <- runBox v
   unless (v' == ("bar" :: T.Text)) (error "bad value")
   where
@@ -39,7 +39,7 @@ loads = do
 
 survivesChecks :: IO ()
 survivesChecks = do
-  v <- execUpdate attrs $ proc () -> do
+  v <- execUpdate () attrs $ proc () -> do
     (sawLeft <+> sawRight) -< ()
     load "res" -< ()
   v' <- runBox v
@@ -68,15 +68,15 @@ isNotTooEager = do
   let f1 = proc () -> do
         run (const $ error "IO is too eager (f1)") -< pure ()
         useOrSet "foo" -< "foo"
-  void $ (execUpdate attrs f :: IO (Box T.Text))
-  void $ (execUpdate attrs f1 :: IO (Box T.Text))
+  void $ (execUpdate () attrs f :: IO (Box T.Text))
+  void $ (execUpdate () attrs f1 :: IO (Box T.Text))
   where
     attrs = HMS.singleton "foo" (Locked, "right")
 
 dirtyForcesUpdate :: IO ()
 dirtyForcesUpdate = do
   let f = constBox ("world" :: T.Text) >>> dirty >>> update "hello"
-  attrs' <- evalUpdate attrs f
+  attrs' <- evalUpdate () attrs f
   unless ((snd <$> HMS.lookup "hello" attrs') == Just "world") $
     error $
       "bad value for hello: " <> show attrs'
@@ -88,18 +88,19 @@ shouldNotRunWhenNoChanges = do
   let f = proc () -> do
         update "hello" -< ("world" :: Box T.Text)
         run (\() -> error "io shouldn't be run") -< pure ()
-  attrs <- evalUpdate HMS.empty f
+  attrs <- evalUpdate () HMS.empty f
   unless ((snd <$> HMS.lookup "hello" attrs) == Just "world") $
     error $
       "bad value for hello: " <> show attrs
   let f' = proc () -> do
         run (\() -> error "io shouldn't be run") -< pure ()
         update "hello" -< ("world" :: Box T.Text)
-  attrs' <- evalUpdate HMS.empty f'
+  attrs' <- evalUpdate () HMS.empty f'
   unless ((snd <$> HMS.lookup "hello" attrs') == Just "world") $
     error $
       "bad value for hello: " <> show attrs'
   v3 <- execUpdate
+    ()
     (HMS.fromList [("hello", (Free, "world")), ("bar", (Free, "baz"))])
     $ proc () -> do
       v1 <- update "hello" -< "world"
@@ -111,7 +112,7 @@ shouldNotRunWhenNoChanges = do
 
 templatesExpand :: IO ()
 templatesExpand = do
-  v3 <- execUpdate attrs $ proc () -> template -< "<v1>-<v2>"
+  v3 <- execUpdate () attrs $ proc () -> template -< "<v1>-<v2>"
   v3' <- runBox v3
   unless (v3' == "hello-world") $ error "bad value"
   where

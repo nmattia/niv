@@ -11,6 +11,7 @@ module Niv.GitHub.Cmd
 where
 
 import Control.Applicative
+import Control.Monad
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as K
@@ -155,25 +156,39 @@ parseAddShortcutGitHub str =
     _ -> Just (PackageName str, KM.empty)
 
 -- | The IO (real) github update
-githubUpdate' :: Update () ()
+githubUpdate' :: Update PackageName ()
 githubUpdate' = githubUpdate nixPrefetchURL githubLatestRev githubRepo
 
-nixPrefetchURL :: Bool -> T.Text -> IO T.Text
-nixPrefetchURL unpack turl@(T.unpack -> url) = do
+nixPrefetchURL :: Bool -> PackageName -> T.Text -> IO T.Text
+nixPrefetchURL unpack packageName (T.unpack -> url) = do
   (exitCode, sout, serr) <- runNixPrefetch
   case (exitCode, lines sout) of
     (ExitSuccess, l : _) -> pure $ T.pack l
-    _ -> abortNixPrefetchExpectedOutput (T.pack <$> args) (T.pack sout) (T.pack serr)
+    _ -> do
+      let tserr = T.pack serr
+      checkNixPrefetchUrlNotFound (T.pack url) tserr
+      abortNixPrefetchExpectedOutput (T.pack <$> args) (T.pack sout) tserr
   where
-    args = (if unpack then ["--unpack"] else []) <> [url, "--name", sanitizeName basename]
+    args = (if unpack then ["--unpack"] else []) <> [url, "--name", sanitizeName basename <> "-src"]
     runNixPrefetch = readProcessWithExitCode "nix-prefetch-url" args ""
     sanitizeName = T.unpack . T.filter isOk
-    basename = last $ T.splitOn "/" turl
+    basename = unPackageName packageName
     -- From the nix-prefetch-url documentation:
     --  Path names are alphanumeric and can include the symbols +-._?= and must
     --  not begin with a period.
     -- (note: we assume they don't begin with a period)
     isOk = \c -> isAlphaNum c || T.any (c ==) "+-._?="
+
+checkNixPrefetchUrlNotFound :: T.Text -> T.Text -> IO ()
+checkNixPrefetchUrlNotFound url serr = do
+  guard ("HTTP error 404" `T.isInfixOf` serr)
+  abort $
+    T.unlines
+      [ "The url '" <> url <> "' was not found by 'nix-prefetch-url'.",
+        "Changing your source's template or attributes may help you resolve the situation.",
+        "For further help, you can read the niv readme at https://github.com/nmattia/niv",
+        "or open an ticket at https://github.com/nmattia/niv/issues/new."
+      ]
 
 abortNixPrefetchExpectedOutput :: [T.Text] -> T.Text -> T.Text -> IO a
 abortNixPrefetchExpectedOutput args sout serr =
