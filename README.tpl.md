@@ -81,7 +81,7 @@ description](#commands).
 
 ### Getting started
 
-Nix is a very powerful tool for building code and setting up environments. `niv` complements it by making it easy to describe and update remote dependencies (URLs, GitHub repos, etc). It is a simple, practical alternative to [Nix flakes](https://nixos.wiki/wiki/Flakes).
+Nix is a very powerful tool for building code and setting up environments. `niv` complements it by making it easy to describe and update remote dependencies (URLs, GitHub repos, etc). It is a simple, practical alternative to [Nix flakes](https://wiki.nixos.org/wiki/Flakes).
 
 This section covers common use cases:
 
