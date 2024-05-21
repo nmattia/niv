@@ -1,6 +1,5 @@
 {-# LANGUAGE Arrows #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -13,6 +12,7 @@ import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Char8 as B8
+import Data.Char (isDigit)
 import qualified Data.HashMap.Strict as HMS
 import Data.Maybe
 import qualified Data.Text as T
@@ -53,7 +53,7 @@ gitExtraLogs attrs = noteRef <> warnRefBranch <> warnRefTag
         mkWarn
           "Your source contains both a `ref` and a `tag`. The `ref` will be used by Nix to fetch the repo."
     member x = HMS.member x attrs
-    textIf cond txt = if cond then [txt] else []
+    textIf cond txt = [txt | cond]
 
 parseGitShortcut :: T.Text -> Maybe (PackageName, Aeson.Object)
 parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
@@ -76,7 +76,7 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
 
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec =
-  (PackageSpec . KM.fromList)
+  PackageSpec . KM.fromList
     <$> many (parseRepo <|> parseBranch <|> parseRev <|> parseAttr <|> parseSAttr)
   where
     parseRepo =
@@ -180,7 +180,7 @@ latestRev repo branch = do
   sout <- runGit gitArgs
   case sout of
     ls@(_ : _ : _) -> abortTooMuchOutput gitArgs ls
-    (l1 : []) -> parseRev gitArgs l1
+    [l1] -> parseRev gitArgs l1
     [] -> abortNoOutput gitArgs
   where
     parseRev args l = maybe (abortNoRev args l) pure $ do
@@ -242,7 +242,7 @@ runGit args = do
 isRev :: T.Text -> Bool
 isRev t =
   -- commit hashes are comprised of abcdef0123456789
-  T.all (\c -> (c >= 'a' && c <= 'f') || (c >= '0' && c <= '9')) t
+  T.all (\c -> (c >= 'a' && c <= 'f') || isDigit c) t
     &&
     -- commit _should_ be 40 chars long, but to be sure we pick 7
     T.length t >= 7

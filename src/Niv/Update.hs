@@ -70,11 +70,11 @@ data Compose a c = forall b. Compose' (Update b c) (Update a b)
 
 -- | Run an 'Update' and return the new attributes and result.
 runUpdate :: Attrs -> Update () a -> IO (Attrs, a)
-runUpdate (attrs) a = boxAttrs attrs >>= flip runUpdate' a >>= feed
+runUpdate attrs a = boxAttrs attrs >>= flip runUpdate' a >>= feed
   where
     feed = \case
       UpdateReady res -> hndl res
-      UpdateNeedMore next -> next (()) >>= hndl
+      UpdateNeedMore next -> next () >>= hndl
     hndl = \case
       UpdateSuccess f v -> (,v) <$> unboxAttrs f
       UpdateFailed e -> error $ "Update failed: " <> T.unpack (prettyFail e)
@@ -239,7 +239,7 @@ runUpdate' attrs = \case
   Update k -> pure $ case HMS.lookup k attrs of
     Just (Locked, v) -> UpdateReady $ UpdateSuccess attrs v
     Just (Free, v) -> UpdateNeedMore $ \gtt -> do
-      if (boxNew gtt)
+      if boxNew gtt
         then do
           v' <- boxOp v
           gtt' <- boxOp gtt
@@ -276,7 +276,7 @@ runUpdate' attrs = \case
       v' <- runBox v
       case renderTemplate
         ( \k ->
-            ((decodeBox $ "When rendering template " <> v') . snd)
+            decodeBox ("When rendering template " <> v') . snd
               <$> HMS.lookup k attrs
         )
         v' of
@@ -302,7 +302,7 @@ renderTemplate vals tpl = case T.uncons tpl of
     case T.span (/= '>') str of
       (key, T.uncons -> Just ('>', rest)) -> do
         let v = vals key
-        (liftA2 (<>) v) (renderTemplate vals rest)
+        liftA2 (<>) v (renderTemplate vals rest)
       _ -> Nothing
   Just (c, str) -> fmap (T.cons c) <$> renderTemplate vals str
   Nothing -> Just $ pure T.empty

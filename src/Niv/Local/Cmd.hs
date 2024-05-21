@@ -1,10 +1,7 @@
 {-# LANGUAGE Arrows #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Niv.Local.Cmd where
 
@@ -34,7 +31,7 @@ localCmd =
 
 parseLocalShortcut :: T.Text -> Maybe (PackageName, Aeson.Object)
 parseLocalShortcut txt =
-  if (T.isPrefixOf "./" txt || T.isPrefixOf "/" txt)
+  if T.isPrefixOf "./" txt || T.isPrefixOf "/" txt
     then do
       let n = last $ T.splitOn "/" txt
       Just (PackageName n, KM.fromList [("path", Aeson.String txt)])
