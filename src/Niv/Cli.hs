@@ -230,6 +230,15 @@ cmdInit nixpkgs = do
                   tbold (T.pack fp) <> "."
                 ]
             ]
+  case nixpkgs of
+    NixpkgsFast ->
+      tsay $
+        T.unlines
+          [ "",
+            tbold (tblue "INFO: ") <> "`niv init` didn't fetch the latest commit for nixpkgs (due to --fast).",
+            "      Run `niv update nixpkgs` if you wish to pin the latest."
+          ]
+    _ -> pure ()
   where
     createFile :: FilePath -> B.ByteString -> NIO ()
     createFile path content = li $ do
