@@ -1,9 +1,6 @@
 {-# LANGUAGE Arrows #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Niv.GitHub where
 
@@ -31,7 +28,7 @@ githubUpdate ::
 githubUpdate prefetch latestRev ghRepo = proc () -> do
   urlTemplate <-
     template
-      <<< (useOrSet "url_template" <<< completeSpec) <+> (load "url_template")
+      <<< (useOrSet "url_template" <<< completeSpec) <+> load "url_template"
       -<
         ()
   url <- update "url" -< urlTemplate

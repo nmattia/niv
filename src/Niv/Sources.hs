@@ -62,13 +62,14 @@ getSourcesEither fsj = do
     valueToSources :: Aeson.Value -> Maybe Sources
     valueToSources = \case
       Aeson.Object obj ->
-        fmap (Sources . mapKeys PackageName . KM.toHashMapText) $
-          traverse
-            ( \case
-                Aeson.Object obj' -> Just (PackageSpec obj')
-                _ -> Nothing
-            )
-            obj
+        ( Sources . mapKeys PackageName . KM.toHashMapText
+            <$> traverse
+              ( \case
+                  Aeson.Object obj' -> Just (PackageSpec obj')
+                  _ -> Nothing
+              )
+              obj
+        )
       _ -> Nothing
     mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
     mapKeys f = HMS.fromList . map (first f) . HMS.toList
@@ -86,7 +87,7 @@ getSources fsj = do
       pure
 
 setSources :: FindSourcesJson -> Sources -> IO ()
-setSources fsj sources = Aeson.encodeFilePretty (pathNixSourcesJson fsj) sources
+setSources fsj = Aeson.encodeFilePretty (pathNixSourcesJson fsj)
 
 newtype PackageName = PackageName {unPackageName :: T.Text}
   deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)

@@ -46,7 +46,7 @@ githubCmd =
 
 parseGitHubPackageSpec :: Opts.Parser PackageSpec
 parseGitHubPackageSpec =
-  (PackageSpec . KM.fromList)
+  PackageSpec . KM.fromList
     <$> many parseAttribute
   where
     parseAttribute :: Opts.Parser (K.Key, Aeson.Value)
@@ -66,7 +66,7 @@ parseGitHubPackageSpec =
               <> Opts.help "Set the package spec attribute <KEY> to <VAL>."
           )
         <|> shortcutAttributes
-        <|> ( (("url_template",) . Aeson.String)
+        <|> ( ("url_template",) . Aeson.String
                 <$> Opts.strOption
                   ( Opts.long "template"
                       <> Opts.short 't'
@@ -74,7 +74,7 @@ parseGitHubPackageSpec =
                       <> Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
                   )
             )
-        <|> ( (("type",) . Aeson.String)
+        <|> ( ("type",) . Aeson.String
                 <$> Opts.strOption
                   ( Opts.long "type"
                       <> Opts.short 'T'
@@ -96,9 +96,7 @@ parseGitHubPackageSpec =
     -- Shortcuts for common attributes
     shortcutAttributes :: Opts.Parser (K.Key, Aeson.Value)
     shortcutAttributes =
-      foldr (<|>) empty $
-        mkShortcutAttribute
-          <$> ["branch", "owner", "rev", "version"]
+      foldr ((<|>) . mkShortcutAttribute) empty ["branch", "owner", "rev", "version"]
     -- TODO: infer those shortcuts from 'Update' keys
     mkShortcutAttribute :: T.Text -> Opts.Parser (K.Key, Aeson.Value)
     mkShortcutAttribute = \case
@@ -114,7 +112,7 @@ parseGitHubPackageSpec =
                         "Equivalent to --attribute "
                           <> attr
                           <> "=<"
-                          <> (T.toUpper attr)
+                          <> T.toUpper attr
                           <> ">"
                     )
               )
@@ -165,7 +163,7 @@ nixPrefetchURL unpack turl@(T.unpack -> url) = do
     (ExitSuccess, l : _) -> pure $ T.pack l
     _ -> abortNixPrefetchExpectedOutput (T.pack <$> args) (T.pack sout) (T.pack serr)
   where
-    args = (if unpack then ["--unpack"] else []) <> [url, "--name", sanitizeName basename]
+    args = (["--unpack" | unpack]) <> [url, "--name", sanitizeName basename]
     runNixPrefetch = readProcessWithExitCode "nix-prefetch-url" args ""
     sanitizeName = T.unpack . T.filter isOk
     basename = last $ T.splitOn "/" turl
@@ -173,7 +171,7 @@ nixPrefetchURL unpack turl@(T.unpack -> url) = do
     --  Path names are alphanumeric and can include the symbols +-._?= and must
     --  not begin with a period.
     -- (note: we assume they don't begin with a period)
-    isOk = \c -> isAlphaNum c || T.any (c ==) "+-._?="
+    isOk c = isAlphaNum c || T.any (c ==) "+-._?="
 
 abortNixPrefetchExpectedOutput :: [T.Text] -> T.Text -> T.Text -> IO a
 abortNixPrefetchExpectedOutput args sout serr =

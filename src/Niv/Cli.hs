@@ -2,7 +2,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
@@ -56,8 +55,7 @@ li = liftIO
 cli :: IO ()
 cli = do
   ((fsj, colors), nio) <-
-    execParserPure' Opts.defaultPrefs opts <$> getArgs
-      >>= Opts.handleParseResult
+    getArgs >>= Opts.handleParseResult . execParserPure' Opts.defaultPrefs opts
   setColors colors
   runReaderT (runNIO nio) fsj
   where
@@ -115,7 +113,7 @@ parsePackageName =
     <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
 
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
-parsePackage = (,) <$> parsePackageName <*> (parsePackageSpec githubCmd)
+parsePackage = (,) <$> parsePackageName <*> parsePackageSpec githubCmd
 
 -------------------------------------------------------------------------------
 -- INIT
@@ -158,22 +156,20 @@ parseNixpkgs = parseNixpkgsFast <|> parseNixpkgsLatest <|> parseNixpkgsCustom <|
             <> Opts.help "Pull the latest unstable nixpkgs from NixOS/nixpkgs."
         )
     parseNixpkgsCustom =
-      (flip NixpkgsCustom)
-        <$> ( Opts.option
-                customNixpkgsReader
-                ( Opts.long "nixpkgs"
-                    <> Opts.showDefault
-                    <> Opts.help "Use a custom nixpkgs repository from GitHub."
-                    <> Opts.metavar "OWNER/REPO"
-                )
-            )
-        <*> ( Opts.strOption
-                ( Opts.long "nixpkgs-branch"
-                    <> Opts.short 'b'
-                    <> Opts.help "The nixpkgs branch when using --nixpkgs ...."
-                    <> Opts.showDefault
-                )
-            )
+      flip NixpkgsCustom
+        <$> Opts.option
+          customNixpkgsReader
+          ( Opts.long "nixpkgs"
+              <> Opts.showDefault
+              <> Opts.help "Use a custom nixpkgs repository from GitHub."
+              <> Opts.metavar "OWNER/REPO"
+          )
+        <*> Opts.strOption
+          ( Opts.long "nixpkgs-branch"
+              <> Opts.short 'b'
+              <> Opts.help "The nixpkgs branch when using --nixpkgs ...."
+              <> Opts.showDefault
+          )
     parseNoNixpkgs =
       Opts.flag'
         NoNixpkgs
@@ -285,15 +281,15 @@ parseCmdAdd :: Opts.ParserInfo (NIO ())
 parseCmdAdd =
   Opts.info
     ((parseCommands <|> parseShortcuts) <**> Opts.helper)
-    $ (description githubCmd)
+    $ description githubCmd
   where
     -- XXX: this should parse many shortcuts (github, git). Right now we only
     -- parse GitHub because the git interface is still experimental.  note to
     -- implementer: it'll be tricky to have the correct arguments show up
     -- without repeating "PACKAGE PACKAGE PACKAGE" for every package type.
     parseShortcuts = parseShortcut githubCmd
-    parseShortcut cmd = uncurry (cmdAdd cmd) <$> (parseShortcutArgs cmd)
-    parseCmd cmd = uncurry (cmdAdd cmd) <$> (parseCmdArgs cmd)
+    parseShortcut cmd = uncurry (cmdAdd cmd) <$> parseShortcutArgs cmd
+    parseCmd cmd = uncurry (cmdAdd cmd) <$> parseCmdArgs cmd
     parseCmdAddGit =
       Opts.info (parseCmd gitCmd <**> Opts.helper) (description gitCmd)
     parseCmdAddLocal =
@@ -376,7 +372,7 @@ cmdAdd cmd packageName attrs = do
     case eFinalSpec of
       Left e -> li (abortUpdateFailed [(packageName, e)])
       Right finalSpec -> do
-        say $ "Writing new sources file"
+        say "Writing new sources file"
         li $
           setSources fsj $
             Sources $
@@ -404,7 +400,7 @@ cmdShow = \case
   Nothing -> do
     fsj <- getFindSourcesJson
     sources <- unSources <$> li (getSources fsj)
-    forWithKeyM_ sources $ showPackage
+    forWithKeyM_ sources showPackage
 
 showPackage :: (MonadIO io) => PackageName -> PackageSpec -> io ()
 showPackage (PackageName pname) (PackageSpec spec) = do
@@ -483,8 +479,7 @@ cmdUpdate = \case
               Just "git" -> gitCmd
               Just "local" -> localCmd
               _ -> githubCmd
-        finalSpec <- fmap attrsToSpec <$> li (doUpdate initialSpec cmd)
-        pure finalSpec
+        fmap attrsToSpec <$> li (doUpdate initialSpec cmd)
     let (failed, sources') = partitionEithersHMS esources'
     unless (HMS.null failed) $
       li $
@@ -494,7 +489,7 @@ cmdUpdate = \case
 -- | pretty much tryEvalUpdate but we might issue some warnings first
 doUpdate :: Attrs -> Cmd -> IO (Either SomeException Attrs)
 doUpdate attrs cmd = do
-  forM_ (extraLogs cmd attrs) $ tsay
+  forM_ (extraLogs cmd attrs) tsay
   tryEvalUpdate attrs (updateCmd cmd)
 
 partitionEithersHMS ::
@@ -590,7 +585,7 @@ cmdDrop packageName = \case
     tsay $ "Dropping package: " <> unPackageName packageName
     fsj <- getFindSourcesJson
     sources <- unSources <$> li (getSources fsj)
-    when (not $ HMS.member packageName sources) $
+    unless (HMS.member packageName sources) $
       li $
         abortCannotDropNoSuchPackage packageName
     li $

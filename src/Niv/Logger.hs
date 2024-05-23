@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -56,7 +55,7 @@ setColors :: Colors -> IO ()
 setColors = writeIORef colors
 
 useColors :: Bool
-useColors = unsafePerformIO $ (\c -> c == Always) <$> readIORef colors
+useColors = unsafePerformIO $ (== Always) <$> readIORef colors
 
 type S = String -> String
 

@@ -68,8 +68,8 @@ isNotTooEager = do
   let f1 = proc () -> do
         run (const $ error "IO is too eager (f1)") -< pure ()
         useOrSet "foo" -< "foo"
-  void $ (execUpdate attrs f :: IO (Box T.Text))
-  void $ (execUpdate attrs f1 :: IO (Box T.Text))
+  void (execUpdate attrs f :: IO (Box T.Text))
+  void (execUpdate attrs f1 :: IO (Box T.Text))
   where
     attrs = HMS.singleton "foo" (Locked, "right")
 
