@@ -2,16 +2,23 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Niv.Cli where
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Except as E
 import Control.Monad.Reader
 import Data.Aeson ((.=))
+import Data.Attoparsec.Text (parseOnly)
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Binary.Builder as B
+import qualified Data.URI as URI
+import qualified Data.URI.Auth as URI
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
@@ -21,10 +28,13 @@ import Data.Char (isSpace)
 import qualified Data.HashMap.Strict as HMS
 import Data.HashMap.Strict.Extended
 import Data.Hashable (Hashable)
+import qualified Data.Strict.Maybe as S
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import Data.Text.Extended
 import Data.Version (showVersion)
 import qualified Network.HTTP.Simple as HTTP
+import qualified Network.HTTP.Types.URI as URI
 import Niv.Cmd
 import Niv.Git.Cmd
 import Niv.GitHub.Cmd
@@ -40,6 +50,9 @@ import qualified System.Directory as Dir
 import System.Environment (getArgs)
 import System.FilePath (takeDirectory)
 import UnliftIO
+import Data.Bifunctor (Bifunctor (..))
+import Data.Aeson.Types ((.:))
+import Data.Maybe (catMaybes)
 
 newtype NIO a = NIO {runNIO :: ReaderT FindSourcesJson IO a}
   deriving (Functor, Applicative, Monad, MonadIO, MonadReader FindSourcesJson)
@@ -107,6 +120,7 @@ parseCommand =
         <> Opts.command "update" parseCmdUpdate
         <> Opts.command "modify" parseCmdModify
         <> Opts.command "drop" parseCmdDrop
+        <> Opts.command "eject" parseCmdEject
     )
 
 parsePackageName :: Opts.Parser PackageName
@@ -116,6 +130,163 @@ parsePackageName =
 
 parsePackage :: Opts.Parser (PackageName, PackageSpec)
 parsePackage = (,) <$> parsePackageName <*> (parsePackageSpec githubCmd)
+
+-------------------------------------------------------------------------------
+-- EJECT
+-------------------------------------------------------------------------------
+
+parseCmdEject :: Opts.ParserInfo (NIO ())
+parseCmdEject = Opts.info (pure cmdEject) $ mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc,
+        Opts.progDesc
+          "Outputs a flake inputs version of your niv inputs. Won't modify any files."
+      ]
+
+cmdEject :: NIO ()
+cmdEject = do
+  fsj <- getFindSourcesJson
+  sources <- unSources <$> li (getSources fsj)
+  let tups = bimap unPackageName unPackageSpec <$> HMS.toList sources
+
+  tsay "# Exported from niv. This is a best-effort attempt."
+  tsay ""
+
+  forM_ tups $ \(packageName, body) -> do
+    let eUrl = flakeUrl $ Aeson.Object body
+    url <- case eUrl of
+      Left err -> error $ "While parsing package '" <> T.unpack packageName <> "': " <> err
+      Right a -> pure a
+    tsay $ "inputs.\"" <> packageName <> "\".url = \"" <> url <> "\";";
+
+  tsay "\n\n"
+  tsay "# These were ported from niv, so they're probably not flakes"
+  tsay ""
+
+  forM_ tups $ \(packageName, _) -> do
+    tsay $ "inputs.\"" <> packageName <> "\".flake = false;";
+
+lookupOrErr :: E.MonadError err m => KM.Key -> KM.KeyMap a -> err -> m a
+lookupOrErr key kvs err = maybe (throwError err) pure $ KM.lookup key kvs
+
+data InputSpec
+  = GitInput
+    { gitRepo :: !T.Text
+    , gitRev  :: !(Maybe T.Text)
+    , gitRef  :: !(Maybe T.Text)
+    }
+  | GitHubInput
+    { githubOwner :: !T.Text
+    , githubRepo  :: !T.Text
+    , githubRev   :: !(Maybe T.Text)
+    , githubRef   :: !(Maybe T.Text)
+    }
+  | LocalInput
+    { localPath :: !T.Text
+    }
+
+instance Aeson.FromJSON InputSpec where
+  parseJSON = Aeson.withObject "Input" $ \obj -> do
+    t <- obj .: "type"
+    case t :: T.Text of
+      "git" -> do
+        gitRepo <- obj .: "repo"
+        gitRev <- obj .: "rev"
+        gitRef <- obj .: "branch" <|> obj .: "ref"
+        pure GitInput{..}
+
+      "local" -> do
+        localPath <- obj .: "path"
+        pure LocalInput{..}
+
+      -- default is github
+      _ -> do
+        githubOwner <- obj .: "owner"
+        githubRepo <- obj .: "repo"
+        githubRev <- obj .: "rev"
+        githubRef <- obj .: "branch" <|> obj .: "ref"
+        pure GitHubInput{..}
+
+aesonResultToEither :: Aeson.Result a -> Either String a
+aesonResultToEither res = case res of
+  Aeson.Error err -> Left err
+  Aeson.Success a -> Right a
+
+maybePrefixed :: Monoid m => m -> Maybe m -> m
+maybePrefixed prefix = maybe mempty (prefix <>)
+
+newtype UrlParams = UrlParams [(T.Text, T.Text)]
+
+showParams :: [(T.Text, T.Text)] -> T.Text
+showParams
+  = T.decodeUtf8
+  . BSL.toStrict
+  . B.toLazyByteString
+  . URI.renderQueryText True
+  . fmap (second Just)
+
+-- removePrefix :: T.Text -> T.Text -> T.Text
+-- removePrefix prefix txt = fromMaybe txt $ T.stripPrefix prefix txt
+
+removeScheme :: T.Text -> T.Text
+removeScheme uri = case T.splitOn "://" uri of
+  [_] -> uri
+  (_ : xs) -> T.intercalate "://" xs
+  _ -> uri
+
+colonToSlash :: T.Text -> T.Text
+colonToSlash = T.replace ":" "/"
+
+replaceScheme :: T.Text -> T.Text -> T.Text
+replaceScheme newScheme uri = newScheme <> removeScheme uri
+
+sshScheme :: T.Text -> T.Text
+sshScheme = ("git+ssh://" <>) . colonToSlash . removeScheme
+
+gitPathScheme :: T.Text -> T.Text
+gitPathScheme = replaceScheme "git+file:"
+
+convertGitUrl :: T.Text -> Maybe T.Text -> Maybe T.Text -> T.Text
+convertGitUrl uri ref rev =
+  let eUri = parseOnly URI.parseURI uri
+  in (<> params) $ case eUri of
+    Right parsedUri@URI.URI{..} -> case uriScheme of
+      S.Just "http" -> replaceScheme "http" uri
+      S.Just "https" -> replaceScheme "https" uri
+      S.Just "ssh" -> sshScheme uri
+      S.Just "git+ssh" -> sshScheme uri
+      -- somehow this parsed as a uri
+      S.Just "file" -> gitPathScheme uri
+      _ -> case URI.uriAuthUser $ URI.uriAuthority parsedUri of
+        S.Just _ -> sshScheme uri
+        S.Nothing -> gitPathScheme uri
+    Left _ -> gitPathScheme uri
+
+  where
+    params :: T.Text
+    params = showParams
+      $ take 1
+      $ catMaybes
+      [ ("ref",) <$> ref
+      , ("rev",) <$> rev
+      ]
+
+flakeUrl :: Aeson.Value -> Either String T.Text
+flakeUrl val = do
+  input <- aesonResultToEither $ Aeson.fromJSON val
+  pure $ case input of
+    GitInput{..} -> convertGitUrl gitRepo gitRef gitRev
+    GitHubInput{..} ->
+      let paramStr = showParams $ catMaybes [ ("rev",) <$> githubRev ]
+      in mconcat
+        [ "github:"
+        , githubOwner
+        , "/"
+        , githubRepo
+        , maybe paramStr ("/" <>) githubRef
+        ]
+    LocalInput{..} -> "path:" <> localPath
 
 -------------------------------------------------------------------------------
 -- INIT
