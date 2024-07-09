@@ -226,9 +226,6 @@ showParams
   . URI.renderQueryText True
   . fmap (second Just)
 
--- removePrefix :: T.Text -> T.Text -> T.Text
--- removePrefix prefix txt = fromMaybe txt $ T.stripPrefix prefix txt
-
 removeScheme :: T.Text -> T.Text
 removeScheme uri = case T.splitOn "://" uri of
   [_] -> uri
