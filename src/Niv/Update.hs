@@ -200,10 +200,9 @@ runUpdate' attrs = \case
                 UpdateReady res -> pure res
                 UpdateNeedMore next' -> next' v
   Load k -> pure $
-    UpdateReady $ do
-      case HMS.lookup k attrs of
-        Just (_, v') -> UpdateSuccess attrs v'
-        Nothing -> UpdateFailed $ FailNoSuchKey k
+    UpdateReady $ case HMS.lookup k attrs of
+      Nothing -> UpdateFailed $ FailNoSuchKey k
+      Just (_, v) -> UpdateSuccess attrs v
   First a -> do
     runUpdate' attrs a >>= \case
       UpdateReady (UpdateFailed e) -> pure $ UpdateReady $ UpdateFailed e
@@ -315,6 +314,12 @@ check = Check
 
 load :: (FromJSON a) => T.Text -> Update () (Box a)
 load k = Load k >>> arr (decodeBox $ "When loading key " <> k)
+
+maybeLoad :: (FromJSON a) => T.Text -> Update () (Box (Maybe a))
+maybeLoad k = Plus (load k) $ arr $ const $ pure Nothing
+
+loadDefault :: (FromJSON a) => T.Text -> Update (Box a) (Box a)
+loadDefault k = Plus ((arr $ const ()) >>> load k) Id
 
 -- TODO: should input really be Box?
 useOrSet :: (JSON a) => T.Text -> Update (Box a) (Box a)
