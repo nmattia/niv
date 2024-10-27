@@ -23,7 +23,7 @@ import Niv.Sources
 import Niv.Update
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
-import System.Exit (ExitCode (ExitSuccess))
+import System.Exit (ExitCode (..))
 import System.Process (readProcessWithExitCode)
 
 gitCmd :: Cmd
@@ -152,18 +152,24 @@ gitUpdate ::
 gitUpdate latestRev' defaultBranchAndRev' = proc () -> do
   useOrSet "type" -< ("git" :: Box T.Text)
   repository <- load "repo" -< ()
-  discoverRev <+> discoverRefAndRev -< repository
+  newRev <- discoverRev <+> discoverRefAndRev -< repository
+  deepClone <- loadDefault "deepClone" -< pure False
+  leaveDotGit <- loadDefault "leaveDotGit" -< pure False
+  fetchLfs <- loadDefault "fetchLFS" -< pure False
+  fetchSubmodules <- loadDefault "fetchDubmodules" -< pure False
+  hash <- run nixPrefetchGit' -< (,,,,,) <$> repository <*> newRev <*> deepClone <*> leaveDotGit <*> fetchLfs <*> fetchSubmodules
+  update "hash" -< hash -- TODO: make depend on builtin
+  returnA -< ()
   where
     discoverRefAndRev = proc repository -> do
       branchAndRev <- run defaultBranchAndRev' -< repository
       update "branch" -< fst <$> branchAndRev
       update "rev" -< snd <$> branchAndRev
-      returnA -< ()
     discoverRev = proc repository -> do
       branch <- load "branch" -< ()
       rev <- run' (uncurry latestRev') -< (,) <$> repository <*> branch
       update "rev" -< rev
-      returnA -< ()
+    nixPrefetchGit' (a, b, c, d, e, f) = nixPrefetchGit a b c d e f -- uncurried version
 
 -- | The "real" (IO) update
 gitUpdate' :: Update () ()
@@ -263,5 +269,37 @@ abortGitBug args msg =
       T.unlines
         [ "Could not read the output of 'git'.",
           T.unwords ("command:" : "git" : args),
+          msg
+        ]
+
+nixPrefetchGit :: T.Text -> T.Text -> Bool -> Bool -> Bool -> Bool -> IO T.Text
+nixPrefetchGit (T.unpack -> url) (T.unpack -> rev) deepClone leaveDotGit fetchLfs fetchSubmodules = do
+  (exitCode, stdout, stderr) <- runNixPrefetch
+  case exitCode of
+    ExitFailure _ -> abortNixPrefetchGitBug (T.pack <$> args) $ T.unlines ["stdout:" <> T.pack stdout, "stderr:" <> T.pack stderr]
+    ExitSuccess -> case getHash stdout of
+      Nothing -> abort "Could not decode output of 'nix-prefetch-git'."
+      Just hash -> pure hash
+  where
+    args =
+      ["--deepClone" | deepClone]
+        <> ["--leave-dotGit" | leaveDotGit]
+        <> ["--fetch-lfs" | fetchLfs]
+        <> ["--fetch-submodules" | fetchSubmodules]
+        <> [url, rev]
+    runNixPrefetch = readProcessWithExitCode "nix-prefetch-git" args ""
+    getHash input = do
+      obj :: Aeson.Object <- Aeson.decodeStrict $ B8.pack input
+      case KM.lookup "hash" obj of
+        Just (Aeson.String hash) -> pure hash
+        _ -> Nothing
+
+abortNixPrefetchGitBug :: [T.Text] -> T.Text -> IO a
+abortNixPrefetchGitBug args msg =
+  abort $
+    bug $
+      T.unlines
+        [ "Could not read the output of 'git'.",
+          T.unwords ("command:" : "nix-prefetch-git" : args),
           msg
         ]
