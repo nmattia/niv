@@ -8,6 +8,7 @@ module Niv.Git.Cmd where
 
 import Control.Applicative
 import Control.Arrow
+import Control.Monad (void)
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
@@ -24,6 +25,7 @@ import Niv.Update
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import System.Exit (ExitCode (ExitSuccess))
+import System.IO.Temp (withSystemTempDirectory)
 import System.Process (readProcessWithExitCode)
 
 gitCmd :: Cmd
@@ -77,7 +79,7 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec =
   PackageSpec . KM.fromList
-    <$> many (parseRepo <|> parseBranch <|> parseRev <|> parseAttr <|> parseSAttr)
+    <$> many (parseRepo <|> parseBranch <|> parseRev <|> parseRollback <|> parseAttr <|> parseSAttr)
   where
     parseRepo =
       ("repo",) . Aeson.String
@@ -97,6 +99,13 @@ parseGitPackageSpec =
           ( Opts.long "branch"
               <> Opts.short 'b'
               <> Opts.metavar "BRANCH"
+          )
+    parseRollback =
+      ("rollback-protection",) . Aeson.Bool
+        <$> Opts.flag'
+          True
+          ( Opts.long "rollback-protection"
+              <> Opts.help "Prevent updates to all revisions that are not ancestors of the current revision. May increase update times."
           )
     parseAttr =
       Opts.option
@@ -150,20 +159,28 @@ gitUpdate ::
   (T.Text -> IO (T.Text, T.Text)) ->
   Update () ()
 gitUpdate latestRev' defaultBranchAndRev' = proc () -> do
-  useOrSet "type" -< ("git" :: Box T.Text)
+  useOrSet "type" -< pure "git" :: Box T.Text
+  rp <- loadDefault "rollback-protection" -< pure False
+  oldRev <- maybeLoad "rev" -< ()
   repository <- load "repo" -< ()
-  discoverRev <+> discoverRefAndRev -< repository
+  newRev <- discoverRev <+> discoverRefAndRev -< repository
+  newRev' <- run ifEnsureAncestor -< (,,,) <$> rp <*> repository <*> oldRev <*> newRev
+  update "rev" -< newRev'
+  returnA -< ()
   where
     discoverRefAndRev = proc repository -> do
       branchAndRev <- run defaultBranchAndRev' -< repository
       update "branch" -< fst <$> branchAndRev
-      update "rev" -< snd <$> branchAndRev
-      returnA -< ()
+      returnA -< snd <$> branchAndRev
     discoverRev = proc repository -> do
       branch <- load "branch" -< ()
-      rev <- run' (uncurry latestRev') -< (,) <$> repository <*> branch
-      update "rev" -< rev
-      returnA -< ()
+      run' (uncurry latestRev') -< (,) <$> repository <*> branch
+    ifEnsureAncestor (rp, repository, oldRev, newRev) =
+      if rp
+        then case oldRev of
+          Nothing -> return newRev -- no old revision to test against (first update)
+          Just oldRev' -> ensureAncestor repository oldRev' newRev
+        else return newRev -- rollback protection disabled
 
 -- | The "real" (IO) update
 gitUpdate' :: Update () ()
@@ -177,7 +194,7 @@ latestRev ::
   IO T.Text
 latestRev repo branch = do
   let gitArgs = ["ls-remote", repo, "refs/heads/" <> branch]
-  sout <- runGit gitArgs
+  sout <- runGit abortGitBug gitArgs
   case sout of
     ls@(_ : _ : _) -> abortTooMuchOutput gitArgs ls
     [l1] -> parseRev gitArgs l1
@@ -200,7 +217,7 @@ defaultBranchAndRev ::
   T.Text ->
   IO (T.Text, T.Text)
 defaultBranchAndRev repo = do
-  sout <- runGit args
+  sout <- runGit abortGitBug args
   case sout of
     (l1 : l2 : _) -> (,) <$> parseBranch l1 <*> parseRev l2
     _ ->
@@ -226,14 +243,29 @@ abortNoRev args l = abortGitBug args $ "Could not read revision from: " <> l
 abortNoRef :: [T.Text] -> T.Text -> IO a
 abortNoRef args l = abortGitBug args $ "Could not read reference from: " <> l
 
--- | Run the "git" executable
-runGit :: [T.Text] -> IO [T.Text]
-runGit args = do
+-- TODO: only clone shallow repository and fetch needed commits to speed up verification
+ensureAncestor :: T.Text -> T.Text -> T.Text -> IO T.Text
+ensureAncestor repository oldRev newRev = withSystemTempDirectory "ensure-ancestor" $ \(T.pack -> dir) -> do
+  void $ runGit abortGitBug ["clone", "--bare", repository, dir]
+  let runGit' f args = void $ runGit f $ ["-C", dir] <> args -- run git on new repository and discard output
+  runGit' abortAncestor ["merge-base", "--is-ancestor", oldRev, newRev]
+  return newRev
+  where
+    abortAncestor args msg =
+      abort $
+        T.unlines
+          [ T.unwords $ "Revision" : oldRev : "is not an ancestor of" : newRev : "." : [],
+            T.unwords $ "command:" : "git" : args,
+            msg
+          ]
+
+runGit :: ([T.Text] -> T.Text -> IO [T.Text]) -> [T.Text] -> IO [T.Text]
+runGit abortFunction args = do
   (exitCode, sout, serr) <- readProcessWithExitCode "git" (T.unpack <$> args) ""
   case (exitCode, lines sout) of
     (ExitSuccess, ls) -> pure $ T.pack <$> ls
     _ ->
-      abortGitBug args $
+      abortFunction args $
         T.unlines
           [ T.unwords ["stdout:", T.pack sout],
             T.unwords ["stderr:", T.pack serr]
