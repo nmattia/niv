@@ -184,4 +184,4 @@ ticket:
 
 Thanks! I'll buy you a beer.
 |]
-      <> T.unlines ["command: ", "nix-prefetch-url" <> T.unwords args, "stdout: ", sout, "stderr: ", serr]
+      <> T.unlines ["command: ", T.unwords ("nix-prefetch-url" : args), "stdout: ", sout, "stderr: ", serr]
