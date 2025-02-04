@@ -36,6 +36,7 @@
     "profunctors",
     "pureMD5",
     "string-qq",
+    "temporary",
     "text",
     "unliftio",
     "unordered-containers"
