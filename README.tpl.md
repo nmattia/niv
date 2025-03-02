@@ -6,7 +6,7 @@
 Painless dependencies for [Nix] projects. Read more in the [Getting started](#getting-started) section below.
 
 <p align="center">
-    <img src="https://niv.nmattia.com/niv.svg">
+    <img src="./niv.svg">
 </p>
 
 

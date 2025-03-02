@@ -268,7 +268,7 @@ rec
       }
 
       expected_hash=$(${pkgs.nix}/bin/nix-hash ${niv-svg-gen})
-      actual_hash=$(grep -oP 'id="\K[^"]+' ${./site/niv.svg} -m 1)
+      actual_hash=$(grep -oP 'id="\K[^"]+' ${./niv.svg} -m 1)
 
       echo "expected $expected_hash"
       echo "actual   $actual_hash"
@@ -293,12 +293,11 @@ rec
       #!${pkgs.stdenv.shell}
       set -euo pipefail
       export PATH=${haskellPackages.niv}/bin:${pkgs.nix}/bin:$PATH
-      site=$PWD/site
 
       pushd $(mktemp -d)
       ${pkgs.termtosvg}/bin/termtosvg \
           -g 82x26 -M 2000 -m 2000 -t gjm8 \
-          -c '${niv-svg-cmds}' $site/niv.svg
+          -c '${niv-svg-cmds}' $PWD/niv.svg
 
       echo done rendering
       popd
