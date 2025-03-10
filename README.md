@@ -20,13 +20,13 @@ Painless dependencies for [Nix] projects. Read more in the [Getting started](#ge
 `niv` is available in [`nixpkgs`](https://github.com/NixOS/nixpkgs) as `niv`:
 
 ``` bash
-$ nix-env -iA nixpkgs.niv
+$ nix-shell -p niv
 ```
 
-Alternatively, run the following command to install the development version:
+Alternatively, run the following command to use the development version:
 
 ``` bash
-$ nix-env -iA niv -f https://github.com/nmattia/niv/tarball/master \
+$ nix-shell -A niv-devshell https://github.com/nmattia/niv/tarball/master \
     --substituters https://niv.cachix.org \
     --trusted-public-keys niv.cachix.org-1:X32PCg2e/zAm3/uD1ScqW2z/K0LtDyNV7RdaxIuLgQM=
 ```
