@@ -24,7 +24,7 @@ let
     else
       pkgs.fetchzip { name = name'; inherit (spec) url sha256; };
 
-  fetch_git = name: spec:
+  fetch_git = pkgs: name: spec:
     let
       ref =
         spec.ref or (
@@ -52,8 +52,9 @@ let
         then { inherit submodules; }
         else emptyArgWithWarning;
     in
-    builtins.fetchGit
-      ({ url = spec.repo; inherit (spec) rev; inherit ref; } // submoduleArg);
+      if spec.builtin or true
+      then builtins.fetchGit ({ url = spec.repo; inherit (spec) rev; inherit ref; } // submoduleArg)
+      else pkgs.fetchgit (builtins.removeAttrs spec ["type" "repo" "builtin" "branch" "tag" "ref"] // {url = spec.repo;});
 
   fetch_local = spec: spec.path;
 
@@ -105,7 +106,7 @@ let
       abort "ERROR: niv spec ${name} does not have a 'type' attribute"
     else if spec.type == "file" then fetch_file pkgs name spec
     else if spec.type == "tarball" then fetch_tarball pkgs name spec
-    else if spec.type == "git" then fetch_git name spec
+    else if spec.type == "git" then fetch_git pkgs name spec
     else if spec.type == "local" then fetch_local spec
     else if spec.type == "builtin-tarball" then fetch_builtin-tarball name
     else if spec.type == "builtin-url" then fetch_builtin-url name
