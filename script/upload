@@ -5,7 +5,7 @@
 #
 #
 # How To Release:
-# * git checkout master
+# * git checkout main
 # * make sure changelog is up-to-date
 # * bump version in package.yaml
 # * bump version in CHANGELOG
