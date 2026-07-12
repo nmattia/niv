@@ -276,7 +276,7 @@ Experimental commands:
 
 ```
 Examples:
-  
+
   niv update                     # update all packages
   niv update nixpkgs             # update nixpkgs
   niv update my-package -v beta-0.2 # update my-package to version "beta-0.2"
