@@ -10,7 +10,6 @@
 
 module Niv.Update where
 
-import Control.Applicative
 import Control.Arrow
 import qualified Control.Category as Cat
 import Data.Aeson (FromJSON, ToJSON, Value)
