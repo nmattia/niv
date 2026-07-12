@@ -11,8 +11,19 @@ let
             # for nix to run smoothly in multi-user install
             # https://github.com/NixOS/nix/issues/3258
             # https://github.com/cachix/install-nix-action/issues/16
-            export NIX_STATE_DIR="$TMPDIR"
-            export NIX_LOG_DIR="$TMPDIR"
+            # export NIX_STATE_DIR="$TMPDIR"
+            # export NIX_LOG_DIR="$TMPDIR"
+            export TEST_ROOT="$TMPDIR/nix-test-root"
+            mkdir -p "$TEST_ROOT"
+
+            # This is the key one: relocates store, state, log, db, gcroots, etc.
+            # all under $TEST_ROOT while keeping /nix/store as the *logical* store dir
+            # (so hashes/paths still look normal).
+            export NIX_REMOTE="local?root=$TEST_ROOT"
+            export NIX_USER_CONF_FILES=$(mktemp)
+
+            echo 'experimental-features = nix-command flakes' >> "$NIX_USER_CONF_FILES"
+
 
             cp ${ ../../nix/sources.nix} sources.nix
             echo '{}' > sources.json
@@ -22,7 +33,7 @@ let
             }
 
             eval_outPath() {
-              nix eval --raw '(let sources = import ./sources.nix; in sources.'"$1"'.outPath)'
+              nix eval --raw --impure --expr '(let sources = import ./sources.nix; in sources.'"$1"'.outPath)'
             }
 
             eq() {
@@ -65,7 +76,7 @@ mkTest "niv-override-eval" ''
     # Here we test that sources.nix can be imported even if there is no
     # sources.json in the same directory
     eval_outPath() {
-      nix eval --raw '(let sources = import ./sources.nix { sourcesFile = ./other/sources.json; } ; in sources.'"$1"'.outPath)'
+      nix eval --raw --expr '(let sources = import ./sources.nix { sourcesFile = ./other/sources.json; } ; in sources.'"$1"'.outPath)'
     }
 
     res="$(NIV_OVERRIDE_foo="hello" eval_outPath "foo")"

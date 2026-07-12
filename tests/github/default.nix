@@ -21,12 +21,15 @@ let
 in
 pkgs.runCommand "test"
 {
+    __darwinAllowLocalNetworking = true;
   buildInputs = [
     pkgs.haskellPackages.wai-app-static
     niv
     pkgs.nix
     pkgs.jq
     pkgs.netcat-gnu
+    pkgs.python3
+    pkgs.curl
   ];
 }
   ''
@@ -40,12 +43,20 @@ pkgs.runCommand "test"
     echo *** Starting the webserver...
     mkdir -p mock
 
-    warp -d mock -p 3333 &
+    python -m http.server 3333 --bind 127.0.0.1 --directory "$PWD/mock" &
+    # warp -d mock -p 3333 &
+    pid=$!
 
-    while ! nc -z 127.0.0.1 3333; do
+    echo warp PID "$pid"
+
+    while ! curl localhost:3333; do
       echo waiting for mock server
       sleep 1
     done
+
+    echo "mock server ready"
+
+    # curl localhost:3333
 
     # We can't access /nix or /var from the sandbox
     export NIX_STATE_DIR=$PWD/nix/var/nix
@@ -125,4 +136,9 @@ pkgs.runCommand "test"
     cat nix/sources.json | jq -e '.foo | .url == "localhost:3333/foo-v1"'
     echo "*** ok."
     cp nix/sources.json $out
+
+    kill "$pid"
+    wait "$pid" || echo warp returned
+
+    echo "*** test is done"
   ''

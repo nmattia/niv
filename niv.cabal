@@ -1,0 +1,95 @@
+cabal-version:      2.2
+
+name:               niv
+version:            0.2.22
+synopsis:           Easy dependency management for Nix projects
+description:        Easy dependency management for Nix projects.
+category:           Development
+homepage:           https://github.com/nmattia/niv#readme
+bug-reports:        https://github.com/nmattia/niv/issues
+author:             Nicolas Mattia <nicolas@nmattia.com>
+maintainer:         Nicolas Mattia <nicolas@nmattia.com>
+copyright:          (c) 2019 Nicolas Mattia
+license:            MIT
+build-type:         Simple
+data-files:
+    nix/sources.nix
+extra-source-files:
+    README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/nmattia/niv
+
+library
+  exposed-modules:
+      Data.Aeson.Extended
+      Data.HashMap.Strict.Extended
+      Data.Text.Extended
+
+      Niv.Cli
+      Niv.Cmd
+      Niv.Git.Cmd
+      Niv.Git.Test
+      Niv.GitHub
+      Niv.GitHub.API
+      Niv.GitHub.Cmd
+      Niv.GitHub.Test
+      Niv.Local.Cmd
+      Niv.Logger
+      Niv.Sources
+      Niv.Sources.Test
+      Niv.Test
+      Niv.Update
+      Niv.Update.Test
+
+  other-modules:
+      Paths_niv
+  autogen-modules:
+      Paths_niv
+  hs-source-dirs:
+      src
+  ghc-options:
+      -Wall
+  build-depends:
+      aeson >=2
+    , aeson-pretty
+    , ansi-terminal
+    , base <5
+    , bytestring
+    , directory
+    , file-embed
+    , filepath
+    , hashable
+    , http-conduit
+    , mtl
+    , optparse-applicative
+    , process
+    , profunctors
+    , pureMD5
+    , string-qq
+    , tasty
+    , tasty-hunit
+    , text
+    , unliftio
+    , unordered-containers
+  default-language: Haskell2010
+
+executable niv
+    main-is: app/Niv.hs
+    build-depends:
+          base <5
+        , niv
+    ghc-options:
+        -Wall
+    default-language: Haskell2010
+
+test-suite unit
+    type:    exitcode-stdio-1.0
+    main-is: app/NivTest.hs
+    build-depends:
+          base <5
+        , niv
+    default-language: Haskell2010
+    ghc-options:
+        -Wall

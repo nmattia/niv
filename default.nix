@@ -16,7 +16,7 @@ let
     };
 
   niv-source = sourceByRegex "niv" ./. [
-    "^package.yaml$"
+    "^niv.cabal$"
     "^README.md$"
     "^LICENSE$"
     "^app$"
@@ -34,7 +34,7 @@ let
     "^src/Niv/Sources$"
     "^src/Niv/Update$"
     "^src.*.hs$"
-    "^README.md$"
+    "^README.md$" # TODO: only needed for the sdist
     "^nix$"
     "^nix.sources.nix$"
   ];
@@ -42,18 +42,31 @@ let
   haskellPackages = pkgs.haskellPackages.override {
     overrides = self: super: {
 
-      niv =
-        pkgs.haskell.lib.justStaticExecutables (
-          pkgs.haskell.lib.failOnAllWarnings (
-            pkgs.haskell.lib.disableExecutableProfiling (
-              pkgs.haskell.lib.disableLibraryProfiling (
-                pkgs.haskellPackages.generateOptparseApplicativeCompletions [ "niv" ] (
-                  (pkgs.callPackage ./foo { haskellPackages = self; }).buildPackage { root = ./.; src = niv-source; }
-                )
-              )
-            )
-          )
-        );
+      niv = pkgs.haskellPackages.callPackage (
+        { mkDerivation }:
+        mkDerivation {
+          pname = "niv";
+          version = "0.22";
+          src = niv-source;
+          isLibrary = true;
+          isExecutable = true;
+          libraryHaskellDepends = [ ];
+          executableHaskellDepdends = [ ];
+          testHaskellDepdends = [ ];
+        }
+      );
+
+      # pkgs.haskell.lib.justStaticExecutables (
+      #   pkgs.haskell.lib.failOnAllWarnings (
+      #     pkgs.haskell.lib.disableExecutableProfiling (
+      #       pkgs.haskell.lib.disableLibraryProfiling (
+      #         pkgs.haskellPackages.generateOptparseApplicativeCompletions [ "niv" ] (
+      #           (pkgs.callPackage ./foo { haskellPackages = self; }).buildPackage { root = ./.; src = niv-source; }
+      #         )
+      #       )
+      #     )
+      #   )
+      # );
     };
   };
 
@@ -185,7 +198,7 @@ let
 in
 rec
 {
-  inherit niv niv-sdist niv-source niv-devshell niv-cabal-upload;
+  inherit niv-sdist niv-source niv-devshell niv-cabal-upload;
 
   tests-github = pkgs.callPackage ./tests/github { inherit niv; };
   tests-git = pkgs.callPackage ./tests/git { inherit niv; };
@@ -276,7 +289,6 @@ rec
       [ $expected_hash == $actual_hash ] && echo dymmy > $out || err
     '';
 
-  # TODO: use nivForTest for this one
   niv-svg-cmds = pkgs.writeScript "niv-svg-cmds"
     ''
       #!${pkgs.stdenv.shell}
@@ -302,4 +314,66 @@ rec
       echo done rendering
       popd
     '';
+  niv = pkgs.haskellPackages.callPackage
+    (
+      libs@{ mkDerivation
+      , aeson
+      , aeson-pretty
+      , ansi-terminal
+      , base
+      , bytestring
+      , directory
+      , file-embed
+      , filepath
+      , hashable
+      , http-conduit
+      , mtl
+      , optparse-applicative
+      , process
+      , profunctors
+      , pureMD5
+      , string-qq
+      , tasty
+      , tasty-hunit
+      , text
+      , unliftio
+      , unordered-containers
+      , ...
+      }:
+      mkDerivation {
+        pname = "niv";
+        version = "0.22";
+        src = niv-source;
+        isLibrary = true;
+        isExecutable = true;
+        libraryHaskellDepends = [
+          aeson
+          aeson-pretty
+          ansi-terminal
+          base
+          bytestring
+          directory
+          file-embed
+          filepath
+          hashable
+          http-conduit
+          mtl
+          optparse-applicative
+          process
+          profunctors
+          pureMD5
+          string-qq
+          tasty
+          tasty-hunit
+          text
+          unliftio
+          unordered-containers
+        ];
+        executableHaskellDepends = [ ];
+        testHaskellDepends = [ ];
+        license = pkgs.lib.licenses.mit;
+      }
+    )
+    { };
+
 }
