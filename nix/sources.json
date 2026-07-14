@@ -10,17 +10,5 @@
         "type": "tarball",
         "url": "https://github.com/NixOS/nixpkgs/archive/6d1069829bf8c2e9e1ffe0a89a65bbc50b8375cc.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "termtosvg": {
-        "branch": "develop",
-        "description": "Record terminal sessions as SVG animations",
-        "homepage": "https://nbedos.github.io/termtosvg/",
-        "owner": "nbedos",
-        "repo": "termtosvg",
-        "rev": "b97cc0132073111cec37f64c95539e869202ff99",
-        "sha256": "1c86622sda98zm3q3dzwmm37i09yca661kn860svl191nqbh2l68",
-        "type": "tarball",
-        "url": "https://github.com/nbedos/termtosvg/archive/b97cc0132073111cec37f64c95539e869202ff99.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }
