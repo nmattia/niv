@@ -140,10 +140,10 @@ rec
       sed "/replace_niv_help/r"<(niv --help) $out | sponge $out
       sed "/replace_niv_help/d" $out | sponge $out
 
-      sed "/replace_niv_add_help/r"<(niv add --help) $out | sponge $out $out
+      sed "/replace_niv_add_help/r"<(niv add --help) $out | sponge $out
       sed "/replace_niv_add_help/d" $out | sponge $out
 
-      sed "/replace_niv_update_help/r"<(niv update --help) $out| sponge $out $out
+      sed "/replace_niv_update_help/r"<(niv update --help) $out| sponge $out
       sed "/replace_niv_update_help/d" $out | sponge $out
 
       sed "/replace_niv_modify_help/r"<(niv modify --help) $out | sponge $out

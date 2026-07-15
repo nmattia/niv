@@ -1,6 +1,4 @@
-{ pkgs ? import <nixpkgs> { }
-}:
-
+{ pkgs, ... }:
 
 let
   mkTest = name: text:
@@ -8,11 +6,16 @@ let
       ${name} =
         pkgs.runCommand name { nativeBuildInputs = [ pkgs.jq pkgs.nix pkgs.moreutils ]; }
           ''
-            # for nix to run smoothly in multi-user install
-            # https://github.com/NixOS/nix/issues/3258
-            # https://github.com/cachix/install-nix-action/issues/16
-            export NIX_STATE_DIR="$TMPDIR"
-            export NIX_LOG_DIR="$TMPDIR"
+            echo eval test "${name}" running...
+            export NIX_REMOTE="local?root=$TMPDIR/git-test-store"
+            export NIX_STATE_DIR=$TMPDIR
+
+            export HOME="$TMPDIR/homeless"
+            export NIX_USER_CONF_FILES=$(mktemp)
+            # allow 'nix foo' commands
+            echo 'extra-experimental-features = nix-command flakes' >> "$NIX_USER_CONF_FILES"
+            # disable substituters since we run in the sandbox (some commands try to fetch nix-cache-info and fail)
+            echo 'substituters = ' >> "$NIX_USER_CONF_FILES"
 
             cp ${ ../../nix/sources.nix} sources.nix
             echo '{}' > sources.json
@@ -22,7 +25,7 @@ let
             }
 
             eval_outPath() {
-              nix eval --raw '(let sources = import ./sources.nix; in sources.'"$1"'.outPath)'
+              nix eval --raw --impure --expr '(let sources = import ./sources.nix; in toString sources.'"$1"'.outPath)'
             }
 
             eq() {
@@ -35,7 +38,8 @@ let
 
             ${text}
 
-            touch "$out"
+            echo eval test "${name}" passed
+            echo OK > "$out"
           '';
     };
 in
@@ -47,13 +51,13 @@ mkTest "niv-override-eval" ''
         update_sources '."ba z" = { type: "tarball", url: "foo", sha256: "whocares" }'
 
         res="$(NIV_OVERRIDE_foo="hello" eval_outPath "foo")"
-        eq "$res" "hello"
+        eq "$res" "$PWD/hello"
 
         res="$(NIV_OVERRIDE_ba_r="hello" eval_outPath "ba-r")"
-        eq "$res" "hello"
+        eq "$res" "$PWD/hello"
 
         res="$(NIV_OVERRIDE_ba_z="hello" eval_outPath '"ba z"')"
-        eq "$res" "hello"
+        eq "$res" "$PWD/hello"
 
   '' // mkTest "sources-json-elsewhere"
   ''
@@ -65,11 +69,11 @@ mkTest "niv-override-eval" ''
     # Here we test that sources.nix can be imported even if there is no
     # sources.json in the same directory
     eval_outPath() {
-      nix eval --raw '(let sources = import ./sources.nix { sourcesFile = ./other/sources.json; } ; in sources.'"$1"'.outPath)'
+      nix eval --raw --impure --expr '(let sources = import ./sources.nix { sourcesFile = ./other/sources.json; } ; in toString sources.'"$1"'.outPath)'
     }
 
     res="$(NIV_OVERRIDE_foo="hello" eval_outPath "foo")"
-    eq "$res" "hello"
+    eq "$res" "$PWD/hello"
   ''
 
   // mkTest "sanitize-source-name"
@@ -82,5 +86,5 @@ mkTest "niv-override-eval" ''
     update_sources '.foo = { type: "file", url: $url, sha256: $sha}' --arg url "$url" --arg sha "$sha"
 
     # we don't need to check the result, we just make sure this evaluates
-    eval_outPath "foo"
+    eval_outPath "foo" >/dev/null
   ''

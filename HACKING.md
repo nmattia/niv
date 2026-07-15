@@ -4,6 +4,20 @@
 
 To build the project, we recommend using Cabal.
 
+## Running the tests
+
+run all CI checks:
+
+```bash
+./script/test
+```
+
+run Nix checks only:
+
+```bash
+nix flake check --print-build-logs --max-jobs 1
+```
+
 ## Release Playbook
 
 First, checkout the latest main:
@@ -17,12 +31,6 @@ Make sure there are no changes. Then bump the version in the following files:
 * `package.yaml`
 * `CHANGELOG`
 * `default.nix`
-
-Then, make sure the auto-generated README.md is up to date:
-
-```bash
-./script/gen
-```
 
 Then, make sure the tests pass:
 
