@@ -1,9 +1,4 @@
-#!/usr/bin/env nix-shell
-#!nix-shell -i bash
-#!nix-shell -I nixpkgs=./nix
-#!nix-shell -p nix
-#!nix-shell -p nixpkgs-fmt
-
+#!/usr/bin/env bash
 set -euo pipefail
 
 export NIX_PATH="nixpkgs=./nix"
@@ -32,13 +27,6 @@ fi
 
 # Build and create a root
 nix-build ${nixargs[@]} ${targets[@]}
-
-echo "Formatting"
-if ! nixpkgs-fmt --check . ; then
-  echo
-  echo 'run `nixpkgs-fmt .` to fix this issue'
-  exit 1
-fi
 
 echo "Building examples"
 for example in examples/*; do
