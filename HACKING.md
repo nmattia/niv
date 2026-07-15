@@ -7,14 +7,14 @@ To build the project, we recommend using Cabal.
 For running tests:
 
 ```bash
-$ cabal repl test-suite:unit
+$ cabal repl test:unit
 > :main -- runs tests
 ```
 
 For running the binary:
 
 ```bash
-$ cabal repl executable:niv
+$ cabal repl exe:niv
 > :main -- runs niv itself
 ```
 
@@ -45,7 +45,7 @@ Make sure there are no changes. Then bump the version in the following files:
 
 * `niv.cabal`
 * `CHANGELOG`
-* `default.nix`
+* `flake.nix`
 
 Then, make sure the tests pass:
 
@@ -62,7 +62,7 @@ git commit -am "Release 3.14.15"
 Then, generate the cabal sdist:
 
 ```bash
-cp $(nix-build -A niv-sdist)/niv-<version>.tar.gz .
+cp $(nix build .#niv-sdist --no-link --print-out-paths)/niv-*.tar.gz .
 ```
 
 Then, upload the sdist:
