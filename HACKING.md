@@ -4,6 +4,21 @@
 
 To build the project, we recommend using Cabal.
 
+For running tests:
+
+```bash
+$ cabal repl test-suite:unit
+> :main -- runs tests
+```
+
+For running the binary:
+
+```bash
+$ cabal repl executable:niv
+> :main -- runs niv itself
+```
+
+
 ## Running the tests
 
 run all CI checks:
@@ -28,7 +43,7 @@ git switch main && git pull
 
 Make sure there are no changes. Then bump the version in the following files:
 
-* `package.yaml`
+* `niv.cabal`
 * `CHANGELOG`
 * `default.nix`
 

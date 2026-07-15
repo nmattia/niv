@@ -23,7 +23,7 @@
           };
 
         niv-source = sourceByRegex "niv" ./. [
-          "^package.yaml$"
+          "^niv.cabal$"
           "^README.md$"
           "^LICENSE$"
           "^app$"
@@ -77,8 +77,6 @@
               src = niv-source;
               isLibrary = true;
               isExecutable = true;
-              libraryToolDepends = [ pkgs.haskellPackages.hpack ];
-              prePatch = "hpack";
               libraryHaskellDepends = [
                 aeson
                 aeson-pretty
