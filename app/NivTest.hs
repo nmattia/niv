@@ -1,4 +1,4 @@
-module NivTest where
+module Main where
 
 import Niv.Test
 

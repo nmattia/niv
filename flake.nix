@@ -23,7 +23,7 @@
           };
 
         niv-source = sourceByRegex "niv" ./. [
-          "^package.yaml$"
+          "^niv.cabal$"
           "^README.md$"
           "^LICENSE$"
           "^app$"
@@ -73,12 +73,10 @@
             }:
             mkDerivation {
               pname = "niv";
-              version = "0.22";
+              version = "0.2.22";
               src = niv-source;
               isLibrary = true;
               isExecutable = true;
-              libraryToolDepends = [ pkgs.haskellPackages.hpack ];
-              prePatch = "hpack";
               libraryHaskellDepends = [
                 aeson
                 aeson-pretty

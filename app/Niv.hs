@@ -1,4 +1,4 @@
-module Niv where
+module Main where
 
 import Niv.Cli
 

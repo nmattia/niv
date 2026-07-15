@@ -4,5 +4,3 @@ tags
 dist
 dist-newstyle
 .stack-work
-# Cabal file can be generated from package.yaml but shouldn't be checked in
-*.cabal
