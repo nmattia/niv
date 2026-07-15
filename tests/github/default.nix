@@ -21,16 +21,14 @@ let
 in
 
 {
-  foo =
+  github =
     pkgs.runCommand "test"
       {
         __darwinAllowLocalNetworking = true;
         buildInputs = [
-          pkgs.haskellPackages.wai-app-static
           niv
           pkgs.nix
           pkgs.jq
-          pkgs.netcat-gnu
           pkgs.python3
           pkgs.curl
         ];
@@ -46,12 +44,13 @@ in
         echo *** Starting the webserver...
         mkdir -p mock
 
-        python -m http.server 3333 --bind 127.0.0.1 --directory "$PWD/mock" &
+        python3 -m http.server 3333 --bind 127.0.0.1 --directory "$PWD/mock" &
         pid=$!
+        trap 'kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true' EXIT
 
         echo webserver pid "$pid"
 
-        while ! curl localhost:3333; do
+        while ! curl --silent --fail http://127.0.0.1:3333/ >/dev/null; do
           echo waiting for mock server
           sleep 1
         done

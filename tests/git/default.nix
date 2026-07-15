@@ -1,7 +1,7 @@
 { pkgs, niv }:
 
 {
-  bar =
+  git =
     # TODO: this doesn' test anything meaningful yet because "niv git PACKAGE"
     # doesn't parse yet
     pkgs.runCommand "git-test"
