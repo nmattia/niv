@@ -1,39 +1,26 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
-export NIX_PATH="nixpkgs=./nix"
+echo "building niv"
 
-echo "Building"
+nix build .#niv --no-link
 
-nixargs=(
-    "--no-link"
-    "--max-jobs" "10"
-)
+echo "running checks"
 
-targets=(
+nix flake check --print-build-logs --max-jobs 1
 
-)
+echo "checking README"
 
-
-if [[ ! $OSTYPE =~ darwin ]]; then
-    echo "Not testing on darwin"
-    echo "Enabling sandbox, running all tests"
-    nixargs+=("--sandbox")
-else
-    echo "Testing on darwin"
-    echo "Not enabling sandbox, not running integration"
-    targets+=("-A" "niv")
+readme=$(mktemp)
+gen_readme_cmd='cat $(nix build .#readme --no-link --print-out-paths) >'
+eval "$gen_readme_cmd $readme" # generates the readme to "$readme"
+exitcode=0
+if ! diff "$readme" ./README.md; then
+    echo please run
+    echo "    '$gen_readme_cmd README.md'"
+    exitcode=1
 fi
+rm "$readme"
 
-# Build and create a root
-nix-build ${nixargs[@]} ${targets[@]}
-
-echo "Building examples"
-for example in examples/*; do
-    echo " - $(basename $example)"
-    pushd $example
-    nix-build ${nixargs[@]}
-    popd
-done
-
-echo "all good"
+exit "$exitcode"

@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-echo "Updating README"
-
-cat $(nix-build -A readme) > README.md
-
-echo done
