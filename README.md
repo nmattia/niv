@@ -230,6 +230,7 @@ Available commands:
   modify                   Modify dependency attributes without performing an
                            update
   drop                     Drop dependency
+  version                  Print version
 ```
 
 #### Add
