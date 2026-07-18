@@ -1,6 +1,7 @@
 module Main where
 
 import Niv.Cli
+import System.Environment (getArgs)
 
 main :: IO ()
-main = Niv.Cli.cli
+main = getArgs >>= Niv.Cli.cli

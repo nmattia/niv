@@ -24,7 +24,7 @@
 
         niv-source = sourceByRegex "niv" ./. [
           "^niv.cabal$"
-          "^README.md$"
+          "^README.md$" # the README is not required for the build but is required for the sdist
           "^LICENSE$"
           "^app$"
           "^app.*.hs$"
@@ -41,7 +41,6 @@
           "^src/Niv/Sources$"
           "^src/Niv/Update$"
           "^src.*.hs$"
-          "^README.md$"
           "^nix$"
           "^nix.sources.nix$"
         ];

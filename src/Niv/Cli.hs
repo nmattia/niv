@@ -36,7 +36,6 @@ import qualified Options.Applicative.Help.Pretty as Opts
 -- I died a little
 import Paths_niv (version)
 import qualified System.Directory as Dir
-import System.Environment (getArgs)
 import System.FilePath (takeDirectory)
 import UnliftIO
 
@@ -52,17 +51,17 @@ getFindSourcesJson = ask
 li :: (MonadIO io) => IO a -> io a
 li = liftIO
 
-cli :: IO ()
-cli = do
+cli :: [String] -> IO ()
+cli args = do
   ((fsj, colors), nio) <-
-    getArgs >>= Opts.handleParseResult . execParserPure' Opts.defaultPrefs opts
+    pure args >>= Opts.handleParseResult . execParserPure' Opts.defaultPrefs opts
   setColors colors
   runReaderT (runNIO nio) fsj
   where
     execParserPure' pprefs pinfo [] =
       Opts.Failure $
         Opts.parserFailure pprefs pinfo (Opts.ShowHelpText Nothing) mempty
-    execParserPure' pprefs pinfo args = Opts.execParserPure pprefs pinfo args
+    execParserPure' pprefs pinfo as = Opts.execParserPure pprefs pinfo as
     opts = Opts.info ((,) <$> ((,) <$> parseFindSourcesJson <*> parseColors) <*> (parseCommand <**> Opts.helper <**> versionflag)) $ mconcat desc
     desc =
       [ Opts.fullDesc,
@@ -105,6 +104,7 @@ parseCommand =
         <> Opts.command "update" parseCmdUpdate
         <> Opts.command "modify" parseCmdModify
         <> Opts.command "drop" parseCmdDrop
+        <> Opts.command "version" parseCmdVersion
     )
 
 parsePackageName :: Opts.Parser PackageName
@@ -610,6 +610,23 @@ cmdDrop packageName = \case
       setSources fsj $
         Sources $
           HMS.insert packageName packageSpec sources
+
+-------------------------------------------------------------------------------
+-- VERSION
+-------------------------------------------------------------------------------
+
+parseCmdVersion :: Opts.ParserInfo (NIO ())
+parseCmdVersion =
+  Opts.info
+    ( pure (tsay $ T.pack $ showVersion version)
+        <**> Opts.helper
+    )
+    $ mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc,
+        Opts.progDesc "Print version"
+      ]
 
 -------------------------------------------------------------------------------
 -- Files and their content
