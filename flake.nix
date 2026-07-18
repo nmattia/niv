@@ -41,7 +41,6 @@
           "^src/Niv/Sources$"
           "^src/Niv/Update$"
           "^src.*.hs$"
-          "^README.md$"
           "^nix$"
           "^nix.sources.nix$"
         ];
