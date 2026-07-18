@@ -1,7 +1,7 @@
 # Changelog
 
 
-## [Unrelease]
+## [Unreleased]
 
 ### Added
 * New `version` command: `niv version`
