@@ -1,6 +1,11 @@
 # Changelog
 
 
+## [Unrelease]
+
+### Added
+* New `version` command: `niv version`
+
 ## [0.2.22] 2023-03-12
 
 ### Changed
