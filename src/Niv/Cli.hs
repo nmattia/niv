@@ -7,6 +7,7 @@
 
 module Niv.Cli where
 
+import Control.Concurrent
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader
@@ -22,6 +23,7 @@ import qualified Data.HashMap.Strict as HMS
 import Data.HashMap.Strict.Extended
 import Data.Hashable (Hashable)
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import Data.Text.Extended
 import Data.Version (showVersion)
 import qualified Network.HTTP.Simple as HTTP
@@ -39,6 +41,10 @@ import Paths_niv (version)
 import qualified System.Directory as Dir
 import System.FilePath (takeDirectory)
 import UnliftIO
+
+
+import qualified System.Console.ANSI as ANSI
+
 
 newtype NIO a = NIO {runNIO :: ReaderT FindSourcesJson IO a}
   deriving (Functor, Applicative, Monad, MonadIO, MonadReader FindSourcesJson)
@@ -106,7 +112,7 @@ parseCommand =
         <> Opts.command "modify" parseCmdModify
         <> Opts.command "drop" parseCmdDrop
         <> Opts.command "version" parseCmdVersion
-    )
+    ) <|> Opts.subparser (Opts.internal <> Opts.command "demo" parseCmdDemo)
 
 parsePackageName :: Opts.Parser PackageName
 parsePackageName =
@@ -451,11 +457,24 @@ inferCmd spec = case KM.lookup "type" (unPackageSpec spec) of
   _ -> githubCmd
 
 updatePackage :: PackageName -> PackageSpec -> Maybe PackageSpec -> NIO (Either SomeException PackageSpec)
-updatePackage packageName defaultSpec mSpec =
-  let defAttrs = specToFreeAttrs defaultSpec
-      attrs = maybe defAttrs (\cliSpec -> specToLockedAttrs cliSpec <> defAttrs) mSpec
-   in job ("Update " <> T.unpack (unPackageName packageName)) $
-        fmap attrsToSpec <$> li (doUpdate attrs (inferCmd defaultSpec))
+updatePackage packageName defaultSpec mSpec = li $ bracket_ ANSI.hideCursor ANSI.showCursor $ do
+    T.putStr $ statusUpdating
+    ANSI.setCursorColumn 0
+    hFlush stdout
+    threadDelay 1000000
+    result <- fmap attrsToSpec <$> doUpdate attrs (inferCmd defaultSpec)
+    ANSI.clearFromCursorToLineEnd
+    case result of
+        Right _ -> T.putStrLn $ statusSuccess
+        Left _ -> T.putStrLn $ statusError
+    pure result
+  where
+    defAttrs = specToFreeAttrs defaultSpec
+    attrs = maybe defAttrs (\cliSpec -> specToLockedAttrs cliSpec <> defAttrs) mSpec
+    statusUpdating = " • " <> unPackageName packageName <> ": updating..."
+    statusSuccess = " ✓ " <> unPackageName packageName <> ": done"
+    statusError = " ⨯ " <> unPackageName packageName <> ": error"
+
 
 -- | Update many packages.
 -- For each package, the package name, attrs-to-update as well as original state are given.
@@ -643,6 +662,21 @@ parseCmdVersion =
       [ Opts.fullDesc,
         Opts.progDesc "Print version"
       ]
+
+-------------------------------------------------------------------------------
+-- DEMO -- demoes the update/tui (internal)
+-------------------------------------------------------------------------------
+
+parseCmdDemo :: Opts.ParserInfo (NIO ())
+parseCmdDemo =
+  Opts.info
+    ( pure cmdDemo
+        <**> Opts.helper
+    )
+    mempty
+
+cmdDemo :: NIO ()
+cmdDemo = tsay "THIS IS DEMO"
 
 -------------------------------------------------------------------------------
 -- Files and their content
