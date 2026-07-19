@@ -86,8 +86,7 @@ jobStackSize = readIORef jobStack
 
 jobStack :: IORef Int
 jobStack = unsafePerformIO $ newIORef 0
-
-{-# NOINLINE jobStackSize #-}
+{-# NOINLINE jobStack #-}
 
 tsay :: (MonadIO io) => T.Text -> io ()
 tsay = say . T.unpack
