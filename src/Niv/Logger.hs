@@ -62,12 +62,14 @@ type S = String -> String
 type T = T.Text -> T.Text
 
 -- XXX: this assumes as single thread
-job :: (MonadUnliftIO io, MonadIO io) => String -> io () -> io ()
+job :: (MonadUnliftIO io, MonadIO io) => String -> io a -> io a
 job str act = do
   say (bold str)
   indent
   tryAny act <* deindent >>= \case
-    Right () -> say $ green "Done" <> ": " <> str
+    Right result -> do
+        say $ green "Done" <> ": " <> str
+        pure result
     Left e -> do
       -- don't wrap if the error ain't too long
       let showErr = do

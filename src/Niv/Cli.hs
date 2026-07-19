@@ -11,6 +11,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader
 import Data.Aeson ((.=))
+import Data.Functor((<&>))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
@@ -442,55 +443,70 @@ specToFreeAttrs = KM.toHashMapText . fmap (Free,) . unPackageSpec
 specToLockedAttrs :: PackageSpec -> Attrs
 specToLockedAttrs = KM.toHashMapText . fmap (Locked,) . unPackageSpec
 
+-- | lookup the "type" to find a Cmd to run, defaulting to legacy GitHub
+inferCmd :: PackageSpec -> Cmd
+inferCmd spec = case KM.lookup "type" (unPackageSpec spec) of
+  Just "git" -> gitCmd
+  Just "local" -> localCmd
+  _ -> githubCmd
+
+updatePackage :: PackageName -> PackageSpec -> Maybe PackageSpec -> NIO (Either SomeException PackageSpec)
+updatePackage packageName defaultSpec mSpec =
+  let defAttrs = specToFreeAttrs defaultSpec
+      attrs = maybe defAttrs (\cliSpec -> specToLockedAttrs cliSpec <> defAttrs) mSpec
+   in job ("Update " <> T.unpack (unPackageName packageName)) $
+        fmap attrsToSpec <$> li (doUpdate attrs (inferCmd defaultSpec))
+
+-- | Update many packages.
+-- For each package, the package name, attrs-to-update as well as original state are given.
+-- For each package, the package name and final state are returned.
+updatePackages :: [(PackageName, Maybe PackageSpec, PackageSpec)] -> NIO [(PackageName, Either SomeException PackageSpec)]
+updatePackages packageUpdates = do
+  forM packageUpdates $ \(packageName, mCliSpec, spec) ->
+    (packageName,) <$> updatePackage packageName spec mCliSpec
+
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
-cmdUpdate = \case
-  Just (packageName, cliSpec) ->
-    job ("Update " <> T.unpack (unPackageName packageName)) $ do
-      fsj <- getFindSourcesJson
-      sources <- unSources <$> li (getSources fsj)
-      eFinalSpec <- case HMS.lookup packageName sources of
-        Just defaultSpec -> do
-          -- lookup the "type" to find a Cmd to run, defaulting to legacy
-          -- github
-          let cmd = case KM.lookup "type" (unPackageSpec defaultSpec) of
-                Just "git" -> gitCmd
-                Just "local" -> localCmd
-                _ -> githubCmd
-              spec = specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec
-          fmap attrsToSpec <$> li (doUpdate spec cmd)
+cmdUpdate mPackageNameAndSpec = do
+  fsj <- getFindSourcesJson
+
+  -- read the sources from sources.json
+  sources <- unSources <$> li (getSources fsj)
+
+  -- prepare the updates
+  packageUpdates <- case mPackageNameAndSpec of
+    -- no package specified => update everything
+    Nothing -> pure $ HMS.toList sources <&> (\(k, v) -> (k, Nothing, v))
+    -- one package with new attrs specified => update just that
+    Just (packageName, cliSpec) -> do
+      defaultSpec <- case HMS.lookup packageName sources of
+        Just defaultSpec -> pure defaultSpec
         Nothing -> li $ abortCannotUpdateNoSuchPackage packageName
-      case eFinalSpec of
-        Left e -> li $ abortUpdateFailed [(packageName, e)]
-        Right finalSpec ->
-          li $
-            setSources fsj $
-              Sources $
-                HMS.insert packageName finalSpec sources
-  Nothing -> job "Updating all packages" $ do
-    fsj <- getFindSourcesJson
-    sources <- unSources <$> li (getSources fsj)
-    esources' <- forWithKeyM sources $
-      \packageName defaultSpec -> do
-        tsay $ "Package: " <> unPackageName packageName
-        let initialSpec = specToFreeAttrs defaultSpec
-        -- lookup the "type" to find a Cmd to run, defaulting to legacy
-        -- github
-        let cmd = case KM.lookup "type" (unPackageSpec defaultSpec) of
-              Just "git" -> gitCmd
-              Just "local" -> localCmd
-              _ -> githubCmd
-        fmap attrsToSpec <$> li (doUpdate initialSpec cmd)
-    let (failed, sources') = partitionEithersHMS esources'
-    unless (HMS.null failed) $
-      li $
-        abortUpdateFailed (HMS.toList failed)
-    li $ setSources fsj $ Sources sources'
+      pure [(packageName, Just cliSpec, defaultSpec)]
+
+  -- update all packages and separate failures from successes
+  (errs, updatedPackages) <- partitionUpdateFailures <$> updatePackages packageUpdates
+
+  -- if there are any errors, abort the update before we serialize the new results.
+  -- (not by necessity, just because this is legacy behavior)
+  unless (null errs) $
+    li $ abortUpdateFailed errs
+
+  -- reinsert the updated packages in the sources
+  let result = Sources $ foldl' (\acc (packageName, newSpec) -> HMS.insert packageName newSpec acc) sources updatedPackages
+
+  -- write the sources back to sources.json
+  li $ setSources fsj result
 
 -- | pretty much tryEvalUpdate but we might issue some warnings first
 doUpdate :: Attrs -> Cmd -> IO (Either SomeException Attrs)
 doUpdate attrs cmd = do
   forM_ (extraLogs cmd attrs) tsay
   tryEvalUpdate attrs (updateCmd cmd)
+
+partitionUpdateFailures :: [(PackageName, Either SomeException a)] -> ([(PackageName, SomeException)], [(PackageName, a)])
+partitionUpdateFailures = foldl' (\(lefts, rights) (packageName, res) -> case res of
+    Left left -> ((packageName, left):lefts, rights)
+    Right right -> (lefts, (packageName, right):rights)) ([], [])
 
 partitionEithersHMS ::
   (Eq k, Hashable k) =>
