@@ -443,8 +443,7 @@ specToFreeAttrs = KM.toHashMapText . fmap (Free,) . unPackageSpec
 specToLockedAttrs :: PackageSpec -> Attrs
 specToLockedAttrs = KM.toHashMapText . fmap (Locked,) . unPackageSpec
 
--- | lookup the "type" to find a Cmd to run, defaulting to legacy
--- github
+-- | lookup the "type" to find a Cmd to run, defaulting to legacy GitHub
 inferCmd :: PackageSpec -> Cmd
 inferCmd spec = case KM.lookup "type" (unPackageSpec spec) of
   Just "git" -> gitCmd
@@ -461,13 +460,10 @@ updatePackage packageName defaultSpec mSpec =
 -- | Update many packages.
 -- For each package, the package name, attrs-to-update as well as original state are given.
 -- For each package, the package name and final state are returned.
-updatePackages :: [(PackageName, Maybe PackageSpec, PackageSpec)] -> NIO [(PackageName, PackageSpec)]
+updatePackages :: [(PackageName, Maybe PackageSpec, PackageSpec)] -> NIO [(PackageName, Either SomeException PackageSpec)]
 updatePackages packageUpdates = do
-  forM packageUpdates $ \(packageName, mCliSpec, spec) -> do
-    eFinalSpec <- updatePackage packageName spec mCliSpec
-    case eFinalSpec of
-      Left e -> li $ abortUpdateFailed [(packageName, e)]
-      Right finalSpec -> pure (packageName, finalSpec)
+  forM packageUpdates $ \(packageName, mCliSpec, spec) ->
+    (packageName,) <$> updatePackage packageName spec mCliSpec
 
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
 cmdUpdate mPackageNameAndSpec = do
@@ -487,8 +483,13 @@ cmdUpdate mPackageNameAndSpec = do
         Nothing -> li $ abortCannotUpdateNoSuchPackage packageName
       pure [(packageName, Just cliSpec, defaultSpec)]
 
-  -- update all packages
-  updatedPackages <- updatePackages packageUpdates
+  -- update all packages and separate failures from successes
+  (errs, updatedPackages) <- partitionUpdateFailures <$> updatePackages packageUpdates
+
+  -- if there are any errors, abort the update before we serialize the new results.
+  -- (not by necessity, just because this is legacy behavior)
+  unless (null errs) $
+    li $ abortUpdateFailed errs
 
   -- reinsert the updated packages in the sources
   let result = Sources $ foldl' (\acc (packageName, newSpec) -> HMS.insert packageName newSpec acc) sources updatedPackages
@@ -501,6 +502,11 @@ doUpdate :: Attrs -> Cmd -> IO (Either SomeException Attrs)
 doUpdate attrs cmd = do
   forM_ (extraLogs cmd attrs) tsay
   tryEvalUpdate attrs (updateCmd cmd)
+
+partitionUpdateFailures :: [(PackageName, Either SomeException a)] -> ([(PackageName, SomeException)], [(PackageName, a)])
+partitionUpdateFailures = foldl' (\(lefts, rights) (packageName, res) -> case res of
+    Left left -> ((packageName, left):lefts, rights)
+    Right right -> (lefts, (packageName, right):rights)) ([], [])
 
 partitionEithersHMS ::
   (Eq k, Hashable k) =>
