@@ -40,8 +40,9 @@ githubCmd =
       parsePackageSpec = parseGitHubPackageSpec,
       updateCmd = githubUpdate',
       name = "github",
-      extraLogs = const []
-      -- TODO: here filter by type == tarball or file or builtin-
+      extraLogs = const [],
+      acceptsCmd = \(unPackageSpec -> spec) ->
+        (KM.member "repo" spec && KM.member "owner" spec) || KM.member "url_template" spec
     }
 
 parseGitHubPackageSpec :: Opts.Parser PackageSpec

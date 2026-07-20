@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Niv.Local.Cmd where
 
@@ -26,7 +27,8 @@ localCmd =
         useOrSet "type" -< ("local" :: Box T.Text)
         returnA -< (),
       name = "local",
-      extraLogs = const []
+      extraLogs = const [],
+      acceptsCmd = \(unPackageSpec -> spec) -> KM.lookup "type" spec == Just "local"
     }
 
 parseLocalShortcut :: T.Text -> Maybe (PackageName, Aeson.Object)
