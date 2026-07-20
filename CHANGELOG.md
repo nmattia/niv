@@ -6,6 +6,9 @@
 ### Added
 * New `version` command: `niv version`
 
+### Fixed
+* Prevent unsafe jobStack IORef creation from being inlined
+
 ## [0.2.22] 2023-03-12
 
 ### Changed
