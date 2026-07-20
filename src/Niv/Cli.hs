@@ -11,16 +11,17 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader
 import Data.Aeson ((.=))
-import Data.Functor((<&>))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import Data.Char (isSpace)
+import Data.Functor ((<&>))
 import qualified Data.HashMap.Strict as HMS
 import Data.HashMap.Strict.Extended
 import Data.Hashable (Hashable)
+import Data.List (find)
 import qualified Data.Text as T
 import Data.Text.Extended
 import Data.Version (showVersion)
@@ -40,14 +41,20 @@ import qualified System.Directory as Dir
 import System.FilePath (takeDirectory)
 import UnliftIO
 
-newtype NIO a = NIO {runNIO :: ReaderT FindSourcesJson IO a}
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader FindSourcesJson)
+-- | An IO Monad with some configuration:
+-- * FindSourcesJson: how to find sources.json (known path, discover, etc)
+-- * [Cmd]: the update types
+newtype NIO a = NIO {runNIO :: ReaderT (FindSourcesJson, [Cmd]) IO a}
+  deriving (Functor, Applicative, Monad, MonadIO, MonadReader (FindSourcesJson, [Cmd]))
 
 instance MonadUnliftIO NIO where
   withRunInIO = wrappedWithRunInIO NIO runNIO
 
 getFindSourcesJson :: NIO FindSourcesJson
-getFindSourcesJson = ask
+getFindSourcesJson = fst <$> ask
+
+getCmds :: NIO [Cmd]
+getCmds = snd <$> ask
 
 li :: (MonadIO io) => IO a -> io a
 li = liftIO
@@ -57,7 +64,7 @@ cli args = do
   ((fsj, colors), nio) <-
     pure args >>= Opts.handleParseResult . execParserPure' Opts.defaultPrefs opts
   setColors colors
-  runReaderT (runNIO nio) fsj
+  runReaderT (runNIO nio) (fsj, [gitCmd, localCmd, githubCmd])
   where
     execParserPure' pprefs pinfo [] =
       Opts.Failure $
@@ -443,19 +450,25 @@ specToFreeAttrs = KM.toHashMapText . fmap (Free,) . unPackageSpec
 specToLockedAttrs :: PackageSpec -> Attrs
 specToLockedAttrs = KM.toHashMapText . fmap (Locked,) . unPackageSpec
 
--- | lookup the "type" to find a Cmd to run, defaulting to legacy GitHub
-inferCmd :: PackageSpec -> Cmd
-inferCmd spec = case KM.lookup "type" (unPackageSpec spec) of
-  Just "git" -> gitCmd
-  Just "local" -> localCmd
-  _ -> githubCmd
+-- | find a matching Cmd for the PackageSpec
+inferCmd :: [Cmd] -> PackageSpec -> Maybe Cmd
+inferCmd cmds spec = do
+  find (\cmd -> acceptsCmd cmd spec) cmds
 
 updatePackage :: PackageName -> PackageSpec -> Maybe PackageSpec -> NIO (Either SomeException PackageSpec)
-updatePackage packageName defaultSpec mSpec =
+updatePackage packageName defaultSpec mSpec = do
   let defAttrs = specToFreeAttrs defaultSpec
       attrs = maybe defAttrs (\cliSpec -> specToLockedAttrs cliSpec <> defAttrs) mSpec
-   in job ("Update " <> T.unpack (unPackageName packageName)) $
-        fmap attrsToSpec <$> li (doUpdate attrs (inferCmd defaultSpec))
+
+  cmds <- getCmds
+
+  -- infer what command (git, github, etc) to use to update the package
+  cmd <- case inferCmd cmds defaultSpec of
+    Just cmd -> pure cmd
+    Nothing -> li $ abortNoSuitableCommand packageName
+
+  job ("Update " <> T.unpack (unPackageName packageName)) $
+    fmap attrsToSpec <$> li (doUpdate attrs cmd)
 
 -- | Update many packages.
 -- For each package, the package name, attrs-to-update as well as original state are given.
@@ -489,7 +502,8 @@ cmdUpdate mPackageNameAndSpec = do
   -- if there are any errors, abort the update before we serialize the new results.
   -- (not by necessity, just because this is legacy behavior)
   unless (null errs) $
-    li $ abortUpdateFailed errs
+    li $
+      abortUpdateFailed errs
 
   -- reinsert the updated packages in the sources
   let result = Sources $ foldl' (\acc (packageName, newSpec) -> HMS.insert packageName newSpec acc) sources updatedPackages
@@ -504,9 +518,13 @@ doUpdate attrs cmd = do
   tryEvalUpdate attrs (updateCmd cmd)
 
 partitionUpdateFailures :: [(PackageName, Either SomeException a)] -> ([(PackageName, SomeException)], [(PackageName, a)])
-partitionUpdateFailures = foldl' (\(lefts, rights) (packageName, res) -> case res of
-    Left left -> ((packageName, left):lefts, rights)
-    Right right -> (lefts, (packageName, right):rights)) ([], [])
+partitionUpdateFailures =
+  foldl'
+    ( \(lefts, rights) (packageName, res) -> case res of
+        Left left -> ((packageName, left) : lefts, rights)
+        Right right -> (lefts, (packageName, right) : rights)
+    )
+    ([], [])
 
 partitionEithersHMS ::
   (Eq k, Hashable k) =>
@@ -735,3 +753,7 @@ abortUpdateFailed errs =
               pname <> ": " <> tshow e
           )
           errs
+
+abortNoSuitableCommand :: PackageName -> IO a
+abortNoSuitableCommand pname =
+  abort $ "Don't know how to handle package: " <> unPackageName pname

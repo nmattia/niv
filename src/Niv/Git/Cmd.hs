@@ -34,7 +34,9 @@ gitCmd =
       parsePackageSpec = parseGitPackageSpec,
       updateCmd = gitUpdate',
       name = "git",
-      extraLogs = gitExtraLogs
+      extraLogs = gitExtraLogs,
+      acceptsCmd = \(unPackageSpec -> spec) -> KM.lookup "type" spec == Just "git"
+
     }
 
 gitExtraLogs :: Attrs -> [T.Text]

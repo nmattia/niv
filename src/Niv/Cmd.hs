@@ -8,7 +8,6 @@ import Niv.Sources
 import Niv.Update
 import qualified Options.Applicative as Opts
 
--- TODO: add filter
 data Cmd = Cmd
   { description :: forall a. Opts.InfoMod a,
     parseCmdShortcut :: T.Text -> Maybe (PackageName, Aeson.Object),
@@ -16,5 +15,8 @@ data Cmd = Cmd
     updateCmd :: Update () (),
     name :: T.Text,
     -- | Some notes to print
-    extraLogs :: Attrs -> [T.Text]
+    extraLogs :: Attrs -> [T.Text],
+    -- | Returns True if this Cmd knows how to handle the
+    -- given PackageSpec
+    acceptsCmd :: PackageSpec -> Bool
   }

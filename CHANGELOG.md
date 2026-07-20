@@ -5,6 +5,7 @@
 
 ### Added
 * New `version` command: `niv version`
+* Add command (update type) filter and error out if none match
 
 ### Fixed
 * Prevent unsafe jobStack IORef creation from being inlined
