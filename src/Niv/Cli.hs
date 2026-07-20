@@ -756,4 +756,4 @@ abortUpdateFailed errs =
 
 abortNoSuitableCommand :: PackageName -> IO a
 abortNoSuitableCommand pname =
-  abort $ "Don't know how to handle package: " <> unPackageName pname
+  abort $ "Don't know how to update package: " <> unPackageName pname

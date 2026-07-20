@@ -41,7 +41,8 @@ githubCmd =
       updateCmd = githubUpdate',
       name = "github",
       extraLogs = const [],
-      acceptsCmd = \(unPackageSpec -> spec) -> KM.member "repo" spec && KM.member "owner" spec
+      acceptsCmd = \(unPackageSpec -> spec) ->
+        (KM.member "repo" spec && KM.member "owner" spec) || KM.member "url_template" spec
     }
 
 parseGitHubPackageSpec :: Opts.Parser PackageSpec
