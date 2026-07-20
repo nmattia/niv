@@ -1,3 +1,4 @@
+{-# LANGUAGE Arrows #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -8,6 +9,8 @@
 module Niv.Cli where
 
 import Control.Applicative
+import Control.Arrow (returnA)
+import Control.Concurrent
 import Control.Monad
 import Control.Monad.Reader
 import Data.Aeson ((.=))
@@ -24,6 +27,7 @@ import Data.Hashable (Hashable)
 import Data.List (find)
 import qualified Data.Text as T
 import Data.Text.Extended
+import qualified Data.Text.IO as T
 import Data.Version (showVersion)
 import qualified Network.HTTP.Simple as HTTP
 import Niv.Cmd
@@ -37,6 +41,7 @@ import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 -- I died a little
 import Paths_niv (version)
+import qualified System.Console.ANSI as ANSI
 import qualified System.Directory as Dir
 import System.FilePath (takeDirectory)
 import UnliftIO
@@ -460,6 +465,14 @@ updatePackage packageName defaultSpec mSpec = do
   let defAttrs = specToFreeAttrs defaultSpec
       attrs = maybe defAttrs (\cliSpec -> specToLockedAttrs cliSpec <> defAttrs) mSpec
 
+      statusUpdating = " • " <> unPackageName packageName <> ": updating..."
+      statusSuccess = " ✓ " <> unPackageName packageName <> ": done"
+      statusError = " ⨯ " <> unPackageName packageName <> ": error"
+
+  li $ T.putStr $ statusUpdating
+  li $ ANSI.setCursorColumn 0
+  hFlush stdout
+
   cmds <- getCmds
 
   -- infer what command (git, github, etc) to use to update the package
@@ -467,8 +480,13 @@ updatePackage packageName defaultSpec mSpec = do
     Just cmd -> pure cmd
     Nothing -> li $ abortNoSuitableCommand packageName
 
-  job ("Update " <> T.unpack (unPackageName packageName)) $
-    fmap attrsToSpec <$> li (doUpdate attrs cmd)
+  result <- fmap attrsToSpec <$> li (doUpdate attrs cmd)
+  li ANSI.clearFromCursorToLineEnd
+  li $ case result of
+    Right _ -> T.putStrLn $ statusSuccess
+    Left _ -> T.putStrLn $ statusError
+
+  pure result
 
 -- | Update many packages.
 -- For each package, the package name, attrs-to-update as well as original state are given.
@@ -757,3 +775,36 @@ abortUpdateFailed errs =
 abortNoSuitableCommand :: PackageName -> IO a
 abortNoSuitableCommand pname =
   abort $ "Don't know how to update package: " <> unPackageName pname
+
+--- DEMO
+
+fakeUpdate :: Update () ()
+fakeUpdate = proc () -> do
+  owner <- (load "owner" :: Update () (Box T.Text)) -< ()
+  owner' <- run' (\o -> threadDelay 1000000 *> pure (o <> "foo")) -< owner
+  _ <- update "owner" -< owner'
+  returnA -< ()
+
+fakeCmd :: Cmd
+fakeCmd =
+  Cmd
+    { description = mempty,
+      parseCmdShortcut = \_ -> Nothing,
+      parsePackageSpec = empty,
+      updateCmd = fakeUpdate,
+      name = "fake",
+      extraLogs = \_ -> [],
+      acceptsCmd = \_ -> True
+    }
+
+foo :: IO ()
+foo = do
+  let rn nio = runReaderT (runNIO nio) (Auto, [fakeCmd])
+      plop = "plop" :: T.Text
+  _ <-
+    rn $
+      updatePackages
+        [ (PackageName "foo", Nothing, PackageSpec $ KM.fromList ["owner" .= plop]),
+          (PackageName "bar", Nothing, PackageSpec $ KM.fromList ["ownar" .= plop])
+        ]
+  pure ()
