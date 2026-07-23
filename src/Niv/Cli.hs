@@ -478,15 +478,10 @@ updatePackages packageUpdates = do
   forM packageUpdates $ \(packageName, mCliSpec, spec) ->
     (packageName,) <$> updatePackage packageName spec mCliSpec
 
-cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
-cmdUpdate mPackageNameAndSpec = do
-  fsj <- getFindSourcesJson
-
-  -- read the sources from sources.json
-  sources <- unSources <$> li (getSources fsj)
-
+applyUpdate :: Sources -> Maybe (PackageName, PackageSpec) -> NIO Sources
+applyUpdate (unSources -> sources) updateType = do
   -- prepare the updates
-  packageUpdates <- case mPackageNameAndSpec of
+  packageUpdates <- case updateType of
     -- no package specified => update everything
     Nothing -> pure $ HMS.toList sources <&> (\(k, v) -> (k, Nothing, v))
     -- one package with new attrs specified => update just that
@@ -505,8 +500,20 @@ cmdUpdate mPackageNameAndSpec = do
     li $
       abortUpdateFailed errs
 
-  -- reinsert the updated packages in the sources
-  let result = Sources $ foldl' (\acc (packageName, newSpec) -> HMS.insert packageName newSpec acc) sources updatedPackages
+  -- return the updated sources
+  pure $
+    Sources $
+      foldl' (\acc (packageName, newSpec) -> HMS.insert packageName newSpec acc) sources updatedPackages
+
+cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
+cmdUpdate mPackageNameAndSpec = do
+  fsj <- getFindSourcesJson
+
+  -- read the sources from sources.json
+  sources <- li (getSources fsj)
+
+  -- run the updates (in memory)
+  result <- applyUpdate sources mPackageNameAndSpec
 
   -- write the sources back to sources.json
   li $ setSources fsj result
