@@ -4,18 +4,27 @@
 
 To build the project, we recommend using Cabal.
 
-For running tests:
+For running unit tests:
 
 ```bash
-$ cabal repl test:unit
-> :main -- runs tests
+$ cabal repl
+ghci> :m Niv.Test
+ghci> test
+niv
+  update
+    simply runs:                          OK
+    ...
 ```
 
 For running the binary:
 
 ```bash
-$ cabal repl exe:niv
-> :main -- runs niv itself
+$ cabal repl
+ghci> :m Niv.Cli
+ghci> cli ["--help"]
+niv - dependency manager for Nix projects
+
+version: ...
 ```
 
 
