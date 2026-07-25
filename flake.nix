@@ -113,29 +113,30 @@
 
         readme = pkgs.runCommand "README.md" { nativeBuildInputs = [ niv pkgs.moreutils ]; }
           ''
-            cp ${./README.tpl.md} $out
-            chmod +w $out
+            mkdir -p $out
+            readme="$out/README.md"
+            cat ${./README.tpl.md} > "$readme"
 
-            sed "/replace_niv_help/r"<(niv --help) $out | sponge $out
-            sed "/replace_niv_help/d" $out | sponge $out
+            sed "/replace_niv_help/r"<(niv --help) $readme | sponge $readme
+            sed "/replace_niv_help/d" $readme | sponge $readme
 
-            sed "/replace_niv_add_help/r"<(niv add --help) $out | sponge $out $out
-            sed "/replace_niv_add_help/d" $out | sponge $out
+            sed "/replace_niv_add_help/r"<(niv add --help) $readme | sponge $readme $readme
+            sed "/replace_niv_add_help/d" $readme | sponge $readme
 
-            sed "/replace_niv_update_help/r"<(niv update --help) $out| sponge $out $out
-            sed "/replace_niv_update_help/d" $out | sponge $out
+            sed "/replace_niv_update_help/r"<(niv update --help) $readme| sponge $readme $readme
+            sed "/replace_niv_update_help/d" $readme | sponge $readme
 
-            sed "/replace_niv_modify_help/r"<(niv modify --help) $out | sponge $out
-            sed "/replace_niv_modify_help/d" $out | sponge $out
+            sed "/replace_niv_modify_help/r"<(niv modify --help) $readme | sponge $readme
+            sed "/replace_niv_modify_help/d" $readme | sponge $readme
 
-            sed "/replace_niv_drop_help/r"<(niv drop --help) $out | sponge $out
-            sed "/replace_niv_drop_help/d" $out | sponge $out
+            sed "/replace_niv_drop_help/r"<(niv drop --help) $readme | sponge $readme
+            sed "/replace_niv_drop_help/d" $readme | sponge $readme
 
-            sed "/replace_niv_init_help/r"<(niv init --help) $out | sponge $out
-            sed "/replace_niv_init_help/d" $out | sponge $out
+            sed "/replace_niv_init_help/r"<(niv init --help) $readme | sponge $readme
+            sed "/replace_niv_init_help/d" $readme | sponge $readme
 
-            sed "/replace_niv_show_help/r"<(niv show --help) $out | sponge $out
-            sed "/replace_niv_show_help/d" $out | sponge $out
+            sed "/replace_niv_show_help/r"<(niv show --help) $readme | sponge $readme
+            sed "/replace_niv_show_help/d" $readme | sponge $readme
           '';
       in
       {
