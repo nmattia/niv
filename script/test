@@ -14,16 +14,16 @@ nix flake check --print-build-logs --max-jobs 1
 #   1: the nix attr to build
 #   2: the filename in the built output
 #   3: the target file in the source tree
-gens=('.#readme	README.md	./README.md')
+gens=('.#readme,README.md,./README.md')
 
 exitcode=0
 
 for gen in "${gens[@]}"; do
-    read -r attr outname tgt <<<"$gen"
-    echo "checking $tgt from 'nix build $attr'"
+    IFS=',' read -r attr outname tgt <<<"$gen"
+    echo "checking $tgt against 'nix build $attr'"
     outpath="$(nix build "$attr" --no-link --print-out-paths)/$outname"
     if ! diff "$outpath" "$tgt"; then
-        echo "  please update file: $outpath -> $tgt"
+        echo "  please update file: 'cat $outpath > $tgt'"
         exitcode=1
     fi
 done

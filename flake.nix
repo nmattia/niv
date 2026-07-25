@@ -120,7 +120,7 @@
             sed "/replace_niv_help/r"<(niv --help) $readme | sponge $readme
             sed "/replace_niv_help/d" $readme | sponge $readme
 
-            sed "/replace_niv_add_help/r"<(niv add --help) $readme | sponge $readme $readme
+            sed "/replace_niv_add_help/r"<(niv add --help) $readme | sponge $readme
             sed "/replace_niv_add_help/d" $readme | sponge $readme
 
             sed "/replace_niv_update_help/r"<(niv update --help) $readme| sponge $readme $readme
