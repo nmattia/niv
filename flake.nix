@@ -111,6 +111,21 @@
         # cabal-friendly sdist
         niv-sdist = pkgs.haskell.lib.sdistTarball niv;
 
+        # golden tests for TUI. The idle-time-limit is taken to be slightly shorter than the pauses
+        # in the debug output, so each pause creates a new frame.
+        golden = pkgs.runCommand "golden" { nativeBuildInputs = [ niv pkgs.asciinema pkgs.asciinema-agg ]; }
+          ''
+              mkdir -p $out
+              niv --help # some systems (macOS) are a bit slow to run a new binary
+              goldens=("job-hello-world")
+              font_dir=${pkgs.nerd-fonts.jetbrains-mono}/share/fonts/truetype/NerdFonts/JetBrainsMono
+              font_family="JetBrainsMono Nerd Font"
+              for golden in "''${goldens[@]}"; do
+                  asciinema record --window-size 16x5 --command "niv debug $golden" "$golden.cast"
+                  agg --font-dir "$font_dir" --text-font-family "$font_family" --idle-time-limit 0.5 "$golden.cast" "$out/$golden.gif"
+              done
+          '';
+
         readme = pkgs.runCommand "README.md" { nativeBuildInputs = [ niv pkgs.moreutils ]; }
           ''
             mkdir -p $out
@@ -141,7 +156,7 @@
       in
       {
         packages = {
-          inherit niv niv-sdist readme;
+          inherit niv niv-sdist readme golden;
         };
 
         checks = import ./tests { inherit system pkgs niv; };

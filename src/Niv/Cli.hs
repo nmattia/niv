@@ -8,6 +8,7 @@
 module Niv.Cli where
 
 import Control.Applicative
+import Control.Concurrent
 import Control.Monad
 import Control.Monad.Reader
 import Data.Aeson ((.=))
@@ -114,6 +115,7 @@ parseCommand =
         <> Opts.command "drop" parseCmdDrop
         <> Opts.command "version" parseCmdVersion
     )
+    <|> Opts.subparser (Opts.internal <> Opts.command "debug" parseCmdDebug)
 
 parsePackageName :: Opts.Parser PackageName
 parsePackageName =
@@ -668,6 +670,28 @@ parseCmdVersion =
       [ Opts.fullDesc,
         Opts.progDesc "Print version"
       ]
+
+-------------------------------------------------------------------------------
+-- DEBUG: some debugging helpers (internal)
+-------------------------------------------------------------------------------
+
+-- | Collection of help, debug and test output for bug reports & tests
+parseCmdDebug :: Opts.ParserInfo (NIO ())
+parseCmdDebug =
+  Opts.info
+    ( Opts.subparser
+        (Opts.command "job-hello-world" (Opts.info (pure $ li jobHelloWorld) mempty))
+    )
+    mempty
+
+-- "hello world" inside a job.
+jobHelloWorld :: IO ()
+jobHelloWorld = job "test" $ do
+        threadDelay 600000
+        say "hello"
+        threadDelay 600000
+        say "world"
+        threadDelay 600000
 
 -------------------------------------------------------------------------------
 -- Files and their content
