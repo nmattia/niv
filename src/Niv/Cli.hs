@@ -8,7 +8,6 @@
 module Niv.Cli where
 
 import Control.Applicative
-import Control.Concurrent
 import Control.Monad
 import Control.Monad.Reader
 import Data.Aeson ((.=))
@@ -41,6 +40,7 @@ import Paths_niv (version)
 import qualified System.Directory as Dir
 import System.FilePath (takeDirectory)
 import UnliftIO
+import UnliftIO.Concurrent
 
 -- | An IO Monad with some configuration:
 -- * FindSourcesJson: how to find sources.json (known path, discover, etc)
@@ -192,68 +192,75 @@ parseNixpkgs = parseNixpkgsFast <|> parseNixpkgsLatest <|> parseNixpkgsCustom <|
 
 cmdInit :: FetchNixpkgs -> NIO ()
 cmdInit nixpkgs = do
-  job "Initializing" $ do
-    fsj <- getFindSourcesJson
-    -- Writes all the default files
-    -- a path, a "create" function and an update function for each file.
-    forM_
-      [ ( pathNixSourcesNix,
-          (`createFile` initNixSourcesNixContent),
-          \path content -> do
-            if shouldUpdateNixSourcesNix content
-              then do
-                say "Updating sources.nix"
-                li $ B.writeFile path initNixSourcesNixContent
-              else say "Not updating sources.nix"
-        ),
-        ( pathNixSourcesJson fsj,
-          \path -> do
-            createFile path initNixSourcesJsonContent
+  shouldInitNixpkgs <- newIORef False
+  fsj <- getFindSourcesJson
+  -- Writes all the default files
+  -- a path, a "create" function and an update function for each file.
+  forM_
+    [ ( pathNixSourcesNix,
+        (\path -> createFile path initNixSourcesNixContent),
+        \path content -> do
+          if shouldUpdateNixSourcesNix content
+            then do
+              say' "updating sources.nix"
+              li $ B.writeFile path initNixSourcesNixContent
+            else say' "not updating"
+      ),
+      ( pathNixSourcesJson fsj,
+        \path -> do
+          createFile path initNixSourcesJsonContent
 
-            -- Import nixpkgs, if necessary
-            initNixpkgs nixpkgs,
-          \path _content -> dontCreateFile path
-        )
-      ]
-      $ \(path, onCreate, onUpdate) -> do
-        exists <- li $ Dir.doesFileExist path
-        if exists then li (B.readFile path) >>= onUpdate path else onCreate path
-    case fsj of
-      Auto -> pure ()
-      AtPath fp ->
-        tsay $
-          T.unlines
-            [ T.unwords
-                [ tbold $ tblue "INFO:",
-                  "You are using a custom path for sources.json."
-                ],
-              "  You need to configure the sources.nix to use " <> tbold (T.pack fp) <> ":",
-              tbold "      import sources.nix { sourcesFile = PATH ; }; ",
-              T.unwords
-                [ "  where",
-                  tbold "PATH",
-                  "is the relative path from sources.nix to",
-                  tbold (T.pack fp) <> "."
-                ]
-            ]
-  case nixpkgs of
-    NixpkgsFast ->
+          writeIORef shouldInitNixpkgs True,
+
+          -- Import nixpkgs, if necessary
+          -- initNixpkgs nixpkgs, -- TODO: do this separately
+        \_path _content -> say' "not creating"
+      )
+    ]
+    $ \(path, onCreate, onUpdate) -> do
+      void $ liftIO $ job' (T.pack path) $ do
+          exists <- li $ Dir.doesFileExist path
+          if exists then li (B.readFile path) >>= onUpdate path else onCreate path
+  case fsj of
+    Auto -> pure ()
+    AtPath fp ->
       tsay $
         T.unlines
-          [ "",
-            tbold (tblue "INFO: ") <> "`niv init` didn't fetch the latest commit for nixpkgs (due to --fast).",
-            "      Run `niv update nixpkgs` if you wish to pin the latest."
+          [ T.unwords
+              [ tbold $ tblue "INFO:",
+                "You are using a custom path for sources.json."
+              ],
+            "  You need to configure the sources.nix to use " <> tbold (T.pack fp) <> ":",
+            tbold "      import sources.nix { sourcesFile = PATH ; }; ",
+            T.unwords
+              [ "  where",
+                tbold "PATH",
+                "is the relative path from sources.nix to",
+                tbold (T.pack fp) <> "."
+              ]
           ]
-    _ -> pure ()
+  void $ liftIO $ job' "<nixpkgs>" $ do
+      shouldInitNixpkgs' <- readIORef shouldInitNixpkgs
+      when shouldInitNixpkgs' $ do
+        tsay' "nixpkgs FOO BAR"
+        -- initNixpkgs nixpkgs -- TODO
+
+      case nixpkgs of
+        NixpkgsFast ->
+          note' $
+            T.unlines
+              [
+                "`niv init` didn't fetch the latest commit for nixpkgs (due to --fast).",
+                "      Run `niv update nixpkgs` if you wish to pin the latest."
+              ]
+        _ -> pure ()
   where
-    createFile :: FilePath -> B.ByteString -> NIO ()
+    createFile :: MonadIO io => FilePath -> B.ByteString -> io ()
     createFile path content = li $ do
       let dir = takeDirectory path
       Dir.createDirectoryIfMissing True dir
-      say $ "Creating " <> path
+      say' $ "Creating " <> path
       B.writeFile path content
-    dontCreateFile :: FilePath -> NIO ()
-    dontCreateFile path = say $ "Not creating " <> path
 
 initNixpkgs :: FetchNixpkgs -> NIO ()
 initNixpkgs nixpkgs = modifySources $ \sources -> do
@@ -664,17 +671,34 @@ parseCmdDebug :: Opts.ParserInfo (NIO ())
 parseCmdDebug =
   Opts.info
     ( Opts.subparser
-        (Opts.command "job-hello-world" (Opts.info (pure $ li jobHelloWorld) mempty))
+        (Opts.command "job-hello-world" (Opts.info (pure $ li jobHelloWorld) mempty)
+            <> Opts.command "job-note" (Opts.info (pure $ li jobNote) mempty)
+            <> Opts.command "job-warn" (Opts.info (pure $ li jobWarn) mempty)
+        )
     )
     mempty
 
 -- "hello world" inside a job.
 jobHelloWorld :: IO ()
-jobHelloWorld = job "test" $ do
+jobHelloWorld = void $ job' "test" $ do
         threadDelay 600000
-        say "hello"
+        say' "hello"
         threadDelay 600000
-        say "world"
+        say' "world"
+        threadDelay 600000
+
+-- TODO
+jobNote :: IO ()
+jobNote = void $ job' "test-note" $ do
+        threadDelay 600000
+        note' "hello"
+        threadDelay 600000
+
+-- TODO
+jobWarn :: IO ()
+jobWarn = void $ job' "test-warn" $ do
+        threadDelay 600000
+        warn' "hello"
         threadDelay 600000
 
 -------------------------------------------------------------------------------

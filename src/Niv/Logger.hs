@@ -6,11 +6,16 @@
 module Niv.Logger
   ( Colors (Always, Never),
     job,
+    job',
     setColors,
     bug,
     tsay,
+    tsay',
     say,
+    say',
     twarn,
+    note',
+    warn',
     mkWarn,
     mkNote,
     green,
@@ -25,8 +30,7 @@ module Niv.Logger
     tbold,
     faint,
     tfaint,
-    test,
-    testGood,
+    Job(..),
   )
 where
 
@@ -39,7 +43,7 @@ import System.Exit (exitFailure)
 import System.IO.Unsafe (unsafePerformIO)
 import UnliftIO
 
-import Control.Concurrent
+-- import Control.Concurrent
 
 import           Control.Monad.Except (ExceptT, MonadError, runExceptT, throwError)
 import           Control.Monad.Writer (MonadWriter, WriterT, runWriterT, tell)
@@ -52,33 +56,42 @@ data MyError
   deriving (Show, Eq)
 
 newtype Job a = Job
-  { unJob :: ExceptT MyError (WriterT [T.Text] IO) a
+  { unJob :: ExceptT MyError (WriterT ([T.Text], [T.Text]) IO) a
   }
   deriving newtype
     ( Functor
     , Applicative
     , Monad
     , MonadError MyError
-    , MonadWriter [T.Text]
+    , MonadWriter ([T.Text], [T.Text])
     , MonadIO
     )
 
-abort :: T.Text -> Job ()
-abort e = throwError (SomeError e)
+abort' :: T.Text -> Job ()
+abort' e = throwError (SomeError e)
 
-warnFOO :: T.Text -> Job ()
-warnFOO w = tell [w]
+-- TODO handle multiline
+warn' :: T.Text -> Job ()
+warn' w = tell ([], [w])
+
+-- TODO handle multiline
+note' :: T.Text -> Job ()
+note' n = tell ([n], [])
 
 -- | Run a Job, getting back the result (or error) plus accumulated log.
-runJob :: T.Text -> Job a -> IO (Either MyError a, [T.Text])
-runJob name jb = bracket_ ANSI.hideCursor ANSI.showCursor $ do
+job' :: T.Text -> Job a -> IO (Either MyError a, [T.Text])
+job' name jb = bracket_ ANSI.hideCursor ANSI.showCursor $ do
     liftIO $ T.putStr fooPending >> T.putStr " "
-    (res, ws) <- runWriterT . runExceptT . unJob $ jb
+    (res, (ns, ws)) <- runWriterT . runExceptT . unJob $ jb
     liftIO $ ANSI.setCursorColumn 0
     let foo = case res of
                 Left _ -> fooFailure
                 Right _ -> fooSuccess
     liftIO $ T.putStrLn foo
+
+    forM_ ns $ \w ->
+        liftIO $ T.putStrLn $ "   ∟ " <> tblue "note" <> ": " <> w
+
     forM_ ws $ \w ->
         liftIO $ T.putStrLn $ "   ∟ " <> tyellow "warning" <> ": " <> w
 
@@ -92,44 +105,47 @@ runJob name jb = bracket_ ANSI.hideCursor ANSI.showCursor $ do
     fooSuccess = tgreen " ✓ " <> tbold name
     fooFailure = tred " ⨯ " <> tbold name
 
-blurt :: MonadIO io => T.Text -> io ()
-blurt msg = do
+say' :: MonadIO io => String -> io ()
+say' = tsay' . T.pack
+
+tsay' :: MonadIO io => T.Text -> io ()
+tsay' msg = do
   liftIO $ ANSI.clearFromCursorToLineEnd
   liftIO $ T.putStr msg
   liftIO $ ANSI.cursorBackward $ T.length msg
   hFlush stdout
 
 
-test :: IO ()
-test = do
-    let job1 = do
-            blurt "Hei"
-            liftIO $ threadDelay  1000000
-            blurt "HA"
-            liftIO $ ANSI.setCursorColumn 0
-            hFlush stdout
-            liftIO $ threadDelay  1000000
-            warnFOO "what is happening"
-            abort "Ok, no more"
-
-    let job2 = do
-            blurt "starting..."
-            liftIO $ threadDelay  1000000
-            blurt "updating..."
-            liftIO $ threadDelay  1000000
-            blurt "done!"
-
-    forM_ [("one", job1), ("two", job2)] $ \(nm,jb) -> runJob nm jb
-
-testGood :: IO ()
-testGood = do
-    let job1 = do
-            blurt "success"
-
-    let job2 = do
-            blurt "success"
-
-    forM_ [("one", job1), ("two", job2)] $ \(nm,jb) -> runJob nm jb
+-- test :: IO ()
+-- test = do
+--     let job1 = do
+--             blurt "Hei"
+--             liftIO $ threadDelay  1000000
+--             blurt "HA"
+--             liftIO $ ANSI.setCursorColumn 0
+--             hFlush stdout
+--             liftIO $ threadDelay  1000000
+--             warnFOO "what is happening"
+--             abort "Ok, no more"
+--
+--     let job2 = do
+--             blurt "starting..."
+--             liftIO $ threadDelay  1000000
+--             blurt "updating..."
+--             liftIO $ threadDelay  1000000
+--             blurt "done!"
+--
+--     forM_ [("one", job1), ("two", job2)] $ \(nm,jb) -> runJob nm jb
+--
+-- testGood :: IO ()
+-- testGood = do
+--     let job1 = do
+--             blurt "success"
+--
+--     let job2 = do
+--             blurt "success"
+--
+--     forM_ [("one", job1), ("two", job2)] $ \(nm,jb) -> runJob nm jb
 
 -- A somewhat hacky way of deciding whether or not to use SGR codes, by writing
 -- and reading a global variable unsafely.
@@ -207,7 +223,7 @@ color :: ANSI.Color -> String -> String
 color c str =
   if useColors
     then
-      ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity]
+      ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity] -- TODO: remove bold
         <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid c]
         <> str
         <> ANSI.setSGRCode [ANSI.Reset]
