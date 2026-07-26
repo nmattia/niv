@@ -16,8 +16,12 @@ nix flake check --print-build-logs --max-jobs 1
 #   3: the target file in the source tree
 gens=(
     '.#readme,README.md,./README.md'
-    '.#golden,job-hello-world.gif,./golden/job-hello-world.gif'
 )
+
+# on Darwin (which I use for development) add some TUI screenshot tests
+if [ "$(uname)" == "Darwin" ]; then
+    gens+=('.#golden,job-hello-world.gif,./golden/job-hello-world.gif')
+fi
 
 exitcode=0
 
