@@ -14,7 +14,10 @@ nix flake check --print-build-logs --max-jobs 1
 #   1: the nix attr to build
 #   2: the filename in the built output
 #   3: the target file in the source tree
-gens=('.#readme,README.md,./README.md')
+gens=(
+    '.#readme,README.md,./README.md'
+    '.#golden,job-hello-world.gif,./golden/job-hello-world.gif'
+)
 
 exitcode=0
 
