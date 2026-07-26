@@ -8,12 +8,8 @@ set -euo pipefail
 #   3: the target file in the source tree
 gens=(
     '.#readme,README.md,./README.md'
+    '.#golden,job-hello-world.gif,./golden/job-hello-world.gif'
 )
-
-# outside of CI, also check the golden tests
-if [ -z "${CI:-}" ]; then
-    gens+=('.#golden,job-hello-world.gif,./golden/job-hello-world.gif')
-fi
 
 for gen in "${gens[@]}"; do
     IFS=',' read -r attr outname tgt <<<"$gen"
