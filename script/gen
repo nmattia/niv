@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# some generated files checked against the source:
+#   1: the nix attr to build
+#   2: the filename in the built output
+#   3: the target file in the source tree
+gens=(
+    '.#readme,README.md,./README.md'
+)
+
+# outside of CI, also check the golden tests
+if [ -z "${CI:-}" ]; then
+    gens+=('.#golden,job-hello-world.gif,./golden/job-hello-world.gif')
+fi
+
+for gen in "${gens[@]}"; do
+    IFS=',' read -r attr outname tgt <<<"$gen"
+    echo "building $tgt from 'nix build $attr'"
+    outpath="$(nix build "$attr" --no-link --print-out-paths)/$outname"
+    cat "$outpath" > "$tgt"
+done

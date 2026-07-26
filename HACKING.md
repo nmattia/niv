@@ -42,6 +42,14 @@ run Nix checks only:
 nix flake check --print-build-logs --max-jobs 1
 ```
 
+## Re-generated files
+
+Update the generated files (like README.md):
+
+```bash
+./script/gen
+```
+
 ## Release Playbook
 
 First, checkout the latest main:
