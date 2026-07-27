@@ -6,6 +6,8 @@ module Niv.Git.Test
   )
 where
 
+import Data.Aeson ((.=))
+import qualified Data.Aeson as Aeson
 import Control.Monad
 import qualified Data.Aeson.KeyMap as KM
 import Data.Bifunctor
@@ -30,21 +32,21 @@ test_repositoryParse =
       Tasty.testCase "git@github.com:nmattia/niv" $
         parseGitShortcut "git@github.com:nmattia/niv"
           @=? Just
-            (PackageName "niv", KM.singleton "repo" "git@github.com:nmattia/niv"),
+            (PackageName "niv", KM.fromList [ "repo" .= Aeson.String "git@github.com:nmattia/niv" , "type" .= Aeson.String "git" ]),
       Tasty.testCase "ssh://git@github.com/stedolan/jq" $
         parseGitShortcut "ssh://git@github.com/stedolan/jq"
           @=? Just
-            (PackageName "jq", KM.singleton "repo" "ssh://git@github.com/stedolan/jq"),
+            (PackageName "jq", KM.fromList [ "repo" .= Aeson.String "ssh://git@github.com/stedolan/jq", "type" .= Aeson.String "git" ]),
       Tasty.testCase "https://github.com/stedolan/jq.git" $
         parseGitShortcut "https://github.com/stedolan/jq.git"
           @=? Just
-            (PackageName "jq", KM.singleton "repo" "https://github.com/stedolan/jq.git"),
+            (PackageName "jq", KM.fromList [ "repo" .= Aeson.String "https://github.com/stedolan/jq.git", "type" .= Aeson.String "git" ]),
       Tasty.testCase "https://github.com/stedolan/jq" $
         parseGitShortcut "https://github.com/stedolan/jq" @=? Nothing,
       Tasty.testCase "~/path/to/repo.git" $
         parseGitShortcut "~/path/to/repo.git"
           @=? Just
-            (PackageName "repo", KM.singleton "repo" "~/path/to/repo.git")
+            (PackageName "repo", KM.fromList [ "repo" .= Aeson.String "~/path/to/repo.git", "type" .= Aeson.String "git" ])
     ]
 
 test_gitUpdates :: Tasty.TestTree

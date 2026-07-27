@@ -8,6 +8,7 @@ module Niv.Git.Cmd where
 
 import Control.Applicative
 import Control.Arrow
+import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
@@ -64,8 +65,8 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
     then case T.splitOn "/" txt of
       [] -> Nothing
       (last -> w) -> case T.stripSuffix ".git" w of
-        Nothing -> Just (PackageName w, KM.singleton "repo" (Aeson.String txt'))
-        Just w' -> Just (PackageName w', KM.singleton "repo" (Aeson.String txt'))
+        Nothing -> Just (PackageName w, KM.fromList [ "repo" .= txt', "type" .= Aeson.String "git" ])
+        Just w' -> Just (PackageName w', KM.fromList [ "repo" .= txt', "type" .= Aeson.String "git" ])
     else Nothing
   where
     isGitURL =
@@ -78,7 +79,7 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
 
 parseGitPackageSpec :: Opts.Parser PackageSpec
 parseGitPackageSpec =
-  PackageSpec . KM.fromList
+  PackageSpec . KM.fromList . (["type" .= Aeson.String "git"] <> )
     <$> many (parseRepo <|> parseBranch <|> parseRev <|> parseAttr <|> parseSAttr)
   where
     parseRepo =

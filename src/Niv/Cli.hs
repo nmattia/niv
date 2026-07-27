@@ -256,31 +256,24 @@ cmdInit nixpkgs = do
     dontCreateFile path = say $ "Not creating " <> path
 
 initNixpkgs :: FetchNixpkgs -> NIO ()
-initNixpkgs nixpkgs =
+initNixpkgs nixpkgs = modifySources $ \sources -> do
   case nixpkgs of
-    NoNixpkgs -> say "Not importing 'nixpkgs'."
+    NoNixpkgs -> say "Not importing 'nixpkgs'." >> pure sources
     NixpkgsFast -> do
       say "Using known 'nixpkgs' ..."
       packageSpec <- HTTP.getResponseBody <$> HTTP.httpJSON "https://raw.githubusercontent.com/nmattia/niv/master/data/nixpkgs.json"
-      cmdAdd
-        githubCmd
-        (PackageName "nixpkgs")
-        (specToLockedAttrs packageSpec)
-      pure ()
-    NixpkgsCustom branch nixpkgs' -> do
+      applyAdd sources (PackageName "nixpkgs", packageSpec)
+    NixpkgsCustom branch (Nixpkgs owner repo) -> do
       say "Importing 'nixpkgs' ..."
-      let (owner, repo) = case nixpkgs' of
-            Nixpkgs o r -> (o, r)
-      cmdAdd
-        githubCmd
-        (PackageName "nixpkgs")
-        ( specToFreeAttrs $
-            PackageSpec $
-              KM.fromList
-                [ "owner" .= owner,
-                  "repo" .= repo,
-                  "branch" .= branch
-                ]
+      applyAdd
+        sources
+        ( PackageName "nixpkgs",
+          PackageSpec $
+            KM.fromList
+              [ "owner" .= owner,
+                "repo" .= repo,
+                "branch" .= branch
+              ]
         )
 
 -------------------------------------------------------------------------------
@@ -298,8 +291,8 @@ parseCmdAdd =
     -- implementer: it'll be tricky to have the correct arguments show up
     -- without repeating "PACKAGE PACKAGE PACKAGE" for every package type.
     parseShortcuts = parseShortcut githubCmd
-    parseShortcut cmd = uncurry (cmdAdd cmd) <$> parseShortcutArgs cmd
-    parseCmd cmd = uncurry (cmdAdd cmd) <$> parseCmdArgs cmd
+    parseShortcut cmd = uncurry cmdAdd <$> parseShortcutArgs cmd
+    parseCmd cmd = uncurry cmdAdd <$> parseCmdArgs cmd
     parseCmdAddGit =
       Opts.info (parseCmd gitCmd <**> Opts.helper) (description gitCmd)
     parseCmdAddLocal =
@@ -370,20 +363,32 @@ parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
                 <> Opts.help "Set the package name to <NAME>"
             )
 
-cmdAdd :: Cmd -> PackageName -> Attrs -> NIO ()
-cmdAdd cmd packageName attrs = do
+cmdAdd :: PackageName -> Attrs -> NIO ()
+cmdAdd packageName attrs = do
   job ("Adding package " <> T.unpack (unPackageName packageName)) $ do
-    modifySources $ \(unSources -> sources) -> do
-      when (HMS.member packageName sources) $
-        li $
-          abortCannotAddPackageExists packageName
-      eFinalSpec <- fmap attrsToSpec <$> li (doUpdate attrs cmd)
-      case eFinalSpec of
-        Left e -> li (abortUpdateFailed [(packageName, e)])
-        Right finalSpec -> do
-          pure $
-            Sources $
-              HMS.insert packageName finalSpec sources
+    let spec = attrsToSpec attrs
+    modifySources $ \sources -> applyAdd sources (packageName, spec)
+
+applyAdd :: Sources -> (PackageName, PackageSpec) -> NIO Sources
+applyAdd (unSources -> sources) (packageName, defaultSpec) = do
+  cmds <- getCmds
+
+  -- infer what command (git, github, etc) to use to add the package
+  cmd <- case inferCmd cmds defaultSpec of
+    Just cmd -> pure cmd
+    Nothing -> li $ abortNoSuitableCommand packageName
+
+  when (HMS.member packageName sources) $
+    li $
+      abortCannotAddPackageExists packageName
+
+  let attrs = specToLockedAttrs defaultSpec
+  eFinalSpec <- fmap attrsToSpec <$> li (doUpdate attrs cmd)
+  finalSpec <- case eFinalSpec of
+    Left e -> li (abortUpdateFailed [(packageName, e)])
+    Right finalSpec -> pure finalSpec
+
+  pure $ Sources $ HMS.insert packageName finalSpec sources
 
 -------------------------------------------------------------------------------
 -- SHOW
