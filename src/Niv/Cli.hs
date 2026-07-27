@@ -373,18 +373,15 @@ parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
 cmdAdd :: Cmd -> PackageName -> Attrs -> NIO ()
 cmdAdd cmd packageName attrs = do
   job ("Adding package " <> T.unpack (unPackageName packageName)) $ do
-    fsj <- getFindSourcesJson
-    sources <- unSources <$> li (getSources fsj)
-    when (HMS.member packageName sources) $
-      li $
-        abortCannotAddPackageExists packageName
-    eFinalSpec <- fmap attrsToSpec <$> li (doUpdate attrs cmd)
-    case eFinalSpec of
-      Left e -> li (abortUpdateFailed [(packageName, e)])
-      Right finalSpec -> do
-        say "Writing new sources file"
+    modifySources $ \(unSources -> sources) -> do
+      when (HMS.member packageName sources) $
         li $
-          setSources fsj $
+          abortCannotAddPackageExists packageName
+      eFinalSpec <- fmap attrsToSpec <$> li (doUpdate attrs cmd)
+      case eFinalSpec of
+        Left e -> li (abortUpdateFailed [(packageName, e)])
+        Right finalSpec -> do
+          pure $
             Sources $
               HMS.insert packageName finalSpec sources
 
@@ -508,17 +505,8 @@ applyUpdate (unSources -> sources) updateType = do
       foldl' (\acc (packageName, newSpec) -> HMS.insert packageName newSpec acc) sources updatedPackages
 
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
-cmdUpdate mPackageNameAndSpec = do
-  fsj <- getFindSourcesJson
-
-  -- read the sources from sources.json
-  sources <- li (getSources fsj)
-
-  -- run the updates (in memory)
-  result <- applyUpdate sources mPackageNameAndSpec
-
-  -- write the sources back to sources.json
-  li $ setSources fsj result
+cmdUpdate mPackageNameAndSpec =
+  modifySources $ \sources -> applyUpdate sources mPackageNameAndSpec
 
 -- | pretty much tryEvalUpdate but we might issue some warnings first
 doUpdate :: Attrs -> Cmd -> IO (Either SomeException Attrs)
@@ -579,19 +567,18 @@ parseCmdModify =
 cmdModify :: PackageName -> Maybe PackageName -> PackageSpec -> NIO ()
 cmdModify packageName mNewName cliSpec = do
   tsay $ "Modifying package: " <> unPackageName packageName
-  fsj <- getFindSourcesJson
-  sources <- unSources <$> li (getSources fsj)
-  finalSpec <- case HMS.lookup packageName sources of
-    Just defaultSpec -> pure $ attrsToSpec (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
-    Nothing -> li $ abortCannotModifyNoSuchPackage packageName
-  case mNewName of
-    Just newName -> do
-      when (HMS.member newName sources) $
-        li $
-          abortCannotAddPackageExists newName
-      li $ setSources fsj $ Sources $ HMS.insert newName finalSpec $ HMS.delete packageName sources
-    Nothing ->
-      li $ setSources fsj $ Sources $ HMS.insert packageName finalSpec sources
+  modifySources $ \(unSources -> sources) -> do
+    finalSpec <- case HMS.lookup packageName sources of
+      Just defaultSpec -> pure $ attrsToSpec (specToLockedAttrs cliSpec <> specToFreeAttrs defaultSpec)
+      Nothing -> li $ abortCannotModifyNoSuchPackage packageName
+    case mNewName of
+      Just newName -> do
+        when (HMS.member newName sources) $
+          li $
+            abortCannotAddPackageExists newName
+        pure $ Sources $ HMS.insert newName finalSpec $ HMS.delete packageName sources
+      Nothing ->
+        pure $ Sources $ HMS.insert packageName finalSpec sources
 
 -------------------------------------------------------------------------------
 -- DROP
@@ -626,33 +613,25 @@ cmdDrop :: PackageName -> [T.Text] -> NIO ()
 cmdDrop packageName = \case
   [] -> do
     tsay $ "Dropping package: " <> unPackageName packageName
-    fsj <- getFindSourcesJson
-    sources <- unSources <$> li (getSources fsj)
-    unless (HMS.member packageName sources) $
-      li $
-        abortCannotDropNoSuchPackage packageName
-    li $
-      setSources fsj $
-        Sources $
-          HMS.delete packageName sources
+    modifySources $ \(unSources -> sources) -> do
+      unless (HMS.member packageName sources) $
+        li $
+          abortCannotDropNoSuchPackage packageName
+      pure $ Sources $ HMS.delete packageName sources
   attrs -> do
     tsay $ "Dropping attributes: " <> T.intercalate " " attrs
     tsay $ "In package: " <> unPackageName packageName
-    fsj <- getFindSourcesJson
-    sources <- unSources <$> li (getSources fsj)
-    packageSpec <- case HMS.lookup packageName sources of
-      Nothing ->
-        li $ abortCannotAttributesDropNoSuchPackage packageName
-      Just (PackageSpec packageSpec) ->
-        pure $
-          PackageSpec $
-            KM.mapMaybeWithKey
-              (\k v -> if K.toText k `elem` attrs then Nothing else Just v)
-              packageSpec
-    li $
-      setSources fsj $
-        Sources $
-          HMS.insert packageName packageSpec sources
+    modifySources $ \(unSources -> sources) -> do
+      packageSpec <- case HMS.lookup packageName sources of
+        Nothing ->
+          li $ abortCannotAttributesDropNoSuchPackage packageName
+        Just (PackageSpec packageSpec) ->
+          pure $
+            PackageSpec $
+              KM.mapMaybeWithKey
+                (\k v -> if K.toText k `elem` attrs then Nothing else Just v)
+                packageSpec
+      pure $ Sources $ HMS.insert packageName packageSpec sources
 
 -------------------------------------------------------------------------------
 -- VERSION
@@ -696,6 +675,14 @@ jobHelloWorld = job "test" $ do
 -------------------------------------------------------------------------------
 -- Files and their content
 -------------------------------------------------------------------------------
+
+-- helper for modifying the sources file
+modifySources :: (Sources -> NIO Sources) -> NIO ()
+modifySources upd = do
+  fsj <- getFindSourcesJson
+  sources <- liftIO $ getSources fsj
+  sources' <- upd sources
+  liftIO $ setSources fsj sources'
 
 -- | Checks if content is different than default and if it does /not/ contain
 -- a comment line with @niv: no_update@
