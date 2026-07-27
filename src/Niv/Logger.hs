@@ -1,4 +1,5 @@
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -35,6 +36,7 @@ module Niv.Logger
 where
 
 import Control.Monad
+import Control.Monad.Trans (MonadTrans, lift)
 import Data.List
 import Data.Profunctor
 import qualified Data.Text as T
@@ -55,8 +57,8 @@ data MyError
   = SomeError T.Text
   deriving (Show, Eq)
 
-newtype Job a = Job
-  { unJob :: ExceptT MyError (WriterT ([T.Text], [T.Text]) IO) a
+newtype Job io a = Job
+  { unJob :: ExceptT MyError (WriterT ([T.Text], [T.Text]) io) a
   }
   deriving newtype
     ( Functor
@@ -67,21 +69,27 @@ newtype Job a = Job
     , MonadIO
     )
 
-abort' :: T.Text -> Job ()
+instance MonadTrans Job where
+  lift :: Monad io => io a -> Job io a
+  lift = Job . lift . lift
+
+abort' :: MonadIO io => T.Text -> Job io ()
 abort' e = throwError (SomeError e)
 
 -- TODO handle multiline
-warn' :: T.Text -> Job ()
+warn' :: Monad io => T.Text -> Job io ()
 warn' w = tell ([], [w])
 
 -- TODO handle multiline
-note' :: T.Text -> Job ()
+note' :: Monad io => T.Text -> Job io ()
 note' n = tell ([n], [])
 
 -- | Run a Job, getting back the result (or error) plus accumulated log.
-job' :: T.Text -> Job a -> IO (Either MyError a, [T.Text])
-job' name jb = bracket_ ANSI.hideCursor ANSI.showCursor $ do
+job' :: (MonadUnliftIO io, MonadIO io) => T.Text -> Job io a -> io (Either MyError a, [T.Text])
+job' name jb = bracket_ (liftIO ANSI.hideCursor) (liftIO ANSI.showCursor) $ do
     liftIO $ T.putStr fooPending >> T.putStr " "
+    hFlush stdout
+
     (res, (ns, ws)) <- runWriterT . runExceptT . unJob $ jb
     liftIO $ ANSI.setCursorColumn 0
     let foo = case res of

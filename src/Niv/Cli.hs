@@ -46,7 +46,7 @@ import UnliftIO.Concurrent
 -- * FindSourcesJson: how to find sources.json (known path, discover, etc)
 -- * [Cmd]: the update types
 newtype NIO a = NIO {runNIO :: ReaderT (FindSourcesJson, [Cmd]) IO a}
-  deriving (Functor, Applicative, Monad, MonadIO, MonadReader (FindSourcesJson, [Cmd]))
+  deriving (Functor, Applicative, Monad, MonadIO, MonadFail, MonadReader (FindSourcesJson, [Cmd]))
 
 instance MonadUnliftIO NIO where
   withRunInIO = wrappedWithRunInIO NIO runNIO
@@ -239,16 +239,6 @@ cmdInit nixpkgs = do
   when shouldInitNixpkgs' $ do
     tsay' "nixpkgs FOO BAR"
     initNixpkgs nixpkgs -- TODO
-
-  -- case nixpkgs of
-  --   NixpkgsFast ->
-  --      $
-  --       T.unlines
-  --         [
-  --           "`niv init` didn't fetch the latest commit for nixpkgs (due to --fast).",
-  --           "      Run `niv update nixpkgs` if you wish to pin the latest."
-  --         ]
-  --   _ -> pure ()
   where
     createFile :: MonadIO io => FilePath -> B.ByteString -> io ()
     createFile path content = li $ do
@@ -259,14 +249,14 @@ cmdInit nixpkgs = do
 
 initNixpkgs :: FetchNixpkgs -> NIO ()
 initNixpkgs nixpkgs = modifySources $ \sources -> do
-  case nixpkgs of
-    NoNixpkgs -> say "Not importing 'nixpkgs'." >> pure sources
+  (Right sources', _) <- job' "nixpkgs" $ case nixpkgs of
+    NoNixpkgs -> say' "Not importing 'nixpkgs'." >> pure sources
     NixpkgsFast -> do
-      say "Using known 'nixpkgs' ..."
+      say' "Using known 'nixpkgs' ..."
       packageSpec <- HTTP.getResponseBody <$> HTTP.httpJSON "https://raw.githubusercontent.com/nmattia/niv/master/data/nixpkgs.json"
       applyAdd sources (PackageName "nixpkgs", packageSpec)
     NixpkgsCustom branch (Nixpkgs owner repo) -> do
-      say "Importing 'nixpkgs' ..."
+      say' "Importing 'nixpkgs' ..."
       applyAdd
         sources
         ( PackageName "nixpkgs",
@@ -277,6 +267,7 @@ initNixpkgs nixpkgs = modifySources $ \sources -> do
                 "branch" .= branch
               ]
         )
+  pure sources'
 
 -------------------------------------------------------------------------------
 -- ADD
@@ -367,12 +358,18 @@ parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
 
 cmdAdd :: PackageName -> Attrs -> NIO ()
 cmdAdd packageName attrs = do
-    let spec = attrsToSpec attrs
-    modifySources $ \sources -> job' (unPackageName packageName) $ applyAdd sources (packageName, spec)
+  let spec = attrsToSpec attrs
+  modifySources $ \sources -> do
+    (Right result, _) <- job' (unPackageName packageName) $ do
+        tsay' "adding package..."
+        result <- applyAdd sources (packageName, spec)
+        tsay' "done"
+        pure result
+    pure result
 
-applyAdd :: Sources -> (PackageName, PackageSpec) -> NIO Sources
+applyAdd :: Sources -> (PackageName, PackageSpec) -> Job NIO Sources
 applyAdd (unSources -> sources) (packageName, defaultSpec) = do
-  cmds <- getCmds
+  cmds <- lift getCmds
 
   -- infer what command (git, github, etc) to use to add the package
   cmd <- case inferCmd cmds defaultSpec of
@@ -472,8 +469,12 @@ updatePackage packageName defaultSpec mSpec = do
     Just cmd -> pure cmd
     Nothing -> li $ abortNoSuitableCommandForUpdate packageName
 
-  job ("Update " <> T.unpack (unPackageName packageName)) $
-    fmap attrsToSpec <$> li (doUpdate attrs cmd)
+  (Right res, _) <- job' (unPackageName packageName) $ do
+    tsay' "updating..."
+    result <- liftIO $ fmap attrsToSpec <$> li (doUpdate attrs cmd)
+    tsay' "done"
+    pure result
+  pure res
 
 -- | Update many packages.
 -- For each package, the package name, attrs-to-update as well as original state are given.
