@@ -204,17 +204,13 @@ cmdInit nixpkgs = do
             then do
               say' "updating sources.nix"
               li $ B.writeFile path initNixSourcesNixContent
-            else say' "not updating"
+            else say' "already exists"
       ),
       ( pathNixSourcesJson fsj,
         \path -> do
           createFile path initNixSourcesJsonContent
-
           writeIORef shouldInitNixpkgs True,
-
-          -- Import nixpkgs, if necessary
-          -- initNixpkgs nixpkgs, -- TODO: do this separately
-        \_path _content -> say' "not creating"
+        \_path _content -> say' "already exists"
       )
     ]
     $ \(path, onCreate, onUpdate) -> do
@@ -239,21 +235,20 @@ cmdInit nixpkgs = do
                 tbold (T.pack fp) <> "."
               ]
           ]
-  void $ liftIO $ job' "<nixpkgs>" $ do
-      shouldInitNixpkgs' <- readIORef shouldInitNixpkgs
-      when shouldInitNixpkgs' $ do
-        tsay' "nixpkgs FOO BAR"
-        -- initNixpkgs nixpkgs -- TODO
+  shouldInitNixpkgs' <- readIORef shouldInitNixpkgs
+  when shouldInitNixpkgs' $ do
+    tsay' "nixpkgs FOO BAR"
+    initNixpkgs nixpkgs -- TODO
 
-      case nixpkgs of
-        NixpkgsFast ->
-          note' $
-            T.unlines
-              [
-                "`niv init` didn't fetch the latest commit for nixpkgs (due to --fast).",
-                "      Run `niv update nixpkgs` if you wish to pin the latest."
-              ]
-        _ -> pure ()
+  -- case nixpkgs of
+  --   NixpkgsFast ->
+  --      $
+  --       T.unlines
+  --         [
+  --           "`niv init` didn't fetch the latest commit for nixpkgs (due to --fast).",
+  --           "      Run `niv update nixpkgs` if you wish to pin the latest."
+  --         ]
+  --   _ -> pure ()
   where
     createFile :: MonadIO io => FilePath -> B.ByteString -> io ()
     createFile path content = li $ do
@@ -372,9 +367,8 @@ parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
 
 cmdAdd :: PackageName -> Attrs -> NIO ()
 cmdAdd packageName attrs = do
-  job ("Adding package " <> T.unpack (unPackageName packageName)) $ do
     let spec = attrsToSpec attrs
-    modifySources $ \sources -> applyAdd sources (packageName, spec)
+    modifySources $ \sources -> job' (unPackageName packageName) $ applyAdd sources (packageName, spec)
 
 applyAdd :: Sources -> (PackageName, PackageSpec) -> NIO Sources
 applyAdd (unSources -> sources) (packageName, defaultSpec) = do

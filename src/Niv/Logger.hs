@@ -111,7 +111,7 @@ say' = tsay' . T.pack
 tsay' :: MonadIO io => T.Text -> io ()
 tsay' msg = do
   liftIO $ ANSI.clearFromCursorToLineEnd
-  liftIO $ T.putStr msg
+  liftIO $ T.putStr $ "\t" <> msg
   liftIO $ ANSI.cursorBackward $ T.length msg
   hFlush stdout
 
