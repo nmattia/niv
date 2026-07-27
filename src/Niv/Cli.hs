@@ -376,7 +376,7 @@ applyAdd (unSources -> sources) (packageName, defaultSpec) = do
   -- infer what command (git, github, etc) to use to add the package
   cmd <- case inferCmd cmds defaultSpec of
     Just cmd -> pure cmd
-    Nothing -> li $ abortNoSuitableCommand packageName
+    Nothing -> li $ abortNoSuitableCommandForAdd packageName
 
   when (HMS.member packageName sources) $
     li $
@@ -469,7 +469,7 @@ updatePackage packageName defaultSpec mSpec = do
   -- infer what command (git, github, etc) to use to update the package
   cmd <- case inferCmd cmds defaultSpec of
     Just cmd -> pure cmd
-    Nothing -> li $ abortNoSuitableCommand packageName
+    Nothing -> li $ abortNoSuitableCommandForUpdate packageName
 
   job ("Update " <> T.unpack (unPackageName packageName)) $
     fmap attrsToSpec <$> li (doUpdate attrs cmd)
@@ -777,6 +777,10 @@ abortUpdateFailed errs =
           )
           errs
 
-abortNoSuitableCommand :: PackageName -> IO a
-abortNoSuitableCommand pname =
+abortNoSuitableCommandForUpdate :: PackageName -> IO a
+abortNoSuitableCommandForUpdate pname =
   abort $ "Don't know how to update package: " <> unPackageName pname
+
+abortNoSuitableCommandForAdd :: PackageName -> IO a
+abortNoSuitableCommandForAdd pname =
+  abort $ "Don't know how to add package: " <> unPackageName pname

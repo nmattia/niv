@@ -36,11 +36,11 @@ parseLocalShortcut txt =
   if T.isPrefixOf "./" txt || T.isPrefixOf "/" txt
     then do
       let n = last $ T.splitOn "/" txt
-      Just (PackageName n, KM.fromList [("path", Aeson.String txt)])
+      Just (PackageName n, KM.fromList [("path", Aeson.String txt), ("type", Aeson.String "local")])
     else Nothing
 
 parseLocalPackageSpec :: Opts.Parser PackageSpec
-parseLocalPackageSpec = PackageSpec . KM.fromList <$> parseParams
+parseLocalPackageSpec = PackageSpec . KM.fromList . ([("type", Aeson.String "local")] <> ) <$> parseParams
   where
     parseParams :: Opts.Parser [(K.Key, Aeson.Value)]
     parseParams = maybe [] pure <$> Opts.optional parsePath
@@ -61,6 +61,6 @@ describeLocal =
           Opts.vcat
             [ "Examples:",
               "",
-              "  niv add local ./foo/bar"
+              "  niv add local --name some-package --path ./foo/bar"
             ]
     ]

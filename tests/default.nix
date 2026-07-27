@@ -17,7 +17,8 @@ let
   eval = collectResults "eval-tests" (import ./eval { inherit pkgs niv; });
   github = collectResults "github-tests" (import ./github { inherit pkgs niv; });
   git = collectResults "git-tests" (import ./git { inherit pkgs niv; });
+  local = collectResults "local-tests" (import ./local { inherit pkgs niv; });
 
 in
 
-{ inherit eval github git; }
+{ inherit eval github git local; }
