@@ -6,8 +6,9 @@
 
 module Niv.Logger
   ( Colors (Always, Never),
-    job,
+    -- job,
     job',
+    MyError(SomeError),
     setColors,
     bug,
     tsay,
@@ -42,7 +43,7 @@ import Data.List
 import Data.Profunctor
 import qualified Data.Text as T
 import qualified System.Console.ANSI as ANSI
-import System.Exit (exitFailure)
+-- import System.Exit (exitFailure)
 import System.IO.Unsafe (unsafePerformIO)
 import UnliftIO
 
@@ -74,7 +75,7 @@ instance MonadTrans Job where
   lift :: Monad io => io a -> Job io a
   lift = Job . lift . lift
 
-abort' :: MonadIO io => T.Text -> Job io ()
+abort' :: MonadIO io => T.Text -> Job io a
 abort' e = throwError (SomeError e)
 
 -- TODO handle multiline
@@ -85,7 +86,7 @@ note' :: Monad io => T.Text -> Job io ()
 note' n = tell ([n], [])
 
 -- | Run a Job, getting back the result (or error) plus accumulated log.
-job' :: (MonadUnliftIO io, MonadIO io) => T.Text -> Job io a -> io (Either MyError a, [T.Text])
+job' :: (MonadUnliftIO io, MonadIO io) => T.Text -> Job io a -> io (Either () a)
 job' name jb = bracket_ (liftIO ANSI.hideCursor) (liftIO ANSI.showCursor) $ do
     liftIO $ T.putStr fooPending >> T.putStr " "
     hFlush stdout
@@ -104,10 +105,10 @@ job' name jb = bracket_ (liftIO ANSI.hideCursor) (liftIO ANSI.showCursor) $ do
     forM_ ns $ \w -> printAdmonition (tblue "note") w
     forM_ ws $ \w -> printAdmonition (tyellow "warning") w
 
-    case res of
-        Left (SomeError err) -> printAdmonition (tred "error") err
-        Right _ -> pure ()
-    pure (res, ws)
+    res' <- case res of
+        Left (SomeError err) -> printAdmonition (tred "error") err >> pure (Left ())
+        Right value -> pure (Right value)
+    pure res'
   where
     fooPending = " • " <> tbold name
     fooSuccess = tgreen " ✓ " <> tbold name
@@ -160,26 +161,6 @@ useColors = unsafePerformIO $ (== Always) <$> readIORef colors
 type S = String -> String
 
 type T = T.Text -> T.Text
-
--- XXX: this assumes as single thread
-job :: (MonadUnliftIO io, MonadIO io) => String -> io a -> io a
-job str act = do
-  say (bold str)
-  indent
-  tryAny act <* deindent >>= \case
-    Right result -> do
-        say $ green "Done" <> ": " <> str
-        pure result
-    Left e -> do
-      -- don't wrap if the error ain't too long
-      let showErr = do
-            let se = show e
-            (if length se > 40 then ":\n" else ": ") <> se
-      say $ red "ERROR" <> showErr
-      liftIO exitFailure
-  where
-    indent = void $ atomicModifyIORef jobStack (\x -> (x + 1, undefined))
-    deindent = void $ atomicModifyIORef jobStack (\x -> (x - 1, undefined))
 
 jobStackSize :: (MonadIO io) => io Int
 jobStackSize = readIORef jobStack

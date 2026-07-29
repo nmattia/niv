@@ -38,6 +38,7 @@ import qualified Options.Applicative.Help.Pretty as Opts
 -- I died a little
 import Paths_niv (version)
 import qualified System.Directory as Dir
+import System.Exit (exitFailure)
 import System.FilePath (takeDirectory)
 import UnliftIO
 import UnliftIO.Concurrent
@@ -196,7 +197,7 @@ cmdInit nixpkgs = do
 
   -- Writes all the default files
 
-  void $ job' "sources.nix" $ do
+  void $ job' "sources.nix (file)" $ do
     let path = pathNixSourcesNix
     exists <- liftIO $ Dir.doesFileExist path
     if exists then do
@@ -210,7 +211,8 @@ cmdInit nixpkgs = do
       Auto -> pure ()
       AtPath fp -> noteUpdateSourcesNixForPath fp
 
-  (Right shouldInitNixpkgs, _) <- job' "sources.json" $ do
+  -- TODO: handle error here
+  Right shouldInitNixpkgs <- job' "sources.json (file)" $ do
     let path = pathNixSourcesJson fsj
     exists <- liftIO $ Dir.doesFileExist path
     if exists then do
@@ -222,11 +224,14 @@ cmdInit nixpkgs = do
 
 
 
-  when shouldInitNixpkgs initNixpkgs
+  when shouldInitNixpkgs $ modifySources $ \sources -> do
+        result <- job' "nixpkgs" (initNixpkgs sources)
+        case result of
+            Right sources' -> pure sources'
+            Left () -> liftIO $ exitFailure -- TODO error message
 
   where
-    initNixpkgs = modifySources $ \sources -> do
-      (Right sources', _) <- job' "nixpkgs" $ case nixpkgs of
+    initNixpkgs sources =  case nixpkgs of
         NoNixpkgs -> say' "Not importing 'nixpkgs'." >> pure sources
         NixpkgsFast -> do
           say' "Using known 'nixpkgs' ..."
@@ -244,7 +249,6 @@ cmdInit nixpkgs = do
                     "branch" .= branch
                   ]
             )
-      pure sources'
 
 createFile :: MonadIO io => FilePath -> B.ByteString -> Job io ()
 createFile path content =  do
@@ -344,7 +348,7 @@ cmdAdd :: PackageName -> Attrs -> NIO ()
 cmdAdd packageName attrs = do
   let spec = attrsToSpec attrs
   modifySources $ \sources -> do
-    (Right result, _) <- job' (unPackageName packageName) $ do
+    Right result <- job' (unPackageName packageName) $ do
         tsay' "adding package..."
         result <- applyAdd sources (packageName, spec)
         tsay' "package added"
@@ -441,32 +445,35 @@ inferCmd :: [Cmd] -> PackageSpec -> Maybe Cmd
 inferCmd cmds spec = do
   find (\cmd -> acceptsCmd cmd spec) cmds
 
-updatePackage :: PackageName -> PackageSpec -> Maybe PackageSpec -> NIO (Either SomeException PackageSpec)
-updatePackage packageName defaultSpec mSpec = do
+updatePackage :: PackageSpec -> Maybe PackageSpec -> Job NIO PackageSpec
+updatePackage defaultSpec mSpec = do
   let defAttrs = specToFreeAttrs defaultSpec
       attrs = maybe defAttrs (\cliSpec -> specToLockedAttrs cliSpec <> defAttrs) mSpec
 
-  cmds <- getCmds
+  cmds <- lift getCmds
 
   -- infer what command (git, github, etc) to use to update the package
   cmd <- case inferCmd cmds defaultSpec of
     Just cmd -> pure cmd
-    Nothing -> li $ abortNoSuitableCommandForUpdate packageName
+    Nothing -> abortNoSuitableCommandForUpdate'
 
-  (Right res, _) <- job' (unPackageName packageName) $ do
-    tsay' "updating..."
-    result <- liftIO $ fmap attrsToSpec <$> li (doUpdate attrs cmd)
-    tsay' "package updated"
-    pure result
-  pure res
+  tsay' "updating..."
+  eresult <- liftIO $ fmap attrsToSpec <$> li (doUpdate attrs cmd)
+  result <- case eresult of
+    Left _ -> abort' "unexpected update error" -- TODO
+    Right a -> pure a
+  tsay' "package updated"
+  pure result
+
 
 -- | Update many packages.
 -- For each package, the package name, attrs-to-update as well as original state are given.
 -- For each package, the package name and final state are returned.
-updatePackages :: [(PackageName, Maybe PackageSpec, PackageSpec)] -> NIO [(PackageName, Either SomeException PackageSpec)]
+updatePackages :: [(PackageName, Maybe PackageSpec, PackageSpec)] -> NIO [(PackageName, Either () PackageSpec)]
 updatePackages packageUpdates = do
-  forM packageUpdates $ \(packageName, mCliSpec, spec) ->
-    (packageName,) <$> updatePackage packageName spec mCliSpec
+  forM packageUpdates $ \(packageName, mCliSpec, spec) -> do
+    Right result <- job' (unPackageName packageName) $ updatePackage spec mCliSpec
+    pure (packageName, Right result)
 
 applyUpdate :: Sources -> Maybe (PackageName, PackageSpec) -> NIO Sources
 applyUpdate (unSources -> sources) updateType = do
@@ -486,9 +493,7 @@ applyUpdate (unSources -> sources) updateType = do
 
   -- if there are any errors, abort the update before we serialize the new results.
   -- (not by necessity, just because this is legacy behavior)
-  unless (null errs) $
-    li $
-      abortUpdateFailed errs
+  unless (null errs) $ liftIO exitFailure
 
   -- return the updated sources
   pure $
@@ -505,7 +510,7 @@ doUpdate attrs cmd = do
   forM_ (extraLogs cmd attrs) tsay
   tryEvalUpdate attrs (updateCmd cmd)
 
-partitionUpdateFailures :: [(PackageName, Either SomeException a)] -> ([(PackageName, SomeException)], [(PackageName, a)])
+partitionUpdateFailures :: [(PackageName, Either l r)] -> ([(PackageName, l)], [(PackageName, r)])
 partitionUpdateFailures =
   foldl'
     ( \(lefts, rights) (packageName, res) -> case res of
@@ -692,7 +697,7 @@ jobWarn = void $ job' "test-warn" $ do
 jobErr :: IO ()
 jobErr = void $ job' "test-err" $ do
         threadDelay 600000
-        abort' "nope, not working"
+        _ <- abort' "nope, not working"
         threadDelay 600000
 
 -------------------------------------------------------------------------------
@@ -812,6 +817,10 @@ abortUpdateFailed errs =
               pname <> ": " <> tshow e
           )
           errs
+
+abortNoSuitableCommandForUpdate' :: MonadIO io => Job io a
+abortNoSuitableCommandForUpdate' =
+  abort' "don't know how to update package"
 
 abortNoSuitableCommandForUpdate :: PackageName -> IO a
 abortNoSuitableCommandForUpdate pname =
