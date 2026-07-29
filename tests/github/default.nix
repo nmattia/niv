@@ -44,7 +44,7 @@ in
         echo *** Starting the webserver...
         mkdir -p mock
 
-        python3 -m http.server 3333 --bind 127.0.0.1 --directory "$PWD/mock" &
+        python3 -m http.server 3333 --bind 127.0.0.1 --directory "$PWD/mock" >/dev/null 2>&1 &
         pid=$!
         trap 'kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true' EXIT
 

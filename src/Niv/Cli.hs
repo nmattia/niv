@@ -192,82 +192,66 @@ parseNixpkgs = parseNixpkgsFast <|> parseNixpkgsLatest <|> parseNixpkgsCustom <|
 
 cmdInit :: FetchNixpkgs -> NIO ()
 cmdInit nixpkgs = do
-  shouldInitNixpkgs <- newIORef False
   fsj <- getFindSourcesJson
-  -- Writes all the default files
-  -- a path, a "create" function and an update function for each file.
-  forM_
-    [ ( pathNixSourcesNix,
-        (\path -> createFile path initNixSourcesNixContent),
-        \path content -> do
-          if shouldUpdateNixSourcesNix content
-            then do
-              say' "updating sources.nix"
-              li $ B.writeFile path initNixSourcesNixContent
-            else say' "already exists"
-      ),
-      ( pathNixSourcesJson fsj,
-        \path -> do
-          createFile path initNixSourcesJsonContent
-          writeIORef shouldInitNixpkgs True,
-        \_path _content -> say' "already exists"
-      )
-    ]
-    $ \(path, onCreate, onUpdate) -> do
-      void $ liftIO $ job' (T.pack path) $ do
-          exists <- li $ Dir.doesFileExist path
-          if exists then li (B.readFile path) >>= onUpdate path else onCreate path
-  case fsj of
-    Auto -> pure ()
-    AtPath fp ->
-      tsay $
-        T.unlines
-          [ T.unwords
-              [ tbold $ tblue "INFO:",
-                "You are using a custom path for sources.json."
-              ],
-            "  You need to configure the sources.nix to use " <> tbold (T.pack fp) <> ":",
-            tbold "      import sources.nix { sourcesFile = PATH ; }; ",
-            T.unwords
-              [ "  where",
-                tbold "PATH",
-                "is the relative path from sources.nix to",
-                tbold (T.pack fp) <> "."
-              ]
-          ]
-  shouldInitNixpkgs' <- readIORef shouldInitNixpkgs
-  when shouldInitNixpkgs' $ do
-    tsay' "nixpkgs FOO BAR"
-    initNixpkgs nixpkgs -- TODO
-  where
-    createFile :: MonadIO io => FilePath -> B.ByteString -> io ()
-    createFile path content = li $ do
-      let dir = takeDirectory path
-      Dir.createDirectoryIfMissing True dir
-      say' $ "Creating " <> path
-      B.writeFile path content
 
-initNixpkgs :: FetchNixpkgs -> NIO ()
-initNixpkgs nixpkgs = modifySources $ \sources -> do
-  (Right sources', _) <- job' "nixpkgs" $ case nixpkgs of
-    NoNixpkgs -> say' "Not importing 'nixpkgs'." >> pure sources
-    NixpkgsFast -> do
-      say' "Using known 'nixpkgs' ..."
-      packageSpec <- HTTP.getResponseBody <$> HTTP.httpJSON "https://raw.githubusercontent.com/nmattia/niv/master/data/nixpkgs.json"
-      applyAdd sources (PackageName "nixpkgs", packageSpec)
-    NixpkgsCustom branch (Nixpkgs owner repo) -> do
-      say' "Importing 'nixpkgs' ..."
-      applyAdd
-        sources
-        ( PackageName "nixpkgs",
-          PackageSpec $
-            KM.fromList
-              [ "owner" .= owner,
-                "repo" .= repo,
-                "branch" .= branch
-              ]
-        )
-  pure sources'
+  -- Writes all the default files
+
+  void $ job' "sources.nix" $ do
+    let path = pathNixSourcesNix
+    exists <- liftIO $ Dir.doesFileExist path
+    if exists then do
+        content <- liftIO $ B.readFile path
+        when (shouldUpdateNixSourcesNix content) $ do
+            tsay' "updating sources.nix"
+            liftIO $ B.writeFile path initNixSourcesNixContent
+    else
+        createFile path initNixSourcesNixContent
+    case fsj of
+      Auto -> pure ()
+      AtPath fp -> noteUpdateSourcesNixForPath fp
+
+  (Right shouldInitNixpkgs, _) <- job' "sources.json" $ do
+    let path = pathNixSourcesJson fsj
+    exists <- liftIO $ Dir.doesFileExist path
+    if exists then do
+        tsay' $ T.pack path <> " already exists"
+        pure False
+    else do
+        createFile path initNixSourcesJsonContent
+        pure True
+
+
+
+  when shouldInitNixpkgs initNixpkgs
+
+  where
+    initNixpkgs = modifySources $ \sources -> do
+      (Right sources', _) <- job' "nixpkgs" $ case nixpkgs of
+        NoNixpkgs -> say' "Not importing 'nixpkgs'." >> pure sources
+        NixpkgsFast -> do
+          say' "Using known 'nixpkgs' ..."
+          packageSpec <- HTTP.getResponseBody <$> HTTP.httpJSON "https://raw.githubusercontent.com/nmattia/niv/master/data/nixpkgs.json"
+          applyAdd sources (PackageName "nixpkgs", packageSpec)
+        NixpkgsCustom branch (Nixpkgs owner repo) -> do
+          say' "Importing 'nixpkgs' ..."
+          applyAdd
+            sources
+            ( PackageName "nixpkgs",
+              PackageSpec $
+                KM.fromList
+                  [ "owner" .= owner,
+                    "repo" .= repo,
+                    "branch" .= branch
+                  ]
+            )
+      pure sources'
+
+createFile :: MonadIO io => FilePath -> B.ByteString -> Job io ()
+createFile path content =  do
+  let dir = takeDirectory path
+  liftIO $ Dir.createDirectoryIfMissing True dir
+  say' $ "Creating " <> path
+  liftIO $ B.writeFile path content
 
 -------------------------------------------------------------------------------
 -- ADD
@@ -363,7 +347,7 @@ cmdAdd packageName attrs = do
     (Right result, _) <- job' (unPackageName packageName) $ do
         tsay' "adding package..."
         result <- applyAdd sources (packageName, spec)
-        tsay' "done"
+        tsay' "package added"
         pure result
     pure result
 
@@ -472,7 +456,7 @@ updatePackage packageName defaultSpec mSpec = do
   (Right res, _) <- job' (unPackageName packageName) $ do
     tsay' "updating..."
     result <- liftIO $ fmap attrsToSpec <$> li (doUpdate attrs cmd)
-    tsay' "done"
+    tsay' "package updated"
     pure result
   pure res
 
@@ -668,7 +652,9 @@ parseCmdDebug =
     ( Opts.subparser
         (Opts.command "job-hello-world" (Opts.info (pure $ li jobHelloWorld) mempty)
             <> Opts.command "job-note" (Opts.info (pure $ li jobNote) mempty)
+            <> Opts.command "job-note-multiline" (Opts.info (pure $ li jobNoteMultiline) mempty)
             <> Opts.command "job-warn" (Opts.info (pure $ li jobWarn) mempty)
+            <> Opts.command "job-err" (Opts.info (pure $ li jobErr) mempty)
         )
     )
     mempty
@@ -689,11 +675,24 @@ jobNote = void $ job' "test-note" $ do
         note' "hello"
         threadDelay 600000
 
+jobNoteMultiline :: IO ()
+jobNoteMultiline = void $ job' "test-note-multiline" $ do
+        threadDelay 600000
+        note' $ T.unlines [ "hello", "world" ]
+        threadDelay 600000
+
 -- TODO
 jobWarn :: IO ()
 jobWarn = void $ job' "test-warn" $ do
         threadDelay 600000
         warn' "hello"
+        threadDelay 600000
+
+-- TODO
+jobErr :: IO ()
+jobErr = void $ job' "test-err" $ do
+        threadDelay 600000
+        abort' "nope, not working"
         threadDelay 600000
 
 -------------------------------------------------------------------------------
@@ -724,6 +723,24 @@ shouldUpdateNixSourcesNix content =
             _ -> False
           _ -> False
         _ -> False
+
+
+---
+-- note
+--
+
+noteUpdateSourcesNixForPath :: MonadIO io => FilePath -> Job io ()
+noteUpdateSourcesNixForPath fp = do
+    note' $ T.unlines
+          [ "You are using a custom path for sources.json.", "  You need to configure the sources.nix to use " <> tbold (T.pack fp) <> ":",
+            tbold "      import sources.nix { sourcesFile = PATH ; }; ",
+            T.unwords
+              [ "  where",
+                tbold "PATH",
+                "is the relative path from sources.nix to",
+                tbold (T.pack fp) <> "."
+              ]
+          ]
 
 -------------------------------------------------------------------------------
 -- Abort

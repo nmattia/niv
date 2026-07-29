@@ -74,7 +74,6 @@ getSourcesEither fsj = do
     mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
     mapKeys f = HMS.fromList . map (first f) . HMS.toList
 
--- TODO: MonadIO
 getSources :: FindSourcesJson -> IO Sources
 getSources fsj = do
   warnIfOutdated

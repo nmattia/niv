@@ -17,6 +17,7 @@ module Niv.Logger
     twarn,
     note',
     warn',
+    abort',
     mkWarn,
     mkNote,
     green,
@@ -80,7 +81,6 @@ abort' e = throwError (SomeError e)
 warn' :: Monad io => T.Text -> Job io ()
 warn' w = tell ([], [w])
 
--- TODO handle multiline
 note' :: Monad io => T.Text -> Job io ()
 note' n = tell ([n], [])
 
@@ -92,68 +92,49 @@ job' name jb = bracket_ (liftIO ANSI.hideCursor) (liftIO ANSI.showCursor) $ do
 
     (res, (ns, ws)) <- runWriterT . runExceptT . unJob $ jb
     liftIO $ ANSI.setCursorColumn 0
+
     let foo = case res of
                 Left _ -> fooFailure
-                Right _ -> fooSuccess
+                Right _ -> 
+                    if length ws >= 1 then
+                        fooWarning
+                        else fooSuccess
     liftIO $ T.putStrLn foo
 
-    forM_ ns $ \w ->
-        liftIO $ T.putStrLn $ "   ∟ " <> tblue "note" <> ": " <> w
-
-    forM_ ws $ \w ->
-        liftIO $ T.putStrLn $ "   ∟ " <> tyellow "warning" <> ": " <> w
+    forM_ ns $ \w -> printAdmonition (tblue "note") w
+    forM_ ws $ \w -> printAdmonition (tyellow "warning") w
 
     case res of
-        Left (SomeError err) ->
-            liftIO $ T.putStrLn $ "   ∟ " <> tred "error" <> ": " <> err
+        Left (SomeError err) -> printAdmonition (tred "error") err
         Right _ -> pure ()
     pure (res, ws)
   where
     fooPending = " • " <> tbold name
     fooSuccess = tgreen " ✓ " <> tbold name
+    fooWarning = tyellow " ✓ " <> tbold name
     fooFailure = tred " ⨯ " <> tbold name
 
-say' :: MonadIO io => String -> io ()
+    printAdmonition admn w = 
+        case unsnoc (T.lines w) of
+            Nothing -> pure ()
+            Just (inits', last') -> do
+
+                liftIO $ T.putStrLn $ "   └ " <> admn <> ": " -- <> w
+                forM_ inits' $ \line -> do
+                    liftIO $ T.putStrLn $ "     │ " <> line
+                liftIO $ T.putStrLn $ "     └ " <> last'
+
+say' :: MonadIO io => String -> Job io ()
 say' = tsay' . T.pack
 
-tsay' :: MonadIO io => T.Text -> io ()
+tsay' :: MonadIO io => T.Text -> Job io ()
 tsay' msg = do
+  let line = "\t" <> msg
   liftIO $ ANSI.clearFromCursorToLineEnd
-  liftIO $ T.putStr $ "\t" <> msg
-  liftIO $ ANSI.cursorBackward $ T.length msg
+  liftIO $ T.putStr line
+  liftIO $ ANSI.cursorBackward $ T.length line
   hFlush stdout
 
-
--- test :: IO ()
--- test = do
---     let job1 = do
---             blurt "Hei"
---             liftIO $ threadDelay  1000000
---             blurt "HA"
---             liftIO $ ANSI.setCursorColumn 0
---             hFlush stdout
---             liftIO $ threadDelay  1000000
---             warnFOO "what is happening"
---             abort "Ok, no more"
---
---     let job2 = do
---             blurt "starting..."
---             liftIO $ threadDelay  1000000
---             blurt "updating..."
---             liftIO $ threadDelay  1000000
---             blurt "done!"
---
---     forM_ [("one", job1), ("two", job2)] $ \(nm,jb) -> runJob nm jb
---
--- testGood :: IO ()
--- testGood = do
---     let job1 = do
---             blurt "success"
---
---     let job2 = do
---             blurt "success"
---
---     forM_ [("one", job1), ("two", job2)] $ \(nm,jb) -> runJob nm jb
 
 -- A somewhat hacky way of deciding whether or not to use SGR codes, by writing
 -- and reading a global variable unsafely.
@@ -231,8 +212,8 @@ color :: ANSI.Color -> String -> String
 color c str =
   if useColors
     then
-      ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity] -- TODO: remove bold
-        <> ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid c]
+      --ANSI.setSGRCode [ANSI.SetConsoleIntensity ANSI.BoldIntensity] -- TODO: remove bold
+        ANSI.setSGRCode [ANSI.SetColor ANSI.Foreground ANSI.Vivid c]
         <> str
         <> ANSI.setSGRCode [ANSI.Reset]
     else str
