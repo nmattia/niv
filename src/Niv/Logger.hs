@@ -60,6 +60,7 @@ data MyError
   deriving (Show, Eq)
 
 newtype Job io a = Job
+    -- monad writer: (<notes>, <warnings>)
   { unJob :: ExceptT MyError (WriterT ([T.Text], [T.Text]) io) a
   }
   deriving newtype
@@ -72,10 +73,9 @@ newtype Job io a = Job
     )
 
 instance MonadTrans Job where
-  lift :: Monad io => io a -> Job io a
   lift = Job . lift . lift
 
-abort' :: MonadIO io => T.Text -> Job io a
+abort' :: Monad io => T.Text -> Job io a
 abort' e = throwError (SomeError e)
 
 -- TODO handle multiline
@@ -148,22 +148,14 @@ printAdmonitions admns = case unsnoc admns of
                         forM_ inits' $ liftIO . T.putStrLn . idt
                         T.putStrLn cls
 
-                    --
-                    -- liftIO $ T.putStrLn $ hdr
-                    -- forM_ inits' $ \line -> do
-                    --     liftIO $ T.putStrLn $ idt line
-                    -- liftIO $ T.putStrLn $ cls
-
-
 say' :: MonadIO io => String -> Job io ()
 say' = tsay' . T.pack
 
 tsay' :: MonadIO io => T.Text -> Job io ()
 tsay' msg = do
-  let line = "\t" <> msg
   liftIO $ ANSI.clearFromCursorToLineEnd
-  liftIO $ T.putStr line
-  liftIO $ ANSI.cursorBackward $ T.length line
+  liftIO $ T.putStr msg
+  liftIO $ ANSI.cursorBackward $ T.length msg
   hFlush stdout
 
 
