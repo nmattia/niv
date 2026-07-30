@@ -683,7 +683,9 @@ jobNote = void $ job' "test-note" $ do
 jobNoteMultiline :: IO ()
 jobNoteMultiline = void $ job' "test-note-multiline" $ do
         threadDelay 600000
-        note' $ T.unlines [ "hello", "world" ]
+        noteUpdateSourcesNixForPath "foobar.txt"
+        threadDelay 600000
+        note' "Oh yeah\nhello world"
         threadDelay 600000
 
 -- TODO
@@ -737,8 +739,10 @@ shouldUpdateNixSourcesNix content =
 noteUpdateSourcesNixForPath :: MonadIO io => FilePath -> Job io ()
 noteUpdateSourcesNixForPath fp = do
     note' $ T.unlines
-          [ "You are using a custom path for sources.json.", "  You need to configure the sources.nix to use " <> tbold (T.pack fp) <> ":",
+          [ "You are using a custom path for sources.json.", "You need to configure the sources.nix to use " <> tbold (T.pack fp) <> ":",
+            "",
             tbold "      import sources.nix { sourcesFile = PATH ; }; ",
+            "",
             T.unwords
               [ "  where",
                 tbold "PATH",

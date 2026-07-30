@@ -96,17 +96,23 @@ job' name jb = bracket_ (liftIO ANSI.hideCursor) (liftIO ANSI.showCursor) $ do
 
     let foo = case res of
                 Left _ -> fooFailure
-                Right _ -> 
+                Right _ ->
                     if length ws >= 1 then
                         fooWarning
                         else fooSuccess
     liftIO $ T.putStrLn foo
 
-    forM_ ns $ \w -> printAdmonition (tblue "note") w
-    forM_ ws $ \w -> printAdmonition (tyellow "warning") w
+    let ns' = fmap (\n -> (tblue "note", n)) ns
+    let ws' = fmap (\w -> (tyellow "warning", w)) ws
+
+    let admns = (ns' <> ws') <> case res of
+            Left (SomeError err) -> [(tred "error", err)]
+            Right _ -> []
+
+    printAdmonitions admns
 
     res' <- case res of
-        Left (SomeError err) -> printAdmonition (tred "error") err >> pure (Left ())
+        Left _ -> pure (Left ())
         Right value -> pure (Right value)
     pure res'
   where
@@ -115,15 +121,39 @@ job' name jb = bracket_ (liftIO ANSI.hideCursor) (liftIO ANSI.showCursor) $ do
     fooWarning = tyellow " ✓ " <> tbold name
     fooFailure = tred " ⨯ " <> tbold name
 
-    printAdmonition admn w = 
-        case unsnoc (T.lines w) of
-            Nothing -> pure ()
-            Just (inits', last') -> do
+printAdmonitions :: MonadIO io => [(T.Text, T.Text)] -> io ()
+printAdmonitions admns = case unsnoc admns of
+        Nothing -> pure ()
+        Just (inits', last') -> do
+            mapM_ (\(admn, txt) -> printAdmonition admn False txt) inits'
+            let (admn, txt) = last'
+            printAdmonition admn True txt
+    where
+        printAdmonition admn isLast txt =
+            case unsnoc (T.lines txt) of
+                Nothing -> pure ()
+                Just (inits', last') -> do
+                    let hdrI      = "   ├ " <> admn <> ": "
+                        hdrL      = "   └ " <> admn <> ": "
+                        idtI line = "   │ │ " <> line
+                        idtL line = "     │ " <> line
+                        clsI      = "   │ └ " <> last'
+                        clsL      = "     └ " <> last'
+                        hdr = if isLast then hdrL else hdrI
+                        idt = if isLast then idtL else idtI
+                        cls = if isLast then clsL else clsI
 
-                liftIO $ T.putStrLn $ "   └ " <> admn <> ": " -- <> w
-                forM_ inits' $ \line -> do
-                    liftIO $ T.putStrLn $ "     │ " <> line
-                liftIO $ T.putStrLn $ "     └ " <> last'
+                    liftIO $ do
+                        T.putStrLn hdr
+                        forM_ inits' $ liftIO . T.putStrLn . idt
+                        T.putStrLn cls
+
+                    --
+                    -- liftIO $ T.putStrLn $ hdr
+                    -- forM_ inits' $ \line -> do
+                    --     liftIO $ T.putStrLn $ idt line
+                    -- liftIO $ T.putStrLn $ cls
+
 
 say' :: MonadIO io => String -> Job io ()
 say' = tsay' . T.pack
