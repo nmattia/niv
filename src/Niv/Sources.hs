@@ -2,7 +2,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Niv.Sources where
@@ -19,8 +18,8 @@ import Data.FileEmbed (embedFile)
 import qualified Data.HashMap.Strict as HMS
 import Data.Hashable (Hashable)
 import Data.List
-import Data.String.QQ (s)
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import Data.Text.Extended
 import Niv.Logger
 import Niv.Update
@@ -74,17 +73,6 @@ getSourcesEither fsj = do
     mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
     mapKeys f = HMS.fromList . map (first f) . HMS.toList
 
-getSources :: FindSourcesJson -> IO Sources
-getSources fsj = do
-  warnIfOutdated
-  getSourcesEither fsj
-    >>= either
-      ( \case
-          SourcesDoesntExist -> (abortSourcesDoesntExist fsj)
-          SourceIsntJSON -> (abortSourcesIsntJSON fsj)
-          SpecIsntAMap -> (abortSpecIsntAMap fsj)
-      )
-      pure
 
 setSources :: FindSourcesJson -> Sources -> IO ()
 setSources fsj = Aeson.encodeFilePretty (pathNixSourcesJson fsj)
@@ -105,35 +93,6 @@ pathNixSourcesJson = \case
   Auto -> "nix" </> "sources.json"
   AtPath f -> f
 
---
--- ABORT messages
---
-
-abortSourcesDoesntExist :: FindSourcesJson -> IO a
-abortSourcesDoesntExist fsj = abort $ T.unlines [line1, line2]
-  where
-    line1 = "Cannot use " <> T.pack (pathNixSourcesJson fsj)
-    line2 =
-      [s|
-The sources file does not exist! You may need to run 'niv init'.
-|]
-
-abortSourcesIsntJSON :: FindSourcesJson -> IO a
-abortSourcesIsntJSON fsj = abort $ T.unlines [line1, line2]
-  where
-    line1 = "Cannot use " <> T.pack (pathNixSourcesJson fsj)
-    line2 = "The sources file should be JSON."
-
-abortSpecIsntAMap :: FindSourcesJson -> IO a
-abortSpecIsntAMap fsj = abort $ T.unlines [line1, line2]
-  where
-    line1 = "Cannot use " <> T.pack (pathNixSourcesJson fsj)
-    line2 =
-      [s|
-The package specifications in the sources file should be JSON maps from
-attribute name to attribute value, e.g.:
-  { "nixpkgs": { "foo": "bar" } }
-|]
 
 -------------------------------------------------------------------------------
 -- sources.nix related
@@ -271,12 +230,7 @@ pathNixSourcesNix = "nix" </> "sources.nix"
 warnIfOutdated :: IO ()
 warnIfOutdated = do
   tryAny (BL8.readFile pathNixSourcesNix) >>= \case
-    Left e ->
-      twarn $
-        T.unlines
-          [ T.unwords ["Could not read", T.pack pathNixSourcesNix],
-            T.unwords ["  ", "(", tshow e, ")"]
-          ]
+    Left e -> pure () -- can't find it; let's not bother the user
     Right content -> do
       case md5ToSourcesVersion (T.pack $ show $ MD5.md5 content) of
         -- This is a custom or newer version, we don't do anything
@@ -286,10 +240,10 @@ warnIfOutdated = do
           | v == maxBound -> pure ()
           -- The file is older than than latest
           | otherwise -> do
-              tsay $
+              T.putStrLn $
                 T.unlines
                   [ T.unwords
-                      [ tbold $ tblue "INFO:",
+                      [ tblue "INFO:",
                         "new sources.nix available:",
                         sourcesVersionToText v,
                         "->",
