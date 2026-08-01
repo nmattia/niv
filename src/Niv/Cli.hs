@@ -46,6 +46,9 @@ import System.FilePath (takeDirectory)
 import UnliftIO
 import UnliftIO.Concurrent
 
+import System.IO (hSetEncoding)
+import GHC.IO.Encoding (utf8)
+
 -- | An IO Monad with some configuration:
 -- * FindSourcesJson: how to find sources.json (known path, discover, etc)
 -- * [Cmd]: the update types
@@ -68,6 +71,7 @@ cli args = do
   ((fsj, colors), nio) <-
     pure args >>= Opts.handleParseResult . execParserPure' Opts.defaultPrefs opts
   setColors colors
+  hSetEncoding stdout utf8 -- required for printing out unicode on some systems
   runReaderT (runNIO nio) (fsj, [gitCmd, localCmd, githubCmd])
   warnIfOutdated
   where
