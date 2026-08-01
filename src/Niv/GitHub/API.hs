@@ -179,7 +179,6 @@ githubPath = unsafePerformIO $ do
     Just (T.pack -> x) -> pure $ fromMaybe x (T.stripSuffix "/" x) <> "/"
     Nothing -> pure "/"
 
-
 abort :: (MonadIO io) => T.Text -> io a
 abort msg =
   liftIO $ throwError $ userError $ T.unpack msg

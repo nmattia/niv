@@ -41,7 +41,8 @@ import System.IO.Unsafe (unsafePerformIO)
 import UnliftIO
 
 newtype Job io a = Job
-  -- monad writer: (<notes>, <warnings>)
+  -- A monad stack for use with logging functions below. Can throw a (textual)
+  -- error, and gathers admonitions (monad writer: (<notes>, <warnings>))
   { unJob :: ExceptT T.Text (WriterT ([T.Text], [T.Text]) io) a
   }
   deriving newtype
@@ -65,6 +66,13 @@ note n = tell ([n], [])
 -- | Run a Job, getting back the result (or error) plus accumulated log.
 job :: (MonadUnliftIO io, MonadIO io) => T.Text -> Job io a -> io (Either () a)
 job name jb = bracket_ (liftIO ANSI.hideCursor) (liftIO ANSI.showCursor) $ do
+
+  -- the "prefixes" that are shown in front of the job name
+  let  pending = " • "
+       success = tgreen " ✓ "
+       warning = tyellow " ✓ "
+       failure = tred " ⨯ "
+
   -- write a "prefix" and the name:
   -- " • foo"
   liftIO $ T.putStr $ pending <> tbold name <> " "
@@ -100,12 +108,14 @@ job name jb = bracket_ (liftIO ANSI.hideCursor) (liftIO ANSI.showCursor) $ do
     Left _ -> pure (Left ())
     Right value -> pure (Right value)
   pure res'
-  where
-    pending = " • "
-    success = tgreen " ✓ "
-    warning = tyellow " ✓ "
-    failure = tred " ⨯ "
 
+-- prints "admonitions":
+--
+--   ├ note:
+--   │ │ this is the first note
+--   │ └ which is a multiline note
+--   └ note:
+--     └ this is another note
 printAdmonitions :: (MonadIO io) => [(T.Text, T.Text)] -> io ()
 printAdmonitions admns = case unsnoc admns of
   Nothing -> pure ()
@@ -118,6 +128,9 @@ printAdmonitions admns = case unsnoc admns of
       case unsnoc (T.lines txt) of
         Nothing -> pure ()
         Just (inits', last') -> do
+          -- hdr: header (name), idt: indent (alongside text), cls: close (last
+          -- line of text).
+          -- all are either for the (I)nitial line or the (L)ast line.
           let hdrI = "   ├ " <> admn <> ": "
               hdrL = "   └ " <> admn <> ": "
               idtI line = "   │ │ " <> line

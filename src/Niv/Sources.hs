@@ -20,7 +20,6 @@ import Data.Hashable (Hashable)
 import Data.List
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
-import Data.Text.Extended
 import Niv.Logger
 import Niv.Update
 import qualified System.Directory as Dir
@@ -230,7 +229,7 @@ pathNixSourcesNix = "nix" </> "sources.nix"
 warnIfOutdated :: IO ()
 warnIfOutdated = do
   tryAny (BL8.readFile pathNixSourcesNix) >>= \case
-    Left e -> pure () -- can't find it; let's not bother the user
+    Left _ -> pure () -- can't find it; let's not bother the user
     Right content -> do
       case md5ToSourcesVersion (T.pack $ show $ MD5.md5 content) of
         -- This is a custom or newer version, we don't do anything

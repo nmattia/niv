@@ -441,7 +441,7 @@ updatePackage attrs = do
   -- infer what command (git, github, etc) to use to update the package
   cmd <- case inferCmd cmds (attrsToSpec attrs) of
     Just cmd -> pure cmd
-    Nothing -> abortNoSuitableCommandForUpdate
+    Nothing -> abortNoSuitableCommand
 
   say "updating..."
   result <- attrsToSpec <$> doUpdate attrs cmd
@@ -458,6 +458,8 @@ updatePackages packageUpdates = do
   let maxNameLength = maximum $ (\(p, _, _) -> T.length $ unPackageName p) <$> packageUpdates
       padName (PackageName p) = p <> T.replicate (maxNameLength - T.length p) " "
 
+  -- update all the packages, writing the new spec after each (successful) update and
+  -- finally returning a list of all successes & failures statuses
   forM packageUpdates $ \(packageName, spec, mCliSpec) -> do
     let defAttrs = specToFreeAttrs spec
         attrs = maybe defAttrs (\cliSpec -> specToLockedAttrs cliSpec <> defAttrs) mCliSpec
@@ -468,8 +470,8 @@ updatePackages packageUpdates = do
         pure $ Right ()
       Left _ -> pure $ Left ()
 
-applyUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
-applyUpdate updateType = do
+cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
+cmdUpdate updateType = do
   -- prepare the updates
   packageUpdates <- case updateType of
     -- no package specified => update everything
@@ -495,9 +497,6 @@ applyUpdate updateType = do
     liftIO $ T.putStrLn ""
     liftIO $ T.putStrLn $ T.pack (show (length errs)) <> " package(s) failed to update"
     liftIO exitFailure
-
-cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
-cmdUpdate mPackageNameAndSpec = applyUpdate mPackageNameAndSpec
 
 -- | pretty much tryEvalUpdate but we might issue some warnings first
 doUpdate :: Attrs -> Cmd -> Job Attrs
@@ -632,8 +631,6 @@ parseCmdDebug =
             <> Opts.command "job-note" (Opts.info (pure $ liftIO jobNote) mempty)
             <> Opts.command "job-note-multiline" (Opts.info (pure $ liftIO jobNoteMultiline) mempty)
             <> Opts.command "job-every-admonition" (Opts.info (pure $ liftIO jobEveryAdmonition) mempty)
-            <> Opts.command "job-warn" (Opts.info (pure $ liftIO jobWarn) mempty)
-            <> Opts.command "job-err" (Opts.info (pure $ liftIO jobErr) mempty)
             <> Opts.command "job-multi" (Opts.info (pure $ liftIO jobMulti) mempty)
         )
     )
@@ -648,42 +645,27 @@ jobHelloWorld = void $ job "test" $ do
   say "world"
   threadDelay 600000
 
--- TODO
+-- simple note
 jobNote :: IO ()
 jobNote = void $ job "test-note" $ do
   threadDelay 600000
   note "hello"
   threadDelay 600000
 
+-- multiline notes
 jobNoteMultiline :: IO ()
 jobNoteMultiline = void $ job "test-note-multiline" $ do
-  threadDelay 600000
-  noteUpdateSourcesNixForPath "foobar.txt"
-  threadDelay 600000
-  note "Oh yeah\nhello world"
-  threadDelay 600000
+  note $ "this is the first note\nwhich is a " <> tbold "multiline" <> " note"
+  note "this is another note"
 
+-- every admonition (note, warning, error)
 jobEveryAdmonition :: IO ()
 jobEveryAdmonition = void $ job "every-admonition" $ do
   warn "some warning"
   note "some note"
   throwError "some error"
 
--- TODO
-jobWarn :: IO ()
-jobWarn = void $ job "test-warn" $ do
-  threadDelay 600000
-  warn "hello"
-  threadDelay 600000
-
--- TODO
-jobErr :: IO ()
-jobErr = void $ job "test-err" $ do
-  threadDelay 600000
-  _ <- throwError "nope, not working"
-  threadDelay 600000
-
--- TODO
+-- multiple jobs
 jobMulti :: IO ()
 jobMulti = do
   void $ job "a" $ say "message"
@@ -697,6 +679,7 @@ jobMulti = do
 -- Files and their content
 -------------------------------------------------------------------------------
 
+-- Read the sources, throwing an IO error if there's an issue
 getSources :: FindSourcesJson -> IO Sources
 getSources fsj = do
   getSourcesEither fsj
@@ -716,11 +699,13 @@ modifySources upd = do
   sources' <- upd sources
   liftIO $ setSources fsj sources'
 
+-- Read the sources in NIO
 readSources :: NIO Sources
 readSources = do
   fsj <- getFindSourcesJson
   liftIO $ getSources fsj
 
+-- Update or insert a spec
 writeSourcesEntry :: PackageName -> PackageSpec -> NIO ()
 writeSourcesEntry packageName spec = do
   fsj <- getFindSourcesJson
@@ -745,9 +730,9 @@ shouldUpdateNixSourcesNix content =
           _ -> False
         _ -> False
 
----
--- note
---
+-------------------------------------------------------------------------------
+-- MISC
+-------------------------------------------------------------------------------
 
 noteUpdateSourcesNixForPath :: (MonadIO io) => FilePath -> Niv.Logger.Job io ()
 noteUpdateSourcesNixForPath fp = do
@@ -770,20 +755,14 @@ noteUpdateSourcesNixForPath fp = do
 -- Abort
 -------------------------------------------------------------------------------
 
--- TODO: these are errors, not aborts.
-
-abortNoSuitableCommandForUpdate :: Job a
-abortNoSuitableCommandForUpdate =
+-- A job error if no update Cmd is suited to the package
+abortNoSuitableCommand :: Job a
+abortNoSuitableCommand =
   throwError "don't know how to update package"
 
-abortNoSuitableCommandForAdd :: Job a
-abortNoSuitableCommandForAdd =
-  throwError "don't know how to update package"
 
---
--- ABORT messages
--- proper aborts that exit niv (only used when there is no way to make progress, like missing sources)
---
+-- proper aborts that exit niv (only used when there is no way to make
+-- progress, like missing sources)
 
 abort :: (MonadIO io) => T.Text -> io a
 abort msg = do

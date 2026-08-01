@@ -117,7 +117,8 @@
           ''
               mkdir -p $out
               niv --help # some systems (macOS) are a bit slow to run a new binary
-              goldens=("job-hello-world,16x5" "job-multi,24x6" "job-note-multiline,64x16" "job-every-admonition,24x10")
+              # pairs of job name & window dimensions
+              goldens=("job-hello-world,16x5" "job-multi,24x6" "job-note-multiline,32x8" "job-every-admonition,24x10")
               font_dir=${pkgs.nerd-fonts.jetbrains-mono}/share/fonts/truetype/NerdFonts/JetBrainsMono
               font_family="JetBrainsMono Nerd Font"
               for cfg in "''${goldens[@]}"; do
