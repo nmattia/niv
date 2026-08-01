@@ -117,11 +117,13 @@
           ''
               mkdir -p $out
               niv --help # some systems (macOS) are a bit slow to run a new binary
-              goldens=("job-hello-world")
+              # pairs of job name & window dimensions
+              goldens=("job-hello-world,16x5" "job-multi,24x6" "job-note-multiline,32x8" "job-every-admonition,24x10")
               font_dir=${pkgs.nerd-fonts.jetbrains-mono}/share/fonts/truetype/NerdFonts/JetBrainsMono
               font_family="JetBrainsMono Nerd Font"
-              for golden in "''${goldens[@]}"; do
-                  asciinema record --window-size 16x5 --command "niv debug $golden" "$golden.cast"
+              for cfg in "''${goldens[@]}"; do
+                  IFS=',' read -r golden dims <<<"$cfg"
+                  asciinema record --window-size "$dims" --command "niv debug $golden" "$golden.cast"
                   agg --font-dir "$font_dir" --text-font-family "$font_family" --idle-time-limit 0.5 "$golden.cast" "$out/$golden.gif"
               done
           '';

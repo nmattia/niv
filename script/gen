@@ -9,6 +9,9 @@ set -euo pipefail
 gens=(
     '.#readme,README.md,./README.md'
     '.#golden,job-hello-world.gif,./golden/job-hello-world.gif'
+    '.#golden,job-multi.gif,./golden/job-multi.gif'
+    '.#golden,job-note-multiline.gif,./golden/job-note-multiline.gif'
+    '.#golden,job-every-admonition.gif,./golden/job-every-admonition.gif'
 )
 
 for gen in "${gens[@]}"; do

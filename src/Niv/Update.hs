@@ -12,12 +12,12 @@ module Niv.Update where
 
 import Control.Arrow
 import qualified Control.Category as Cat
+import Control.Monad.Except (throwError)
 import Data.Aeson (FromJSON, ToJSON, Value)
 import qualified Data.Aeson as Aeson
 import qualified Data.HashMap.Strict as HMS
 import Data.String
 import qualified Data.Text as T
-import Niv.Logger
 import UnliftIO
 
 type Attrs = HMS.HashMap T.Text (Freedom, Value)
@@ -76,7 +76,7 @@ runUpdate attrs a = boxAttrs attrs >>= flip runUpdate' a >>= feed
       UpdateNeedMore next -> next () >>= hndl
     hndl = \case
       UpdateSuccess f v -> (,v) <$> unboxAttrs f
-      UpdateFailed e -> error $ "Update failed: " <> T.unpack (prettyFail e)
+      UpdateFailed e -> throwError $ userError $ "Update failed: " <> T.unpack (prettyFail e)
     prettyFail :: UpdateFailed -> T.Text
     prettyFail = \case
       FailNoSuchKey k -> "Key could not be found: " <> k
@@ -87,6 +87,15 @@ runUpdate attrs a = boxAttrs attrs >>= flip runUpdate' a >>= feed
           [ "Could not render template " <> tpl,
             "with keys: " <> T.intercalate ", " keys
           ]
+
+bug :: T.Text -> T.Text
+bug txt =
+  T.unlines
+    [ txt,
+      "This is a bug. Please create a ticket:",
+      "  https://github.com/nmattia/niv/issues/new",
+      "Thanks! I'll buy you a beer."
+    ]
 
 execUpdate :: Attrs -> Update () a -> IO a
 execUpdate attrs a = snd <$> runUpdate attrs a
@@ -289,7 +298,7 @@ decodeValue :: (FromJSON a) => T.Text -> Value -> IO a
 decodeValue msg v = case Aeson.fromJSON v of
   Aeson.Success x -> pure x
   Aeson.Error str ->
-    error $ T.unpack msg <> ": Could not decode: " <> show v <> ": " <> str
+    throwError $ userError $ T.unpack msg <> ": Could not decode: " <> show v <> ": " <> str
 
 -- | Renders the template. Returns 'Nothing' if some of the attributes are
 -- missing.

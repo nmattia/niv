@@ -21,7 +21,6 @@ import Data.Char (isAlphaNum)
 import Data.Maybe
 import Data.String.QQ (s)
 import qualified Data.Text as T
-import Data.Text.Extended
 import Niv.Cmd
 import Niv.GitHub
 import Niv.GitHub.API
