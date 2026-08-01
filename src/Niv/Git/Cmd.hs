@@ -8,6 +8,7 @@ module Niv.Git.Cmd where
 
 import Control.Applicative
 import Control.Arrow
+import Control.Monad.Except (throwError)
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.Key as K
@@ -17,15 +18,14 @@ import Data.Char (isDigit)
 import qualified Data.HashMap.Strict as HMS
 import Data.Maybe
 import qualified Data.Text as T
-import Data.Text.Extended as T
 import Niv.Cmd
-import Niv.Logger
 import Niv.Sources
 import Niv.Update
 import qualified Options.Applicative as Opts
 import qualified Options.Applicative.Help.Pretty as Opts
 import System.Exit (ExitCode (ExitSuccess))
 import System.Process (readProcessWithExitCode)
+import UnliftIO
 
 gitCmd :: Cmd
 gitCmd =
@@ -45,15 +45,12 @@ gitExtraLogs attrs = noteRef <> warnRefBranch <> warnRefTag
   where
     noteRef =
       textIf (HMS.member "ref" attrs) $
-        mkNote
           "Your source contains a `ref` attribute. Make sure your sources.nix is up-to-date and consider using a `branch` or `tag` attribute."
     warnRefBranch =
       textIf (member "ref" && member "branch") $
-        mkWarn
           "Your source contains both a `ref` and a `branch`. Niv will update the `branch` but the `ref` will be used by Nix to fetch the repo."
     warnRefTag =
       textIf (member "ref" && member "tag") $
-        mkWarn
           "Your source contains both a `ref` and a `tag`. The `ref` will be used by Nix to fetch the repo."
     member x = HMS.member x attrs
     textIf cond txt = [txt | cond]
@@ -268,3 +265,7 @@ abortGitBug args msg =
           T.unwords ("command:" : "git" : args),
           msg
         ]
+
+abort :: (MonadIO io) => T.Text -> io a
+abort msg =
+  liftIO $ throwError $ userError $ T.unpack msg

@@ -17,8 +17,10 @@ import Data.Text.Extended
 import qualified Network.HTTP.Simple as HTTP
 import System.Environment (lookupEnv)
 import System.Exit (exitFailure)
+import UnliftIO
 import System.IO.Unsafe (unsafePerformIO)
 import Text.Read (readMaybe)
+import           Control.Monad.Except (throwError)
 
 -- Bunch of GitHub helpers
 
@@ -176,3 +178,7 @@ githubPath = unsafePerformIO $ do
   lookupEnv "NIV_GITHUB_PATH" >>= \case
     Just (T.pack -> x) -> pure $ fromMaybe x (T.stripSuffix "/" x) <> "/"
     Nothing -> pure "/"
+
+abort :: (MonadIO io) => T.Text -> io a
+abort msg =
+  liftIO $ throwError $ userError $ T.unpack msg
