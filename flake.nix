@@ -140,8 +140,11 @@
             sed "/replace_niv_add_help/r"<(niv add --help) $readme | sponge $readme
             sed "/replace_niv_add_help/d" $readme | sponge $readme
 
-            sed "/replace_niv_update_help/r"<(niv update --help) $readme| sponge $readme $readme
+            sed "/replace_niv_update_help/r"<(niv update --help) $readme| sponge $readme
             sed "/replace_niv_update_help/d" $readme | sponge $readme
+
+            sed "/replace_niv_rename_help/r"<(niv rename --help) $readme| sponge $readme
+            sed "/replace_niv_rename_help/d" $readme | sponge $readme
 
             sed "/replace_niv_modify_help/r"<(niv modify --help) $readme | sponge $readme
             sed "/replace_niv_modify_help/d" $readme | sponge $readme
