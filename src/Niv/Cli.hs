@@ -8,6 +8,8 @@
 
 module Niv.Cli where
 
+import Data.String (fromString)
+
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Reader
@@ -408,7 +410,7 @@ showPackage (PackageName pname) (PackageSpec spec) = do
 parseCmdUpdate :: Opts.ParserInfo (NIO ())
 parseCmdUpdate =
   Opts.info
-    ((cmdUpdate <$> Opts.optional parsePackage) <**> Opts.helper)
+    ((cmdUpdate' <$> Opts.optional parsePackagePattern <*> Opts.optional parsePackageSpec') <**> Opts.helper)
     $ mconcat desc
   where
     desc =
@@ -426,16 +428,98 @@ parseCmdUpdate =
                 ]
       ]
 
-specToFreeAttrs :: PackageSpec -> Attrs
-specToFreeAttrs = KM.toHashMapText . fmap (Free,) . unPackageSpec
+newtype PackagePattern = PackagePattern { unPackagePattern :: T.Text }
 
-specToLockedAttrs :: PackageSpec -> Attrs
-specToLockedAttrs = KM.toHashMapText . fmap (Locked,) . unPackageSpec
+parsePackagePattern :: Opts.Parser PackagePattern
+parsePackagePattern = PackagePattern <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
 
--- | find a matching Cmd for the PackageSpec
-inferCmd :: [Cmd] -> PackageSpec -> Maybe Cmd
-inferCmd cmds spec = do
-  find (\cmd -> acceptsCmd cmd spec) cmds
+newtype ParsedPackageSpec = ParsedPackageSpec { unParsedPackageSpec :: [(T.Text, Aeson.Value)] }
+
+-- Parse a package spec, where any attribute can be specified at most once.
+-- TODO: explain groupOptions and 'hidden'
+parsePackageSpec' :: Opts.Parser ParsedPackageSpec
+parsePackageSpec' = groupOptions "ATTRIBUTES" $ ParsedPackageSpec <$> Opts.some (jsonAttribute <|> stringAttribute <|> knownAttribute)
+    where
+        -- this (with `Opts.hidden` set on all options) groups the options below instead of showing them all with the command
+        -- https://github.com/pcapriotti/optparse-applicative/issues/523
+        groupOptions :: String -> Opts.Parser a -> Opts.Parser a
+        groupOptions mv x = Opts.option empty (Opts.metavar mv) <|> Opts.parserOptionGroup mv x
+
+        -- shortcuts for many known attributes
+        knownAttribute :: Opts.Parser (T.Text, Aeson.Value)
+        knownAttribute =
+            attrOption ("owner", Opts.long "owner" <> Opts.help "...") <|>
+            attrOption ("repo", Opts.long "repo" <> Opts.help "...") <|>
+            attrOption ("branch", Opts.long "branch" <> Opts.help "...") <|>
+            attrOption ("rev", Opts.long "rev" <> Opts.help "...")
+
+        attrOption (key, mods) = (\v -> (key, v)) <$> Opts.strOption (Opts.hidden <> mods)
+
+        -- parse any json value as `--attribute 'foo={"hello": "world"}'`
+        -- TODO: this should parse `foo` as `"foo"`
+        jsonAttribute :: Opts.Parser (T.Text, Aeson.Value)
+        jsonAttribute =
+            Opts.option
+                (kvMaybe >>= \(k, v) -> case Aeson.decodeStrict (B8.pack (T.unpack v)) of Just v' -> pure (k, v'); Nothing -> empty)
+                (Opts.long "attribute" <> Opts.hidden <> Opts.help "..." <> Opts.metavar "KEY=VAL")
+
+        -- same as above but force parsing as string
+        stringAttribute :: Opts.Parser (T.Text, Aeson.Value)
+        stringAttribute =
+            Opts.option
+                ((\(k, v) -> (k, Aeson.String v)) <$> kvMaybe)
+                (Opts.long "string-attribute" <> Opts.hidden <> Opts.help "..." <> Opts.metavar "KEY=VAL")
+
+        -- try to turn "foo=bar" into ("foo", "bar")
+        kvMaybe :: Opts.ReadM (T.Text, T.Text)
+        kvMaybe = Opts.maybeReader $ \str -> case span (/= '=') str of
+            (k, '=':v) -> Just (T.pack k, T.pack v)
+            _ -> Nothing
+
+
+checkParsedSpec :: ParsedPackageSpec -> NIO PackageSpec
+checkParsedSpec (unParsedPackageSpec -> parsed) = do
+    let spec = KM.fromList $ (\(k,v) -> (fromString $ T.unpack k, v)) <$> parsed
+
+    when (KM.size spec /= length parsed) $ do
+        abort "NOPE"
+
+    pure $ PackageSpec spec
+
+cmdUpdate' :: Maybe PackagePattern -> Maybe ParsedPackageSpec -> NIO ()
+cmdUpdate' m ma = do
+    _ <- case ma of 
+        Just parsed -> checkParsedSpec parsed
+    liftIO $ print (unPackagePattern <$> m)
+    liftIO $ print (unParsedPackageSpec <$> ma)
+
+cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
+cmdUpdate updateType = do
+  -- prepare the updates
+  packageUpdates <- case updateType of
+    -- no package specified => update everything
+    Nothing -> do
+      sources <- readSources
+      pure $ HMS.toList (unSources sources) <&> (\(k, v) -> (k, v, Nothing))
+    -- one package with new attrs specified => update just that
+    Just (packageName, cliSpec) -> do
+      sources <- readSources
+      spec <- case HMS.lookup packageName (unSources sources) of
+        Nothing -> abortNoSuchPackage packageName
+        Just spec -> pure spec
+      pure [(packageName, spec, Just cliSpec)]
+
+  -- update all packages and separate failures from successes
+  (errs, successes) <- partitionEithers <$> updatePackages packageUpdates
+
+  -- print a short summary
+  liftIO $ T.putStrLn ""
+  unless (null successes) $ do
+    liftIO $ T.putStrLn $ T.pack (show (length successes)) <> " package(s) updated successfully"
+  unless (null errs) $ do
+    liftIO $ T.putStrLn ""
+    liftIO $ T.putStrLn $ T.pack (show (length errs)) <> " package(s) failed to update"
+    liftIO exitFailure
 
 -- update the attributes and return the updated spec
 updatePackage :: Attrs -> Job PackageSpec
@@ -473,34 +557,6 @@ updatePackages packageUpdates = do
         writeSourcesEntry packageName spec'
         pure $ Right ()
       Left _ -> pure $ Left ()
-
-cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
-cmdUpdate updateType = do
-  -- prepare the updates
-  packageUpdates <- case updateType of
-    -- no package specified => update everything
-    Nothing -> do
-      sources <- readSources
-      pure $ HMS.toList (unSources sources) <&> (\(k, v) -> (k, v, Nothing))
-    -- one package with new attrs specified => update just that
-    Just (packageName, cliSpec) -> do
-      sources <- readSources
-      spec <- case HMS.lookup packageName (unSources sources) of
-        Nothing -> abortNoSuchPackage packageName
-        Just spec -> pure spec
-      pure [(packageName, spec, Just cliSpec)]
-
-  -- update all packages and separate failures from successes
-  (errs, successes) <- partitionEithers <$> updatePackages packageUpdates
-
-  -- print a short summary
-  liftIO $ T.putStrLn ""
-  unless (null successes) $ do
-    liftIO $ T.putStrLn $ T.pack (show (length successes)) <> " package(s) updated successfully"
-  unless (null errs) $ do
-    liftIO $ T.putStrLn ""
-    liftIO $ T.putStrLn $ T.pack (show (length errs)) <> " package(s) failed to update"
-    liftIO exitFailure
 
 -- | pretty much tryEvalUpdate but we might issue some warnings first
 doUpdate :: Attrs -> Cmd -> Job Attrs
@@ -754,6 +810,17 @@ shouldUpdateNixSourcesNix content =
 -------------------------------------------------------------------------------
 -- MISC
 -------------------------------------------------------------------------------
+
+specToFreeAttrs :: PackageSpec -> Attrs
+specToFreeAttrs = KM.toHashMapText . fmap (Free,) . unPackageSpec
+
+specToLockedAttrs :: PackageSpec -> Attrs
+specToLockedAttrs = KM.toHashMapText . fmap (Locked,) . unPackageSpec
+
+-- | find a matching Cmd for the PackageSpec
+inferCmd :: [Cmd] -> PackageSpec -> Maybe Cmd
+inferCmd cmds spec = do
+  find (\cmd -> acceptsCmd cmd spec) cmds
 
 noteUpdateSourcesNixForPath :: (MonadIO io) => FilePath -> Niv.Logger.Job io ()
 noteUpdateSourcesNixForPath fp = do
