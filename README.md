@@ -227,6 +227,7 @@ Available commands:
   add                      Add a GitHub dependency
   show                     
   update                   Update dependencies
+  rename                   Rename a package
   modify                   Modify dependency attributes without performing an
                            update
   drop                     Drop dependency
@@ -308,6 +309,21 @@ Available options:
   -h,--help                Show this help text
 ```
 
+#### Rename
+
+```
+Examples:
+
+  niv rename nixpkgs nixpkgs-unstable
+
+Usage: niv rename OLD NEW
+
+  Rename a package
+
+Available options:
+  -h,--help                Show this help text
+```
+
 #### Modify
 
 ```
@@ -316,7 +332,7 @@ Examples:
   niv modify nixpkgs -v beta-0.2
   niv modify nixpkgs -a branch=nixpkgs-unstable
 
-Usage: niv modify PACKAGE [-n|--name NAME] 
+Usage: niv modify PACKAGE 
                   [(-a|--attribute KEY=VAL) | (-s|--string-attribute KEY=VAL) | 
                     (-b|--branch BRANCH) | (-o|--owner OWNER) | (-r|--rev REV) |
                     (-v|--version VERSION) | (-t|--template URL) | 
@@ -325,7 +341,6 @@ Usage: niv modify PACKAGE [-n|--name NAME]
   Modify dependency attributes without performing an update
 
 Available options:
-  -n,--name NAME           Set the package name to <NAME>
   -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>, where
                            <VAL> may be JSON.
   -s,--string-attribute KEY=VAL

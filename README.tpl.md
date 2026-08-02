@@ -224,6 +224,12 @@ replace_niv_add_help
 replace_niv_update_help
 ```
 
+#### Rename
+
+```
+replace_niv_rename_help
+```
+
 #### Modify
 
 ```

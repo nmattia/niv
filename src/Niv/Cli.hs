@@ -119,6 +119,7 @@ parseCommand =
         <> Opts.command "add" parseCmdAdd
         <> Opts.command "show" parseCmdShow
         <> Opts.command "update" parseCmdUpdate
+        <> Opts.command "rename" parseCmdRename
         <> Opts.command "modify" parseCmdModify
         <> Opts.command "drop" parseCmdDrop
         <> Opts.command "version" parseCmdVersion
@@ -511,13 +512,46 @@ doUpdate attrs cmd = do
     Left e -> throwError $ T.show e
 
 -------------------------------------------------------------------------------
+-- RENAME
+-------------------------------------------------------------------------------
+
+parseCmdRename :: Opts.ParserInfo (NIO ())
+parseCmdRename =
+  Opts.info
+    ((cmdRename <$> parsePackageNameOld <*> parsePackageNameNew) <**> Opts.helper)
+    $ mconcat desc
+  where
+    desc =
+      [ Opts.fullDesc,
+        Opts.progDesc "Rename a package",
+        Opts.headerDoc $
+          Just $
+            Opts.vcat
+              [ "Examples:",
+                "",
+                "  niv rename nixpkgs nixpkgs-unstable"
+              ]
+      ]
+    parsePackageNameOld = PackageName <$> Opts.argument Opts.str (Opts.metavar "OLD")
+    parsePackageNameNew = PackageName <$> Opts.argument Opts.str (Opts.metavar "NEW")
+
+cmdRename :: PackageName -> PackageName -> NIO ()
+cmdRename oldName newName =
+  modifySources $ \(unSources -> sources) -> do
+    spec <- case HMS.lookup oldName sources of
+      Nothing -> abortNoSuchPackage oldName
+      Just spec -> pure spec
+
+    pure $ Sources $ HMS.insert newName spec $ HMS.delete oldName sources
+
+-------------------------------------------------------------------------------
 -- MODIFY
 -------------------------------------------------------------------------------
 
 parseCmdModify :: Opts.ParserInfo (NIO ())
 parseCmdModify =
   Opts.info
-    ((cmdModify <$> parsePackageName <*> optName <*> parsePackageSpec githubCmd) <**> Opts.helper)
+    ((cmdModify <$> parsePackageName <*> parsePackageSpec githubCmd) <**> Opts.helper)
     $ mconcat desc
   where
     desc =
@@ -532,32 +566,16 @@ parseCmdModify =
                 "  niv modify nixpkgs -a branch=nixpkgs-unstable"
               ]
       ]
-    optName =
-      Opts.optional $
-        PackageName
-          <$> Opts.strOption
-            ( Opts.long "name"
-                <> Opts.short 'n'
-                <> Opts.metavar "NAME"
-                <> Opts.help "Set the package name to <NAME>"
-            )
 
--- if mNewName is not null, then rename the package (remove original and insert the new one)
-cmdModify :: PackageName -> Maybe PackageName -> PackageSpec -> NIO ()
-cmdModify packageName mNewName cliSpec =
+cmdModify :: PackageName -> PackageSpec -> NIO ()
+cmdModify packageName cliSpec =
   modifySources $ \(unSources -> sources) -> do
     spec <- case HMS.lookup packageName sources of
       Nothing -> abortNoSuchPackage packageName
       Just spec -> pure spec
 
     let spec' = attrsToSpec (specToLockedAttrs cliSpec <> specToFreeAttrs spec)
-    case mNewName of
-      Just newName -> do
-        when (HMS.member newName sources) $
-          abortCannotRenamePackageExists packageName newName
-        pure $ Sources $ HMS.insert newName spec' $ HMS.delete packageName sources
-      Nothing ->
-        pure $ Sources $ HMS.insert packageName spec' sources
+    pure $ Sources $ HMS.insert packageName spec' sources
 
 -------------------------------------------------------------------------------
 -- DROP
