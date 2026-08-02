@@ -301,10 +301,10 @@ parseCmdAdd =
 
 -- | only used in shortcuts (niv add foo/bar ...) because PACKAGE is NOT
 -- optional
-parseShortcutArgs :: Cmd -> Opts.Parser (PackageName, Attrs)
+parseShortcutArgs :: Cmd -> Opts.Parser (PackageName, PackageSpec)
 parseShortcutArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
   where
-    collapse specAndName pspec = (pname, specToLockedAttrs $ pspec <> baseSpec)
+    collapse specAndName pspec = (pname, pspec <> baseSpec)
       where
         (pname, baseSpec) = case specAndName of
           ((_, spec), Just pname') -> (pname', PackageSpec spec)
@@ -326,10 +326,10 @@ parseShortcutArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec c
             )
 
 -- | only used in command (niv add <cmd> ...) because PACKAGE is optional
-parseCmdArgs :: Cmd -> Opts.Parser (PackageName, Attrs)
+parseCmdArgs :: Cmd -> Opts.Parser (PackageName, PackageSpec)
 parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
   where
-    collapse specAndName pspec = (pname, specToLockedAttrs $ pspec <> baseSpec)
+    collapse specAndName pspec = (pname, pspec <> baseSpec)
       where
         (pname, baseSpec) = case specAndName of
           (Just (_, spec), Just pname') -> (pname', PackageSpec spec)
@@ -354,15 +354,14 @@ parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
                 <> Opts.help "Set the package name to <NAME>"
             )
 
-cmdAdd :: PackageName -> Attrs -> NIO ()
-cmdAdd packageName attrs = do
-  let spec = attrsToSpec attrs
+cmdAdd :: PackageName -> PackageSpec -> NIO ()
+cmdAdd packageName cliSpec = do
   sources <- unSources <$> readSources
   when (HMS.member packageName sources) $ abortCannotAddPackageExists packageName
 
   result <- job (unPackageName packageName) $ do
     say "updating new package..."
-    result <- updatePackage (specToLockedAttrs spec)
+    result <- updatePackage (specToLockedAttrs cliSpec)
     say "package updated"
     pure result
 
