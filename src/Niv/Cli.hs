@@ -456,11 +456,11 @@ parsePackageSpec' = groupOptions "ATTRIBUTES" $ ParsedPackageSpec <$> Opts.some 
         attrOption (key, mods) = (\v -> (key, v)) <$> Opts.strOption (Opts.hidden <> mods)
 
         -- parse any json value as `--attribute 'foo={"hello": "world"}'`
-        -- TODO: this should parse `foo` as `"foo"`
+        -- TODO: explain Aeson.toJSON as fallback
         jsonAttribute :: Opts.Parser (T.Text, Aeson.Value)
         jsonAttribute =
             Opts.option
-                (kvMaybe >>= \(k, v) -> case Aeson.decodeStrict (B8.pack (T.unpack v)) of Just v' -> pure (k, v'); Nothing -> empty)
+                (kvMaybe >>= \(k, v) -> case Aeson.decodeStrict (B8.pack (T.unpack v)) of Just v' -> pure (k, v'); Nothing -> pure (k, Aeson.toJSON v))
                 (Opts.long "attribute" <> Opts.hidden <> Opts.help "..." <> Opts.metavar "KEY=VAL")
 
         -- same as above but force parsing as string
@@ -486,15 +486,46 @@ checkParsedSpec (unParsedPackageSpec -> parsed) = do
 
     pure $ PackageSpec spec
 
+-- TODO: document filter semantics in command help
 cmdUpdate' :: Maybe PackagePattern -> Maybe ParsedPackageSpec -> NIO ()
-cmdUpdate' m ma = do
-    _ <- case ma of 
-        Just parsed -> checkParsedSpec parsed
-    liftIO $ print (unPackagePattern <$> m)
-    liftIO $ print (unParsedPackageSpec <$> ma)
+cmdUpdate' mPat mParsed = do
+
+  cliSpec <- case mParsed of
+    Nothing -> pure Nothing
+    Just parsed -> Just <$> checkParsedSpec parsed
+
+  toUpdate <- readSources <&> \sources -> filterPackages sources mPat
+
+  when (HMS.null $ unSources toUpdate) $ do
+      abort "nothing to update"
+
+  let packageUpdates = (\(pName, spec) -> (pName, spec, cliSpec)) <$> HMS.toList (unSources toUpdate)
+
+  liftIO $ T.putStrLn $ T.pack (show (length packageUpdates)) <> " package(s) to update"
+
+  -- update all packages and separate failures from successes
+  (errs, successes) <- partitionEithers <$> updatePackages packageUpdates
+
+  -- print a short summary
+  liftIO $ T.putStrLn ""
+  unless (null successes) $ do
+    liftIO $ T.putStrLn $ T.pack (show (length successes)) <> " package(s) updated successfully"
+  unless (null errs) $ do
+    liftIO $ T.putStrLn ""
+    liftIO $ T.putStrLn $ T.pack (show (length errs)) <> " package(s) failed to update"
+    liftIO exitFailure
+
+filterPackages :: Sources -> Maybe PackagePattern -> Sources
+filterPackages (unSources -> sources) mPat = Sources $ case mPat of
+            Just (PackagePattern pat) -> case HMS.lookup (PackageName pat) sources of
+                Just exact -> HMS.singleton (PackageName pat) exact
+                Nothing ->
+                    HMS.filterWithKey (\k _ -> unPackageName k == pat) sources
+            Nothing -> HMS.empty
 
 cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
 cmdUpdate updateType = do
+
   -- prepare the updates
   packageUpdates <- case updateType of
     -- no package specified => update everything
