@@ -270,37 +270,55 @@ createFile path content = do
 -- ADD
 -------------------------------------------------------------------------------
 
--- | a string like 'nmattia/niv' that gets turns into a PackageName + PackageSpec
+-- | a string like 'nmattia/niv' that gets turned into a PackageName + PackageSpec
 newtype PackageShortcut = PackageShortcut {unPackageShortcut :: T.Text}
 
 parseCmdAdd :: Opts.ParserInfo (NIO ())
 parseCmdAdd =
   Opts.info
     ((cmdAdd <$> parsePackageShortcut <*> Opts.optional parsePackageSpec) <**> Opts.helper)
-    $ description githubCmd -- TODO: description
+    $ description
   where
     parsePackageShortcut = PackageShortcut <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
+    description = mconcat
+      [ Opts.fullDesc,
+        Opts.progDesc "Add a package",
+        Opts.headerDoc $
+          Just $
+            Opts.vcat
+              [ "Examples:",
+                "",
+                "  niv add stedolan/jq",
+                "  niv add NixOS/nixpkgs -n nixpkgs -b nixpkgs-unstable",
+                "  niv add git@github.com:stedolan/jq", -- TODO: other example
+                "  niv add https://github.com/stedolan/jq.git --rev deadb33f"
+              ]
+      ]
 
--- rename: tryRealizeShortcut
-inferCmdFromShortcut :: [Cmd] -> PackageShortcut -> [(PackageName, PackageSpec)]
-inferCmdFromShortcut cmds (unPackageShortcut -> shortcut) =
-  mapMaybe (\cmd -> parseCmdShortcut cmd shortcut) cmds
+-- Try to expand the shortcut with all commands and return successfully if exactly one matches
+-- TODO: add test that shortcuts don't overlap
+expandShortcut :: [Cmd] -> PackageShortcut -> NIO (PackageName, PackageSpec)
+expandShortcut cmds (unPackageShortcut -> shortcut) = do
+  let expanded = mapMaybe (\cmd -> parseCmdShortcut cmd shortcut) cmds
 
-cmdAdd :: PackageShortcut -> Maybe ParsedPackageSpec -> NIO ()
-cmdAdd shortcut mParsed = do
-  results <- getCmds <&> \cmds -> inferCmdFromShortcut cmds shortcut
-
-  cliSpec' <- case mParsed of
-    Nothing -> pure $ PackageSpec KM.empty
-    Just parsed -> checkParsedSpec parsed
-
-  (packageName, cliSpec'') <- case results of
-    [] -> error "TODO" -- instead of erroring out we could simply add the name & spec as-is
+  case expanded of
+    [] -> error "TODO" -- this should create a package with name <shortcut>
     [x] -> pure x
     xs -> error $ "consider using --type TODO" <> show xs
 
-  -- TODO: which takes precedence and which _should_ take precedence?
-  let cliSpec = cliSpec' <> cliSpec''
+cmdAdd :: PackageShortcut -> Maybe ParsedPackageSpec -> NIO ()
+cmdAdd shortcut mParsed = do
+
+  -- fully realize the spec passed as `--attribute ...`, if any
+  cliSpecAttrs <- case mParsed of
+    Nothing -> pure $ PackageSpec KM.empty
+    Just parsed -> checkParsedSpec parsed
+
+  -- try to expand the shortcut
+  (packageName, cliSpecShortcut) <- getCmds >>= \cmds -> expandShortcut cmds shortcut
+
+  -- merge the specs: in case of conflict, the `--attribute ...` takes precedence
+  let cliSpec = cliSpecAttrs <> cliSpecShortcut -- left biaised via Data.Aeson.KeyMap
 
   sources <- unSources <$> readSources
   when (HMS.member packageName sources) $ abortCannotAddPackageExists packageName
@@ -349,6 +367,23 @@ showPackage (PackageName pname) (PackageSpec spec) = do
 -------------------------------------------------------------------------------
 -- UPDATE
 -------------------------------------------------------------------------------
+
+-- | a pattern to match on package names
+newtype PackagePattern = PackagePattern {unPackagePattern :: T.Text}
+
+parsePackagePattern :: Opts.Parser PackagePattern
+parsePackagePattern = PackagePattern <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
+
+-- | filter out packages based on a pattern
+filterPackages :: Sources -> Maybe PackagePattern -> Sources
+filterPackages (unSources -> sources) mPat = Sources $ case mPat of
+  -- no pattern: return all packages
+  Nothing -> sources
+  -- pattern (filter) provided: match exact
+  Just (PackagePattern pat) -> case HMS.lookup (PackageName pat) sources of
+    Just exact -> HMS.singleton (PackageName pat) exact
+    Nothing ->
+      HMS.filterWithKey (\k _ -> unPackageName k == pat) sources
 
 parseCmdUpdate :: Opts.ParserInfo (NIO ())
 parseCmdUpdate =
@@ -402,6 +437,7 @@ updatePackage attrs = do
 -- For each package, the package name and final state are returned.
 updatePackages :: [(PackageName, PackageSpec, Maybe PackageSpec)] -> NIO [Either () ()]
 updatePackages packageUpdates = do
+
   -- prepare some padding for package names so that the output is aligned
   let maxNameLength = maximum $ (\(p, _, _) -> T.length $ unPackageName p) <$> packageUpdates
       padName (PackageName p) = p <> T.replicate (maxNameLength - T.length p) " "
@@ -418,7 +454,6 @@ updatePackages packageUpdates = do
         pure $ Right ()
       Left _ -> pure $ Left ()
 
--- TODO: document filter semantics in command help
 cmdUpdate :: Maybe PackagePattern -> Maybe ParsedPackageSpec -> NIO ()
 cmdUpdate mPat mParsed = do
   cliSpec <- case mParsed of
@@ -446,15 +481,21 @@ cmdUpdate mPat mParsed = do
     liftIO $ T.putStrLn $ T.pack (show (length errs)) <> " package(s) failed to update"
     liftIO exitFailure
 
-newtype PackagePattern = PackagePattern {unPackagePattern :: T.Text}
 
-parsePackagePattern :: Opts.Parser PackagePattern
-parsePackagePattern = PackagePattern <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
-
+-- | A package spec as parsed (may be malformed and contain the same attributes multiple times)
 newtype ParsedPackageSpec = ParsedPackageSpec {unParsedPackageSpec :: [(T.Text, Aeson.Value)]}
 
+-- | Collapse the parsed spec into something usable, potentially erroring out
+checkParsedSpec :: ParsedPackageSpec -> NIO PackageSpec
+checkParsedSpec (unParsedPackageSpec -> parsed) = do
+  let spec = KM.fromList $ (\(k, v) -> (fromString $ T.unpack k, v)) <$> parsed
+
+  when (KM.size spec /= length parsed) $ do
+    abort "NOPE" -- TODO: list attribtues appearing multiple times
+
+  pure $ PackageSpec spec
+
 -- Parse a package spec, where any attribute can be specified at most once.
--- TODO: explain groupOptions and 'hidden'
 parsePackageSpec :: Opts.Parser ParsedPackageSpec
 parsePackageSpec = groupOptions "ATTRIBUTES" $ ParsedPackageSpec <$> Opts.some (jsonAttribute <|> stringAttribute <|> knownAttribute)
   where
@@ -511,7 +552,8 @@ parsePackageSpec = groupOptions "ATTRIBUTES" $ ParsedPackageSpec <$> Opts.some (
     attrOption key mods = (\v -> (key, v)) <$> Opts.strOption (Opts.hidden <> mods)
 
     -- parse any json value as `--attribute 'foo={"hello": "world"}'`
-    -- TODO: explain Aeson.toJSON as fallback
+    -- NOTE: if the string fails to parse as JSON we assume it's a string (a string itself like 'foo' won't
+    -- successfully parse as a JSON string, only '"foo"' would)
     jsonAttribute :: Opts.Parser (T.Text, Aeson.Value)
     jsonAttribute =
       Opts.option
@@ -540,25 +582,6 @@ parsePackageSpec = groupOptions "ATTRIBUTES" $ ParsedPackageSpec <$> Opts.some (
     kvMaybe = Opts.maybeReader $ \str -> case span (/= '=') str of
       (k, '=' : v) -> Just (T.pack k, T.pack v)
       _ -> Nothing
-
-checkParsedSpec :: ParsedPackageSpec -> NIO PackageSpec
-checkParsedSpec (unParsedPackageSpec -> parsed) = do
-  let spec = KM.fromList $ (\(k, v) -> (fromString $ T.unpack k, v)) <$> parsed
-
-  when (KM.size spec /= length parsed) $ do
-    abort "NOPE"
-
-  pure $ PackageSpec spec
-
-filterPackages :: Sources -> Maybe PackagePattern -> Sources
-filterPackages (unSources -> sources) mPat = Sources $ case mPat of
-  -- no pattern: return all packages
-  Nothing -> sources
-  -- pattern (filter) provided: match exact
-  Just (PackagePattern pat) -> case HMS.lookup (PackageName pat) sources of
-    Just exact -> HMS.singleton (PackageName pat) exact
-    Nothing ->
-      HMS.filterWithKey (\k _ -> unPackageName k == pat) sources
 
 -- | pretty much tryEvalUpdate but we might issue some warnings first
 doUpdate :: Attrs -> Cmd -> Job Attrs

@@ -1,15 +1,11 @@
-{-# LANGUAGE RankNTypes #-}
-
 module Niv.Cmd where
 
 import qualified Data.Text as T
 import Niv.Sources
 import Niv.Update
-import qualified Options.Applicative as Opts
 
 data Cmd = Cmd
-  { description :: forall a. Opts.InfoMod a,
-    -- | Important: if an object is returned, then it should be accepted by 'acceptsCmd'
+  { -- | Important: if an object is returned, then it should be accepted by 'acceptsCmd'
     parseCmdShortcut :: T.Text -> Maybe (PackageName, PackageSpec),
 
     updateCmd :: Update () (),

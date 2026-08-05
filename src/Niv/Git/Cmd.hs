@@ -17,8 +17,6 @@ import qualified Data.Text as T
 import Niv.Cmd
 import Niv.Sources
 import Niv.Update
-import qualified Options.Applicative as Opts
-import qualified Options.Applicative.Help.Pretty as Opts
 import System.Exit (ExitCode (ExitSuccess))
 import System.Process (readProcessWithExitCode)
 import UnliftIO
@@ -26,8 +24,7 @@ import UnliftIO
 gitCmd :: Cmd
 gitCmd =
   Cmd
-    { description = describeGit,
-      parseCmdShortcut = parseGitShortcut,
+    { parseCmdShortcut = parseGitShortcut,
       updateCmd = gitUpdate',
       name = "git",
       extraLogs = gitExtraLogs,
@@ -69,22 +66,6 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) = second PackageSpec <$>
         || "ssh://"
           `T.isPrefixOf` txt
 
-describeGit :: Opts.InfoMod a
-describeGit =
-  mconcat
-    [ Opts.fullDesc,
-      Opts.progDesc "Add a git dependency. Experimental.",
-      Opts.headerDoc $
-        Just $
-          Opts.vcat
-            [ "Examples:",
-              "",
-              "  niv add git git@github.com:stedolan/jq",
-              "  niv add git ssh://git@github.com/stedolan/jq --rev deadb33f",
-              "  niv add git https://github.com/stedolan/jq.git",
-              "  niv add git --repo /my/custom/repo --name custom --branch development"
-            ]
-    ]
 
 gitUpdate ::
   -- | latest rev

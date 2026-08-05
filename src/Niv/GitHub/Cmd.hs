@@ -21,38 +21,19 @@ import Niv.GitHub
 import Niv.GitHub.API
 import Niv.Sources
 import Niv.Update
-import qualified Options.Applicative as Opts
-import qualified Options.Applicative.Help.Pretty as Opts
 import System.Exit (ExitCode (ExitSuccess))
 import System.Process (readProcessWithExitCode)
 
 githubCmd :: Cmd
 githubCmd =
   Cmd
-    { description = describeGitHub,
-      parseCmdShortcut = parseAddShortcutGitHub,
+    { parseCmdShortcut = parseAddShortcutGitHub,
       updateCmd = githubUpdate',
       name = "github",
       extraLogs = const [],
       acceptsCmd = \(unPackageSpec -> spec) ->
         (KM.member "repo" spec && KM.member "owner" spec) || KM.member "url_template" spec
     }
-
-describeGitHub :: Opts.InfoMod a
-describeGitHub =
-  mconcat
-    [ Opts.fullDesc,
-      Opts.progDesc "Add a GitHub dependency",
-      Opts.headerDoc $
-        Just $
-          Opts.vcat
-            [ "Examples:",
-              "",
-              "  niv add stedolan/jq",
-              "  niv add NixOS/nixpkgs -n nixpkgs -b nixpkgs-unstable",
-              "  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip"
-            ]
-    ]
 
 -- parse a github shortcut of the form "owner/repo"
 parseAddShortcutGitHub :: T.Text -> Maybe (PackageName, PackageSpec)
