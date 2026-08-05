@@ -6,17 +6,13 @@
 
 module Niv.Git.Cmd where
 
-import Control.Applicative
 import Control.Arrow
 import Control.Monad.Except (throwError)
 import Data.Aeson ((.=))
 import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
-import qualified Data.ByteString.Char8 as B8
 import Data.Char (isDigit)
 import qualified Data.HashMap.Strict as HMS
-import Data.Maybe
 import qualified Data.Text as T
 import Niv.Cmd
 import Niv.Sources
@@ -32,7 +28,6 @@ gitCmd =
   Cmd
     { description = describeGit,
       parseCmdShortcut = parseGitShortcut,
-      parsePackageSpec = parseGitPackageSpec,
       updateCmd = gitUpdate',
       name = "git",
       extraLogs = gitExtraLogs,
@@ -55,8 +50,8 @@ gitExtraLogs attrs = noteRef <> warnRefBranch <> warnRefTag
     member x = HMS.member x attrs
     textIf cond txt = [txt | cond]
 
-parseGitShortcut :: T.Text -> Maybe (PackageName, Aeson.Object)
-parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
+parseGitShortcut :: T.Text -> Maybe (PackageName, PackageSpec)
+parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) = second PackageSpec <$>
   -- basic heuristics for figuring out if something is a git repo
   if isGitURL
     then case T.splitOn "/" txt of
@@ -73,58 +68,6 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
           `T.isPrefixOf` txt
         || "ssh://"
           `T.isPrefixOf` txt
-
-parseGitPackageSpec :: Opts.Parser PackageSpec
-parseGitPackageSpec =
-  PackageSpec . KM.fromList . (["type" .= Aeson.String "git"] <> )
-    <$> many (parseRepo <|> parseBranch <|> parseRev <|> parseAttr <|> parseSAttr)
-  where
-    parseRepo =
-      ("repo",) . Aeson.String
-        <$> Opts.strOption
-          ( Opts.long "repo"
-              <> Opts.metavar "URL"
-          )
-    parseRev =
-      ("rev",) . Aeson.String
-        <$> Opts.strOption
-          ( Opts.long "rev"
-              <> Opts.metavar "SHA"
-          )
-    parseBranch =
-      ("branch",) . Aeson.String
-        <$> Opts.strOption
-          ( Opts.long "branch"
-              <> Opts.short 'b'
-              <> Opts.metavar "BRANCH"
-          )
-    parseAttr =
-      Opts.option
-        (Opts.maybeReader parseKeyValJSON)
-        ( Opts.long "attribute"
-            <> Opts.short 'a'
-            <> Opts.metavar "KEY=VAL"
-            <> Opts.help "Set the package spec attribute <KEY> to <VAL>, where <VAL> may be JSON."
-        )
-    parseSAttr =
-      Opts.option
-        (Opts.maybeReader (parseKeyVal Aeson.toJSON))
-        ( Opts.long "string-attribute"
-            <> Opts.short 's'
-            <> Opts.metavar "KEY=VAL"
-            <> Opts.help "Set the package spec attribute <KEY> to <VAL>."
-        )
-    parseKeyValJSON = parseKeyVal $ \x ->
-      fromMaybe (Aeson.toJSON x) (Aeson.decodeStrict (B8.pack x))
-    -- Parse "key=val" into ("key", val)
-    parseKeyVal ::
-      -- how to convert to JSON
-      (String -> Aeson.Value) ->
-      String ->
-      Maybe (K.Key, Aeson.Value)
-    parseKeyVal toJSON str = case span (/= '=') str of
-      (key, '=' : val) -> Just (K.fromString key, toJSON val)
-      _ -> Nothing
 
 describeGit :: Opts.InfoMod a
 describeGit =

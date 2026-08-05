@@ -10,15 +10,10 @@ module Niv.GitHub.Cmd
   )
 where
 
-import Control.Applicative
 import Data.Aeson ((.=))
-import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import Data.Bifunctor
-import qualified Data.ByteString.Char8 as B8
 import Data.Char (isAlphaNum)
-import Data.Maybe
 import Data.String.QQ (s)
 import qualified Data.Text as T
 import Niv.Cmd
@@ -36,87 +31,12 @@ githubCmd =
   Cmd
     { description = describeGitHub,
       parseCmdShortcut = parseAddShortcutGitHub,
-      parsePackageSpec = parseGitHubPackageSpec,
       updateCmd = githubUpdate',
       name = "github",
       extraLogs = const [],
       acceptsCmd = \(unPackageSpec -> spec) ->
         (KM.member "repo" spec && KM.member "owner" spec) || KM.member "url_template" spec
     }
-
-parseGitHubPackageSpec :: Opts.Parser PackageSpec
-parseGitHubPackageSpec =
-  PackageSpec . KM.fromList
-    <$> many parseAttribute
-  where
-    parseAttribute :: Opts.Parser (K.Key, Aeson.Value)
-    parseAttribute =
-      Opts.option
-        (Opts.maybeReader parseKeyValJSON)
-        ( Opts.long "attribute"
-            <> Opts.short 'a'
-            <> Opts.metavar "KEY=VAL"
-            <> Opts.help "Set the package spec attribute <KEY> to <VAL>, where <VAL> may be JSON."
-        )
-        <|> Opts.option
-          (Opts.maybeReader (parseKeyVal Aeson.toJSON))
-          ( Opts.long "string-attribute"
-              <> Opts.short 's'
-              <> Opts.metavar "KEY=VAL"
-              <> Opts.help "Set the package spec attribute <KEY> to <VAL>."
-          )
-        <|> shortcutAttributes
-        <|> ( ("url_template",) . Aeson.String
-                <$> Opts.strOption
-                  ( Opts.long "template"
-                      <> Opts.short 't'
-                      <> Opts.metavar "URL"
-                      <> Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
-                  )
-            )
-        <|> ( ("type",) . Aeson.String
-                <$> Opts.strOption
-                  ( Opts.long "type"
-                      <> Opts.short 'T'
-                      <> Opts.metavar "TYPE"
-                      <> Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
-                  )
-            )
-    parseKeyValJSON = parseKeyVal $ \x ->
-      fromMaybe (Aeson.toJSON x) (Aeson.decodeStrict (B8.pack x))
-    -- Parse "key=val" into ("key", val)
-    parseKeyVal ::
-      -- how to convert to JSON
-      (String -> Aeson.Value) ->
-      String ->
-      Maybe (K.Key, Aeson.Value)
-    parseKeyVal toJSON str = case span (/= '=') str of
-      (key, '=' : val) -> Just (K.fromString key, toJSON val)
-      _ -> Nothing
-    -- Shortcuts for common attributes
-    shortcutAttributes :: Opts.Parser (K.Key, Aeson.Value)
-    shortcutAttributes =
-      foldr ((<|>) . mkShortcutAttribute) empty ["branch", "owner", "rev", "version"]
-    -- TODO: infer those shortcuts from 'Update' keys
-    mkShortcutAttribute :: T.Text -> Opts.Parser (K.Key, Aeson.Value)
-    mkShortcutAttribute = \case
-      attr@(T.uncons -> Just (c, _)) ->
-        fmap (second Aeson.String) $
-          (K.fromText attr,)
-            <$> Opts.strOption
-              ( Opts.long (T.unpack attr)
-                  <> Opts.short c
-                  <> Opts.metavar (T.unpack $ T.toUpper attr)
-                  <> Opts.help
-                    ( T.unpack $
-                        "Equivalent to --attribute "
-                          <> attr
-                          <> "=<"
-                          <> T.toUpper attr
-                          <> ">"
-                    )
-              )
-      _ -> empty
 
 describeGitHub :: Opts.InfoMod a
 describeGitHub =
@@ -135,8 +55,8 @@ describeGitHub =
     ]
 
 -- parse a github shortcut of the form "owner/repo"
-parseAddShortcutGitHub :: T.Text -> Maybe (PackageName, Aeson.Object)
-parseAddShortcutGitHub str =
+parseAddShortcutGitHub :: T.Text -> Maybe (PackageName, PackageSpec)
+parseAddShortcutGitHub str = second PackageSpec <$>
   -- parses a string "owner/repo" into package name (repo) and spec (owner +
   -- repo)
   case T.span (/= '/') str of

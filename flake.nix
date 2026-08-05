@@ -10,6 +10,13 @@
       let
         pkgs = nixpkgs.legacyPackages."${system}";
 
+        haskellPackages = pkgs.haskellPackages.override {
+                overrides = self: super: {
+                    # 0.19+ is required for niv to build and at the time of writing nixpkgs defaults to 0.18
+                    optparse-applicative = self.optparse-applicative_0_19_0_0;
+                };
+            };
+
         sourceByRegex = name: src: regexes:
           builtins.path {
             filter = path: type:
@@ -45,7 +52,7 @@
           "^nix.sources.nix$"
         ];
 
-        niv = pkgs.haskellPackages.callPackage
+        niv = haskellPackages.callPackage
           (
             { aeson
             , aeson-pretty
