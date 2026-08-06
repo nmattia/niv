@@ -892,7 +892,7 @@ abort msg = do
   liftIO $ T.putStrLn $ T.unwords [tbold (tred "FATAL") <> ":", msg]
   liftIO exitFailure
 
--- Error if no update Cmd is suited to the package
+-- error if the command to use is ambiguous
 abortManyCommandsForShortcut :: PackageShortcut -> NIO a
 abortManyCommandsForShortcut (unPackageShortcut -> shortcut) =
   abort $ bug $ "shortcut matched multiple commands: " <> shortcut
