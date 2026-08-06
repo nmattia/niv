@@ -296,15 +296,18 @@ parseCmdAdd =
       ]
 
 -- Try to expand the shortcut with all commands and return successfully if exactly one matches
--- TODO: add test that shortcuts don't overlap
 expandShortcut :: [Cmd] -> PackageShortcut -> NIO (PackageName, PackageSpec)
 expandShortcut cmds (unPackageShortcut -> shortcut) = do
   let expanded = mapMaybe (\cmd -> parseCmdShortcut cmd shortcut) cmds
 
   case expanded of
-    [] -> error "TODO" -- this should create a package with name <shortcut>
+    -- no match: create a dummy package with name <shortcut> and hope the user provides enough attributes
+    -- via `--attribute ...`
+    [] -> pure (PackageName shortcut, mempty)
+    -- exactly one match: use this
     [x] -> pure x
-    xs -> error $ "consider using --type TODO" <> show xs
+    -- 1+ match: this is a bug
+    _ -> abortManyCommandsForShortcut (PackageShortcut shortcut)
 
 cmdAdd :: PackageShortcut -> Maybe ParsedPackageSpec -> NIO ()
 cmdAdd shortcut mParsed = do
@@ -488,12 +491,18 @@ newtype ParsedPackageSpec = ParsedPackageSpec {unParsedPackageSpec :: [(T.Text, 
 -- | Collapse the parsed spec into something usable, potentially erroring out
 checkParsedSpec :: ParsedPackageSpec -> NIO PackageSpec
 checkParsedSpec (unParsedPackageSpec -> parsed) = do
-  let spec = KM.fromList $ (\(k, v) -> (fromString $ T.unpack k, v)) <$> parsed
 
-  when (KM.size spec /= length parsed) $ do
-    abort "NOPE" -- TODO: list attribtues appearing multiple times
+  -- count how many times an attribute is seen, and then filter on the "offending" ones which have been seen
+  -- more than once
+  let counts = foldl'
+                (\acc (k, _) -> HMS.alter (\case Nothing -> Just (1::Int); Just n -> Just (n+1)) k acc)
+                HMS.empty parsed
+      offending = HMS.filter (\n -> n > 1) counts
 
-  pure $ PackageSpec spec
+  when (not $ HMS.null offending) $ do
+    abortAttributeRepeated (HMS.keys offending)
+
+  pure $ PackageSpec $ KM.fromList $ (\(k, v) -> (fromString $ T.unpack k, v)) <$> parsed
 
 -- Parse a package spec, where any attribute can be specified at most once.
 parsePackageSpec :: Opts.Parser ParsedPackageSpec
@@ -870,6 +879,16 @@ abort :: (MonadIO io) => T.Text -> io a
 abort msg = do
   liftIO $ T.putStrLn $ T.unwords [tbold (tred "FATAL") <> ":", msg]
   liftIO exitFailure
+
+-- Error if no update Cmd is suited to the package
+abortManyCommandsForShortcut :: PackageShortcut -> NIO a
+abortManyCommandsForShortcut (unPackageShortcut -> shortcut) =
+  abort $ bug $ "shortcut matched multiple commands: " <> shortcut
+
+-- We don't allow attributes to be specified multiple times
+abortAttributeRepeated :: [T.Text] -> NIO a
+abortAttributeRepeated ks =
+  abort $ "some attributes were specified multiple times: " <> T.intercalate "," ks
 
 abortNoSuchPackage :: (MonadIO io) => PackageName -> io a
 abortNoSuchPackage (unPackageName -> packageName) =
