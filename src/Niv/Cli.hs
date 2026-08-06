@@ -326,7 +326,7 @@ cmdAdd shortcut mPackageName mParsed = do
                         Nothing -> packageName'
 
   -- merge the specs: in case of conflict, the `--attribute ...` takes precedence
-  let cliSpec = cliSpecAttrs <> cliSpecShortcut -- left biaised via Data.Aeson.KeyMap
+  let cliSpec = cliSpecAttrs <> cliSpecShortcut -- left biased via Data.Aeson.KeyMap
   sources <- unSources <$> readSources
   when (HMS.member packageName sources) $ abortCannotAddPackageExists packageName
 
