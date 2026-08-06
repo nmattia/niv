@@ -224,7 +224,7 @@ Available options:
 Available commands:
   init                     Initialize a Nix project. Existing files won't be
                            modified.
-  add                      Add a GitHub dependency
+  add                      Add a package
   show                     
   update                   Update dependencies
   rename                   Rename a package
@@ -239,39 +239,33 @@ Available commands:
 ```
 Examples:
 
-  niv add stedolan/jq
-  niv add NixOS/nixpkgs -n nixpkgs -b nixpkgs-unstable
-  niv add my-package -v alpha-0.1 -t http://example.com/archive/<version>.zip
+  niv add stedolan/jq # add a GitHub repo
+  niv add NixOS/nixpkgs -b nixpkgs-unstable # use non-default branch
+  niv add neovim/neovim --name vim # override inferred name
+  niv add https://gcc.gnu.org/git/gcc.git # add an arbitrary Git repo
 
-Usage: niv add PACKAGE [-n|--name NAME] 
-                 [(-a|--attribute KEY=VAL) | (-s|--string-attribute KEY=VAL) | 
-                   (-b|--branch BRANCH) | (-o|--owner OWNER) | (-r|--rev REV) | 
-                   (-v|--version VERSION) | (-t|--template URL) | 
-                   (-T|--type TYPE)]
+Usage: niv add PACKAGE [-n|--name ARG] [ATTRIBUTES]
 
-  Add a GitHub dependency
+  Add a package
 
-Available options:
-  -n,--name NAME           Set the package name to <NAME>
+ATTRIBUTES
   -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>, where
                            <VAL> may be JSON.
   -s,--string-attribute KEY=VAL
                            Set the package spec attribute <KEY> to <VAL>.
-  -b,--branch BRANCH       Equivalent to --attribute branch=<BRANCH>
-  -o,--owner OWNER         Equivalent to --attribute owner=<OWNER>
-  -r,--rev REV             Equivalent to --attribute rev=<REV>
-  -v,--version VERSION     Equivalent to --attribute version=<VERSION>
+  -o,--owner OWNER         Set the repository owner (for git/github)
+  --repo REPO              Set the repository name (for git/github)
+  -b,--branch BRANCH       Set the branch (for git/github)
+  -r,--rev REV             Set the revision/commit (for git/github)
+  -v,--version VERSION     Set the version
   -t,--template URL        Used during 'update' when building URL. Occurrences
                            of <foo> are replaced with attribute 'foo'.
   -T,--type TYPE           The type of the URL target. The value can be either
                            'file' or 'tarball'. If not set, the value is
                            inferred from the suffix of the URL.
-  -h,--help                Show this help text
 
-Experimental commands:
-  git                      Add a git dependency. Experimental.
-  github                   Add a GitHub dependency
-  local                    Add a local dependency. Experimental.
+Available options:
+  -h,--help                Show this help text
 ```
 
 #### Update
@@ -283,29 +277,27 @@ Examples:
   niv update nixpkgs             # update nixpkgs
   niv update my-package -v beta-0.2 # update my-package to version "beta-0.2"
 
-Usage: niv update [PACKAGE 
-                    [(-a|--attribute KEY=VAL) | 
-                      (-s|--string-attribute KEY=VAL) | (-b|--branch BRANCH) | 
-                      (-o|--owner OWNER) | (-r|--rev REV) | 
-                      (-v|--version VERSION) | (-t|--template URL) | 
-                      (-T|--type TYPE)]]
+Usage: niv update [PACKAGE] [ATTRIBUTES]
 
   Update dependencies
 
-Available options:
+ATTRIBUTES
   -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>, where
                            <VAL> may be JSON.
   -s,--string-attribute KEY=VAL
                            Set the package spec attribute <KEY> to <VAL>.
-  -b,--branch BRANCH       Equivalent to --attribute branch=<BRANCH>
-  -o,--owner OWNER         Equivalent to --attribute owner=<OWNER>
-  -r,--rev REV             Equivalent to --attribute rev=<REV>
-  -v,--version VERSION     Equivalent to --attribute version=<VERSION>
+  -o,--owner OWNER         Set the repository owner (for git/github)
+  --repo REPO              Set the repository name (for git/github)
+  -b,--branch BRANCH       Set the branch (for git/github)
+  -r,--rev REV             Set the revision/commit (for git/github)
+  -v,--version VERSION     Set the version
   -t,--template URL        Used during 'update' when building URL. Occurrences
                            of <foo> are replaced with attribute 'foo'.
   -T,--type TYPE           The type of the URL target. The value can be either
                            'file' or 'tarball'. If not set, the value is
                            inferred from the suffix of the URL.
+
+Available options:
   -h,--help                Show this help text
 ```
 
@@ -332,28 +324,27 @@ Examples:
   niv modify nixpkgs -v beta-0.2
   niv modify nixpkgs -a branch=nixpkgs-unstable
 
-Usage: niv modify PACKAGE 
-                  [(-a|--attribute KEY=VAL) | (-s|--string-attribute KEY=VAL) | 
-                    (-b|--branch BRANCH) | (-o|--owner OWNER) | (-r|--rev REV) |
-                    (-v|--version VERSION) | (-t|--template URL) | 
-                    (-T|--type TYPE)]
+Usage: niv modify PACKAGE ATTRIBUTES
 
   Modify dependency attributes without performing an update
 
-Available options:
+ATTRIBUTES
   -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>, where
                            <VAL> may be JSON.
   -s,--string-attribute KEY=VAL
                            Set the package spec attribute <KEY> to <VAL>.
-  -b,--branch BRANCH       Equivalent to --attribute branch=<BRANCH>
-  -o,--owner OWNER         Equivalent to --attribute owner=<OWNER>
-  -r,--rev REV             Equivalent to --attribute rev=<REV>
-  -v,--version VERSION     Equivalent to --attribute version=<VERSION>
+  -o,--owner OWNER         Set the repository owner (for git/github)
+  --repo REPO              Set the repository name (for git/github)
+  -b,--branch BRANCH       Set the branch (for git/github)
+  -r,--rev REV             Set the revision/commit (for git/github)
+  -v,--version VERSION     Set the version
   -t,--template URL        Used during 'update' when building URL. Occurrences
                            of <foo> are replaced with attribute 'foo'.
   -T,--type TYPE           The type of the URL target. The value can be either
                            'file' or 'tarball'. If not set, the value is
                            inferred from the suffix of the URL.
+
+Available options:
   -h,--help                Show this help text
 ```
 

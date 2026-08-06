@@ -34,7 +34,7 @@
       mkdir -p nix
       echo "{}" > nix/sources.json
       niv init --latest
-      niv add local --name my-dir --path=$localdir
+      niv add my-dir --attribute path=$localdir --type local
 
       nivdir=$(nix eval --json --impure --expr '(import ./nix/sources.nix).my-dir.path' | jq -r)
       if [ ! "$localdir" = "$nivdir" ]; then

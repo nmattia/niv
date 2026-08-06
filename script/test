@@ -4,7 +4,7 @@ set -euo pipefail
 
 echo "building niv"
 
-nix build .#niv --no-link
+nix build .#niv --no-link --max-jobs auto
 
 echo "running checks"
 
