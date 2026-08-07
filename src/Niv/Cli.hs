@@ -526,13 +526,13 @@ parsePackageSpec = groupOptions "ATTRIBUTES" $ ParsedPackageSpec <$> Opts.some (
         ( Opts.long "owner"
             <> Opts.short 'o'
             <> Opts.metavar "OWNER"
-            <> Opts.help "Set the repository owner (for git/github)"
+            <> Opts.help "Set the repository owner (for github)"
         )
         <|> attrOption
           "repo"
           ( Opts.long "repo"
               <> Opts.metavar "REPO"
-              <> Opts.help "Set the repository name (for git/github)"
+              <> Opts.help "Set the repository name (for github)"
           )
         <|> attrOption
           "branch"

@@ -253,8 +253,8 @@ ATTRIBUTES
                            <VAL> may be JSON.
   -s,--string-attribute KEY=VAL
                            Set the package spec attribute <KEY> to <VAL>.
-  -o,--owner OWNER         Set the repository owner (for git/github)
-  --repo REPO              Set the repository name (for git/github)
+  -o,--owner OWNER         Set the repository owner (for github)
+  --repo REPO              Set the repository name (for github)
   -b,--branch BRANCH       Set the branch (for git/github)
   -r,--rev REV             Set the revision/commit (for git/github)
   -v,--version VERSION     Set the version
@@ -286,8 +286,8 @@ ATTRIBUTES
                            <VAL> may be JSON.
   -s,--string-attribute KEY=VAL
                            Set the package spec attribute <KEY> to <VAL>.
-  -o,--owner OWNER         Set the repository owner (for git/github)
-  --repo REPO              Set the repository name (for git/github)
+  -o,--owner OWNER         Set the repository owner (for github)
+  --repo REPO              Set the repository name (for github)
   -b,--branch BRANCH       Set the branch (for git/github)
   -r,--rev REV             Set the revision/commit (for git/github)
   -v,--version VERSION     Set the version
@@ -333,8 +333,8 @@ ATTRIBUTES
                            <VAL> may be JSON.
   -s,--string-attribute KEY=VAL
                            Set the package spec attribute <KEY> to <VAL>.
-  -o,--owner OWNER         Set the repository owner (for git/github)
-  --repo REPO              Set the repository name (for git/github)
+  -o,--owner OWNER         Set the repository owner (for github)
+  --repo REPO              Set the repository name (for github)
   -b,--branch BRANCH       Set the branch (for git/github)
   -r,--rev REV             Set the revision/commit (for git/github)
   -v,--version VERSION     Set the version
