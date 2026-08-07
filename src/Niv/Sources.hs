@@ -80,7 +80,7 @@ newtype PackageName = PackageName {unPackageName :: T.Text}
   deriving newtype (Eq, Hashable, FromJSONKey, ToJSONKey, Show)
 
 newtype PackageSpec = PackageSpec {unPackageSpec :: Aeson.Object}
-  deriving newtype (FromJSON, ToJSON, Show, Semigroup, Monoid)
+  deriving newtype (FromJSON, ToJSON, Show, Semigroup, Monoid, Eq)
 
 -- | Simply discards the 'Freedom'
 attrsToSpec :: Attrs -> PackageSpec

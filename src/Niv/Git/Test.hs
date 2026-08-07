@@ -32,21 +32,21 @@ test_repositoryParse =
       Tasty.testCase "git@github.com:nmattia/niv" $
         parseGitShortcut "git@github.com:nmattia/niv"
           @=? Just
-            (PackageName "niv", KM.fromList [ "repo" .= Aeson.String "git@github.com:nmattia/niv" , "type" .= Aeson.String "git" ]),
+            (PackageName "niv", PackageSpec $ KM.fromList [ "repo" .= Aeson.String "git@github.com:nmattia/niv" , "type" .= Aeson.String "git" ]),
       Tasty.testCase "ssh://git@github.com/stedolan/jq" $
         parseGitShortcut "ssh://git@github.com/stedolan/jq"
           @=? Just
-            (PackageName "jq", KM.fromList [ "repo" .= Aeson.String "ssh://git@github.com/stedolan/jq", "type" .= Aeson.String "git" ]),
+            (PackageName "jq", PackageSpec $ KM.fromList [ "repo" .= Aeson.String "ssh://git@github.com/stedolan/jq", "type" .= Aeson.String "git" ]),
       Tasty.testCase "https://github.com/stedolan/jq.git" $
         parseGitShortcut "https://github.com/stedolan/jq.git"
           @=? Just
-            (PackageName "jq", KM.fromList [ "repo" .= Aeson.String "https://github.com/stedolan/jq.git", "type" .= Aeson.String "git" ]),
+            (PackageName "jq", PackageSpec $ KM.fromList [ "repo" .= Aeson.String "https://github.com/stedolan/jq.git", "type" .= Aeson.String "git" ]),
       Tasty.testCase "https://github.com/stedolan/jq" $
         parseGitShortcut "https://github.com/stedolan/jq" @=? Nothing,
       Tasty.testCase "~/path/to/repo.git" $
         parseGitShortcut "~/path/to/repo.git"
           @=? Just
-            (PackageName "repo", KM.fromList [ "repo" .= Aeson.String "~/path/to/repo.git", "type" .= Aeson.String "git" ])
+            (PackageName "repo", PackageSpec $ KM.fromList [ "repo" .= Aeson.String "~/path/to/repo.git", "type" .= Aeson.String "git" ])
     ]
 
 test_gitUpdates :: Tasty.TestTree

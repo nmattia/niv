@@ -23,10 +23,13 @@ import Data.Functor ((<&>))
 import qualified Data.HashMap.Strict as HMS
 import Data.HashMap.Strict.Extended
 import Data.List (find)
+import Data.Maybe
+import Data.String (fromString)
 import Data.String.QQ (s)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Version (showVersion)
+import GHC.IO.Encoding (utf8)
 import qualified Network.HTTP.Simple as HTTP
 import Niv.Cmd
 import Niv.Git.Cmd hiding (abort)
@@ -43,11 +46,9 @@ import Paths_niv (version)
 import qualified System.Directory as Dir
 import System.Exit (exitFailure)
 import System.FilePath (takeDirectory)
+import System.IO (hSetEncoding)
 import UnliftIO
 import UnliftIO.Concurrent
-
-import System.IO (hSetEncoding)
-import GHC.IO.Encoding (utf8)
 
 -- | An IO Monad with some configuration:
 -- * FindSourcesJson: how to find sources.json (known path, discover, etc)
@@ -130,9 +131,6 @@ parsePackageName :: Opts.Parser PackageName
 parsePackageName =
   PackageName
     <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
-
-parsePackage :: Opts.Parser (PackageName, PackageSpec)
-parsePackage = (,) <$> parsePackageName <*> parsePackageSpec githubCmd
 
 -------------------------------------------------------------------------------
 -- INIT
@@ -272,91 +270,63 @@ createFile path content = do
 -- ADD
 -------------------------------------------------------------------------------
 
+-- | a string like 'nmattia/niv' that gets turned into a PackageName + PackageSpec
+newtype PackageShortcut = PackageShortcut {unPackageShortcut :: T.Text}
+
 parseCmdAdd :: Opts.ParserInfo (NIO ())
 parseCmdAdd =
   Opts.info
-    ((parseCommands <|> parseShortcuts) <**> Opts.helper)
-    $ description githubCmd
+    ((cmdAdd <$> parsePackageShortcut <*> Opts.optional parsePackageNameOverride <*> Opts.optional parsePackageSpec) <**> Opts.helper)
+    $ description
   where
-    -- XXX: this should parse many shortcuts (github, git). Right now we only
-    -- parse GitHub because the git interface is still experimental.  note to
-    -- implementer: it'll be tricky to have the correct arguments show up
-    -- without repeating "PACKAGE PACKAGE PACKAGE" for every package type.
-    parseShortcuts = parseShortcut githubCmd
-    parseShortcut cmd = uncurry cmdAdd <$> parseShortcutArgs cmd
-    parseCmd cmd = uncurry cmdAdd <$> parseCmdArgs cmd
-    parseCmdAddGit =
-      Opts.info (parseCmd gitCmd <**> Opts.helper) (description gitCmd)
-    parseCmdAddLocal =
-      Opts.info (parseCmd localCmd <**> Opts.helper) (description localCmd)
-    parseCmdAddGitHub =
-      Opts.info (parseCmd githubCmd <**> Opts.helper) (description githubCmd)
-    parseCommands =
-      Opts.subparser
-        ( Opts.hidden
-            <> Opts.commandGroup "Experimental commands:"
-            <> Opts.command "git" parseCmdAddGit
-            <> Opts.command "github" parseCmdAddGitHub
-            <> Opts.command "local" parseCmdAddLocal
-        )
+    parsePackageShortcut = PackageShortcut <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
+    parsePackageNameOverride = PackageName <$> Opts.strOption ( Opts.long "name" <> Opts.short 'n' )
+    description =
+      mconcat
+        [ Opts.fullDesc,
+          Opts.progDesc "Add a package",
+          Opts.headerDoc $
+            Just $
+              Opts.vcat
+                [ "Examples:",
+                  "",
+                  "  niv add stedolan/jq" Opts.<+> "# add a GitHub repo",
+                  "  niv add NixOS/nixpkgs -b nixpkgs-unstable" Opts.<+> "# use non-default branch",
+                  "  niv add neovim/neovim --name vim" Opts.<+> "# override inferred name",
+                  "  niv add https://gcc.gnu.org/git/gcc.git" Opts.<+> "# add an arbitrary Git repo"
+                ]
+        ]
 
--- | only used in shortcuts (niv add foo/bar ...) because PACKAGE is NOT
--- optional
-parseShortcutArgs :: Cmd -> Opts.Parser (PackageName, PackageSpec)
-parseShortcutArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
-  where
-    collapse specAndName pspec = (pname, pspec <> baseSpec)
-      where
-        (pname, baseSpec) = case specAndName of
-          ((_, spec), Just pname') -> (pname', PackageSpec spec)
-          ((pname', spec), Nothing) -> (pname', PackageSpec spec)
-    parseNameAndShortcut =
-      (,)
-        <$> Opts.argument
-          (Opts.maybeReader (parseCmdShortcut cmd . T.pack))
-          (Opts.metavar "PACKAGE")
-        <*> optName
-    optName =
-      Opts.optional $
-        PackageName
-          <$> Opts.strOption
-            ( Opts.long "name"
-                <> Opts.short 'n'
-                <> Opts.metavar "NAME"
-                <> Opts.help "Set the package name to <NAME>"
-            )
+-- Try to expand the shortcut with all commands and return successfully if exactly one matches
+expandShortcut :: [Cmd] -> PackageShortcut -> NIO (PackageName, PackageSpec)
+expandShortcut cmds (unPackageShortcut -> shortcut) = do
+  let expanded = mapMaybe (\cmd -> parseCmdShortcut cmd shortcut) cmds
 
--- | only used in command (niv add <cmd> ...) because PACKAGE is optional
-parseCmdArgs :: Cmd -> Opts.Parser (PackageName, PackageSpec)
-parseCmdArgs cmd = collapse <$> parseNameAndShortcut <*> parsePackageSpec cmd
-  where
-    collapse specAndName pspec = (pname, pspec <> baseSpec)
-      where
-        (pname, baseSpec) = case specAndName of
-          (Just (_, spec), Just pname') -> (pname', PackageSpec spec)
-          (Just (pname', spec), Nothing) -> (pname', PackageSpec spec)
-          (Nothing, Just pname') -> (pname', PackageSpec KM.empty)
-          (Nothing, Nothing) -> (PackageName "unnamed", PackageSpec KM.empty)
-    parseNameAndShortcut =
-      (,)
-        <$> Opts.optional
-          ( Opts.argument
-              (Opts.maybeReader (parseCmdShortcut cmd . T.pack))
-              (Opts.metavar "PACKAGE")
-          )
-        <*> optName
-    optName =
-      Opts.optional $
-        PackageName
-          <$> Opts.strOption
-            ( Opts.long "name"
-                <> Opts.short 'n'
-                <> Opts.metavar "NAME"
-                <> Opts.help "Set the package name to <NAME>"
-            )
+  case expanded of
+    -- no match: create a dummy package with name <shortcut> and hope the user provides enough attributes
+    -- via `--attribute ...`
+    [] -> pure (PackageName shortcut, mempty)
+    -- exactly one match: use this
+    [x] -> pure x
+    -- 1+ match: this is a bug
+    _ -> abortManyCommandsForShortcut (PackageShortcut shortcut)
 
-cmdAdd :: PackageName -> PackageSpec -> NIO ()
-cmdAdd packageName cliSpec = do
+cmdAdd :: PackageShortcut -> Maybe PackageName -> Maybe ParsedPackageSpec -> NIO ()
+cmdAdd shortcut mPackageName mParsed = do
+  -- fully realize the spec passed as `--attribute ...`, if any
+  cliSpecAttrs <- case mParsed of
+    Nothing -> pure $ PackageSpec KM.empty
+    Just parsed -> checkParsedSpec parsed
+
+  -- try to expand the shortcut
+  (packageName', cliSpecShortcut) <- getCmds >>= \cmds -> expandShortcut cmds shortcut
+
+  let packageName = case mPackageName of
+                        Just packageName'' -> packageName''
+                        Nothing -> packageName'
+
+  -- merge the specs: in case of conflict, the `--attribute ...` takes precedence
+  let cliSpec = cliSpecAttrs <> cliSpecShortcut -- left biased via Data.Aeson.KeyMap
   sources <- unSources <$> readSources
   when (HMS.member packageName sources) $ abortCannotAddPackageExists packageName
 
@@ -405,10 +375,27 @@ showPackage (PackageName pname) (PackageSpec spec) = do
 -- UPDATE
 -------------------------------------------------------------------------------
 
+-- | a pattern to match on package names
+newtype PackagePattern = PackagePattern {unPackagePattern :: T.Text}
+
+parsePackagePattern :: Opts.Parser PackagePattern
+parsePackagePattern = PackagePattern <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
+
+-- | filter out packages based on a pattern
+filterPackages :: Sources -> Maybe PackagePattern -> Sources
+filterPackages (unSources -> sources) mPat = Sources $ case mPat of
+  -- no pattern: return all packages
+  Nothing -> sources
+  -- pattern (filter) provided: match exact
+  Just (PackagePattern pat) -> case HMS.lookup (PackageName pat) sources of
+    Just exact -> HMS.singleton (PackageName pat) exact
+    Nothing ->
+      HMS.filterWithKey (\k _ -> unPackageName k == pat) sources
+
 parseCmdUpdate :: Opts.ParserInfo (NIO ())
 parseCmdUpdate =
   Opts.info
-    ((cmdUpdate <$> Opts.optional parsePackage) <**> Opts.helper)
+    ((cmdUpdate <$> Opts.optional parsePackagePattern <*> Opts.optional parsePackageSpec) <**> Opts.helper)
     $ mconcat desc
   where
     desc =
@@ -457,7 +444,6 @@ updatePackage attrs = do
 -- For each package, the package name and final state are returned.
 updatePackages :: [(PackageName, PackageSpec, Maybe PackageSpec)] -> NIO [Either () ()]
 updatePackages packageUpdates = do
-
   -- prepare some padding for package names so that the output is aligned
   let maxNameLength = maximum $ (\(p, _, _) -> T.length $ unPackageName p) <$> packageUpdates
       padName (PackageName p) = p <> T.replicate (maxNameLength - T.length p) " "
@@ -474,21 +460,22 @@ updatePackages packageUpdates = do
         pure $ Right ()
       Left _ -> pure $ Left ()
 
-cmdUpdate :: Maybe (PackageName, PackageSpec) -> NIO ()
-cmdUpdate updateType = do
-  -- prepare the updates
-  packageUpdates <- case updateType of
-    -- no package specified => update everything
-    Nothing -> do
-      sources <- readSources
-      pure $ HMS.toList (unSources sources) <&> (\(k, v) -> (k, v, Nothing))
-    -- one package with new attrs specified => update just that
-    Just (packageName, cliSpec) -> do
-      sources <- readSources
-      spec <- case HMS.lookup packageName (unSources sources) of
-        Nothing -> abortNoSuchPackage packageName
-        Just spec -> pure spec
-      pure [(packageName, spec, Just cliSpec)]
+cmdUpdate :: Maybe PackagePattern -> Maybe ParsedPackageSpec -> NIO ()
+cmdUpdate mPat mParsed = do
+  cliSpec <- case mParsed of
+    Nothing -> pure Nothing
+    Just parsed -> Just <$> checkParsedSpec parsed
+
+  toUpdate <- readSources <&> \sources -> filterPackages sources mPat
+
+  when (HMS.null $ unSources toUpdate) $ do
+    case mPat of
+      Just (PackagePattern pat) -> abort $ "no package matching: " <> "'" <> pat <> "'"
+      Nothing -> abort "nothing to update"
+
+  let packageUpdates = (\(pName, spec) -> (pName, spec, cliSpec)) <$> HMS.toList (unSources toUpdate)
+
+  liftIO $ T.putStrLn $ T.pack (show (length packageUpdates)) <> " package(s) to update"
 
   -- update all packages and separate failures from successes
   (errs, successes) <- partitionEithers <$> updatePackages packageUpdates
@@ -501,6 +488,121 @@ cmdUpdate updateType = do
     liftIO $ T.putStrLn ""
     liftIO $ T.putStrLn $ T.pack (show (length errs)) <> " package(s) failed to update"
     liftIO exitFailure
+
+-- | A package spec as parsed (may be malformed and contain the same attributes multiple times)
+newtype ParsedPackageSpec = ParsedPackageSpec {unParsedPackageSpec :: [(T.Text, Aeson.Value)]}
+
+-- | Collapse the parsed spec into something usable, potentially erroring out
+checkParsedSpec :: ParsedPackageSpec -> NIO PackageSpec
+checkParsedSpec (unParsedPackageSpec -> parsed) = do
+  -- count how many times an attribute is seen, and then filter on the "offending" ones which have been seen
+  -- more than once
+  let counts =
+        foldl'
+          (\acc (k, _) -> HMS.alter (\case Nothing -> Just (1 :: Int); Just n -> Just (n + 1)) k acc)
+          HMS.empty
+          parsed
+      offending = HMS.filter (\n -> n > 1) counts
+
+  when (not $ HMS.null offending) $ do
+    abortAttributeRepeated (HMS.keys offending)
+
+  pure $ PackageSpec $ KM.fromList $ (\(k, v) -> (fromString $ T.unpack k, v)) <$> parsed
+
+-- Parse a package spec, where any attribute can be specified at most once.
+parsePackageSpec :: Opts.Parser ParsedPackageSpec
+parsePackageSpec = groupOptions "ATTRIBUTES" $ ParsedPackageSpec <$> Opts.some (jsonAttribute <|> stringAttribute <|> knownAttribute)
+  where
+    -- this (with `Opts.hidden` set on all options) groups the options below instead of showing them all with the command
+    -- https://github.com/pcapriotti/optparse-applicative/issues/523
+    groupOptions :: String -> Opts.Parser a -> Opts.Parser a
+    groupOptions mv x = Opts.option empty (Opts.metavar mv) <|> Opts.parserOptionGroup mv x
+
+    -- shortcuts for many known attributes
+    knownAttribute :: Opts.Parser (T.Text, Aeson.Value)
+    knownAttribute =
+      attrOption
+        "owner"
+        ( Opts.long "owner"
+            <> Opts.short 'o'
+            <> Opts.metavar "OWNER"
+            <> Opts.help "Set the repository owner (for github)"
+        )
+        <|> attrOption
+          "repo"
+          ( Opts.long "repo"
+              <> Opts.metavar "REPO"
+              <> Opts.help "Set the repository name (for github)"
+          )
+        <|> attrOption
+          "branch"
+          ( Opts.long "branch"
+              <> Opts.short 'b'
+              <> Opts.metavar "BRANCH"
+              <> Opts.help "Set the branch (for git/github)"
+          )
+        <|> attrOption
+          "rev"
+          ( Opts.long "rev"
+              <> Opts.short 'r'
+              <> Opts.metavar "REV"
+              <> Opts.help "Set the revision/commit (for git/github)"
+          )
+        <|> attrOption
+          "version"
+          ( Opts.long "version"
+              <> Opts.short 'v'
+              <> Opts.metavar "VERSION"
+              <> Opts.help "Set the version"
+          )
+        <|> attrOption
+          "url_template"
+          ( Opts.long "template"
+              <> Opts.short 't'
+              <> Opts.metavar "URL"
+              <> Opts.help "Used during 'update' when building URL. Occurrences of <foo> are replaced with attribute 'foo'."
+          )
+        <|> attrOption
+          "type"
+          ( Opts.long "type"
+              <> Opts.short 'T'
+              <> Opts.metavar "TYPE"
+              <> Opts.help "The type of the URL target. The value can be either 'file' or 'tarball'. If not set, the value is inferred from the suffix of the URL."
+          )
+
+    attrOption key mods = (\v -> (key, v)) <$> Opts.strOption (Opts.hidden <> mods)
+
+    -- parse any json value as `--attribute 'foo={"hello": "world"}'`
+    -- NOTE: if the string fails to parse as JSON we assume it's a string (a string itself like 'foo' won't
+    -- successfully parse as a JSON string, only '"foo"' would)
+    jsonAttribute :: Opts.Parser (T.Text, Aeson.Value)
+    jsonAttribute =
+      Opts.option
+        (kvMaybe >>= \(k, v) -> case Aeson.decodeStrict (B8.pack (T.unpack v)) of Just v' -> pure (k, v'); Nothing -> pure (k, Aeson.toJSON v))
+        ( Opts.long "attribute"
+            <> Opts.short 'a'
+            <> Opts.metavar "KEY=VAL"
+            <> Opts.help "Set the package spec attribute <KEY> to <VAL>, where <VAL> may be JSON."
+            <> Opts.hidden
+        )
+
+    -- same as above but force parsing as string
+    stringAttribute :: Opts.Parser (T.Text, Aeson.Value)
+    stringAttribute =
+      Opts.option
+        ((\(k, v) -> (k, Aeson.String v)) <$> kvMaybe)
+        ( Opts.long "string-attribute"
+            <> Opts.short 's'
+            <> Opts.metavar "KEY=VAL"
+            <> Opts.help "Set the package spec attribute <KEY> to <VAL>."
+            <> Opts.hidden
+        )
+
+    -- try to turn "foo=bar" into ("foo", "bar")
+    kvMaybe :: Opts.ReadM (T.Text, T.Text)
+    kvMaybe = Opts.maybeReader $ \str -> case span (/= '=') str of
+      (k, '=' : v) -> Just (T.pack k, T.pack v)
+      _ -> Nothing
 
 -- | pretty much tryEvalUpdate but we might issue some warnings first
 doUpdate :: Attrs -> Cmd -> Job Attrs
@@ -551,7 +653,7 @@ cmdRename oldName newName =
 parseCmdModify :: Opts.ParserInfo (NIO ())
 parseCmdModify =
   Opts.info
-    ((cmdModify <$> parsePackageName <*> parsePackageSpec githubCmd) <**> Opts.helper)
+    ((cmdModify <$> parsePackageName <*> parsePackageSpec) <**> Opts.helper)
     $ mconcat desc
   where
     desc =
@@ -567,8 +669,9 @@ parseCmdModify =
               ]
       ]
 
-cmdModify :: PackageName -> PackageSpec -> NIO ()
-cmdModify packageName cliSpec =
+cmdModify :: PackageName -> ParsedPackageSpec -> NIO ()
+cmdModify packageName parsed = do
+  cliSpec <- checkParsedSpec parsed
   modifySources $ \(unSources -> sources) -> do
     spec <- case HMS.lookup packageName sources of
       Nothing -> abortNoSuchPackage packageName
@@ -781,7 +884,6 @@ abortNoSuitableCommand :: Job a
 abortNoSuitableCommand =
   throwError "don't know how to update package"
 
-
 -- proper aborts that exit niv (only used when there is no way to make
 -- progress, like missing sources)
 
@@ -789,6 +891,16 @@ abort :: (MonadIO io) => T.Text -> io a
 abort msg = do
   liftIO $ T.putStrLn $ T.unwords [tbold (tred "FATAL") <> ":", msg]
   liftIO exitFailure
+
+-- error if the command to use is ambiguous
+abortManyCommandsForShortcut :: PackageShortcut -> NIO a
+abortManyCommandsForShortcut (unPackageShortcut -> shortcut) =
+  abort $ bug $ "shortcut matched multiple commands: " <> shortcut
+
+-- We don't allow attributes to be specified multiple times
+abortAttributeRepeated :: [T.Text] -> NIO a
+abortAttributeRepeated ks =
+  abort $ "some attributes were specified multiple times: " <> T.intercalate "," ks
 
 abortNoSuchPackage :: (MonadIO io) => PackageName -> io a
 abortNoSuchPackage (unPackageName -> packageName) =

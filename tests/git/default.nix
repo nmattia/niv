@@ -51,7 +51,7 @@
           mkdir -p nix
           echo "{}" > nix/sources.json
           niv init --latest
-          niv add git -n my-git-repo --repo file://$gitdir
+          niv add my-git-repo --repo file://$gitdir --type git
           nivrev=$(nix eval --json --impure --expr '(import ./nix/sources.nix).my-git-repo.rev' | jq -r)
           if [ ! "$gitrev" = "$nivrev" ]; then
             echo "Mismatched revs: $gitrev != $nivrev"
