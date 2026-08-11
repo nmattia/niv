@@ -390,7 +390,7 @@ filterPackages (unSources -> sources) mPat = Sources $ case mPat of
   Just (PackagePattern pat) -> case HMS.lookup (PackageName pat) sources of
     Just exact -> HMS.singleton (PackageName pat) exact
     Nothing ->
-      HMS.filterWithKey (\k _ -> unPackageName k == pat) sources
+      HMS.filterWithKey (\k _ -> pat `T.isPrefixOf` (unPackageName k)) sources
 
 parseCmdUpdate :: Opts.ParserInfo (NIO ())
 parseCmdUpdate =
