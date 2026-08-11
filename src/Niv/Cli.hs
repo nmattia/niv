@@ -280,7 +280,7 @@ parseCmdAdd =
     $ description
   where
     parsePackageShortcut = PackageShortcut <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
-    parsePackageNameOverride = PackageName <$> Opts.strOption ( Opts.long "name" <> Opts.short 'n' )
+    parsePackageNameOverride = PackageName <$> Opts.strOption ( Opts.long "name" <> Opts.short 'n' <> Opts.metavar "NAME")
     description =
       mconcat
         [ Opts.fullDesc,
