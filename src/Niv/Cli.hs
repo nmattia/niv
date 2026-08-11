@@ -386,7 +386,7 @@ filterPackages :: Sources -> Maybe PackagePattern -> Sources
 filterPackages (unSources -> sources) mPat = Sources $ case mPat of
   -- no pattern: return all packages
   Nothing -> sources
-  -- pattern (filter) provided: match exact
+  -- pattern (filter) provided: return an exact match; if no exact match, match by prefix
   Just (PackagePattern pat) -> case HMS.lookup (PackageName pat) sources of
     Just exact -> HMS.singleton (PackageName pat) exact
     Nothing ->
