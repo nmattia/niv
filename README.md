@@ -244,7 +244,7 @@ Examples:
   niv add neovim/neovim --name vim # override inferred name
   niv add https://gcc.gnu.org/git/gcc.git # add an arbitrary Git repo
 
-Usage: niv add PACKAGE [-n|--name ARG] [ATTRIBUTES]
+Usage: niv add PACKAGE [-n|--name NAME] [ATTRIBUTES]
 
   Add a package
 
