@@ -17,6 +17,7 @@ import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
+import qualified Data.ByteString.Lazy as BL
 import Data.Char (isSpace)
 import Data.Either (partitionEithers)
 import Data.Functor ((<&>))
@@ -27,6 +28,7 @@ import Data.Maybe
 import Data.String (fromString)
 import Data.String.QQ (s)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 import Data.Version (showVersion)
 import GHC.IO.Encoding (utf8)
@@ -363,8 +365,10 @@ showPackage (PackageName pname) (PackageSpec spec) = do
   liftIO $ T.putStrLn $ tbold pname
   forM_ (KM.toList spec) $ \(attrName, attrValValue) -> do
     let attrValue = case attrValValue of
+          -- if a string, show the string
           Aeson.String str -> str
-          _ -> tfaint "<barabajagal>"
+          -- otherwise, show the raw encoding
+          v -> tfaint $ T.decodeUtf8Lenient $ BL.toStrict $ Aeson.encode v
     liftIO $ T.putStrLn $ "  " <> K.toText attrName <> ": " <> attrValue
 
 -------------------------------------------------------------------------------
