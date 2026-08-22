@@ -7,7 +7,6 @@ import Niv.Update
 data Cmd = Cmd
   { -- | Important: if an object is returned, then it should be accepted by 'acceptsCmd'
     parseCmdShortcut :: T.Text -> Maybe (PackageName, PackageSpec),
-
     updateCmd :: Update () (),
     name :: T.Text,
     -- | Some notes to print

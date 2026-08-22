@@ -72,7 +72,6 @@ getSourcesEither fsj = do
     mapKeys :: (Eq k2, Hashable k2) => (k1 -> k2) -> HMS.HashMap k1 v -> HMS.HashMap k2 v
     mapKeys f = HMS.fromList . map (first f) . HMS.toList
 
-
 setSources :: FindSourcesJson -> Sources -> IO ()
 setSources fsj = Aeson.encodeFilePretty (pathNixSourcesJson fsj)
 
@@ -91,7 +90,6 @@ pathNixSourcesJson :: FindSourcesJson -> FilePath
 pathNixSourcesJson = \case
   Auto -> "nix" </> "sources.json"
   AtPath f -> f
-
 
 -------------------------------------------------------------------------------
 -- sources.nix related

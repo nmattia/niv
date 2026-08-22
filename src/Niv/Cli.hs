@@ -280,7 +280,7 @@ parseCmdAdd =
     $ description
   where
     parsePackageShortcut = PackageShortcut <$> Opts.argument Opts.str (Opts.metavar "PACKAGE")
-    parsePackageNameOverride = PackageName <$> Opts.strOption ( Opts.long "name" <> Opts.short 'n' <> Opts.metavar "NAME")
+    parsePackageNameOverride = PackageName <$> Opts.strOption (Opts.long "name" <> Opts.short 'n' <> Opts.metavar "NAME")
     description =
       mconcat
         [ Opts.fullDesc,
@@ -322,8 +322,8 @@ cmdAdd shortcut mPackageName mParsed = do
   (packageName', cliSpecShortcut) <- getCmds >>= \cmds -> expandShortcut cmds shortcut
 
   let packageName = case mPackageName of
-                        Just packageName'' -> packageName''
-                        Nothing -> packageName'
+        Just packageName'' -> packageName''
+        Nothing -> packageName'
 
   -- merge the specs: in case of conflict, the `--attribute ...` takes precedence
   let cliSpec = cliSpecAttrs <> cliSpecShortcut -- left biased via Data.Aeson.KeyMap
