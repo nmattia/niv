@@ -82,8 +82,7 @@ cli args = do
     execParserPure' pprefs pinfo as = Opts.execParserPure pprefs pinfo as
     opts = Opts.info ((,) <$> ((,) <$> parseFindSourcesJson <*> parseColors) <*> (parseCommand <**> Opts.helper <**> versionflag)) $ mconcat desc
     desc =
-      [ Opts.fullDesc,
-        Opts.headerDoc $
+      [ Opts.headerDoc $
           Just $
             Opts.vcat
               [ "niv - dependency manager for Nix projects",
@@ -152,8 +151,7 @@ parseCmdInit :: Opts.ParserInfo (NIO ())
 parseCmdInit = Opts.info (cmdInit <$> parseNixpkgs <**> Opts.helper) $ mconcat desc
   where
     desc =
-      [ Opts.fullDesc,
-        Opts.progDesc
+      [ Opts.progDesc
           "Initialize a Nix project. Existing files won't be modified."
       ]
 
@@ -283,8 +281,7 @@ parseCmdAdd =
     parsePackageNameOverride = PackageName <$> Opts.strOption (Opts.long "name" <> Opts.short 'n' <> Opts.metavar "NAME")
     description =
       mconcat
-        [ Opts.fullDesc,
-          Opts.progDesc "Add a package",
+        [ Opts.progDesc "Add a package",
           Opts.headerDoc $
             Just $
               Opts.vcat
@@ -348,7 +345,7 @@ parseCmdShow :: Opts.ParserInfo (NIO ())
 parseCmdShow =
   Opts.info
     ((cmdShow <$> Opts.optional parsePackagePattern) <**> Opts.helper)
-    Opts.fullDesc
+    mempty
 
 cmdShow :: Maybe PackagePattern -> NIO ()
 cmdShow mPat = do
@@ -398,8 +395,7 @@ parseCmdUpdate =
     $ mconcat desc
   where
     desc =
-      [ Opts.fullDesc,
-        Opts.progDesc "Update dependencies",
+      [ Opts.progDesc "Update dependencies",
         Opts.headerDoc $
           Just $
             Opts.nest 2 $
@@ -623,8 +619,7 @@ parseCmdRename =
     $ mconcat desc
   where
     desc =
-      [ Opts.fullDesc,
-        Opts.progDesc "Rename a package",
+      [ Opts.progDesc "Rename a package",
         Opts.headerDoc $
           Just $
             Opts.vcat
@@ -656,8 +651,7 @@ parseCmdModify =
     $ mconcat desc
   where
     desc =
-      [ Opts.fullDesc,
-        Opts.progDesc "Modify dependency attributes without performing an update",
+      [ Opts.progDesc "Modify dependency attributes without performing an update",
         Opts.headerDoc $
           Just $
             Opts.vcat
@@ -692,8 +686,7 @@ parseCmdDrop =
     $ mconcat desc
   where
     desc =
-      [ Opts.fullDesc,
-        Opts.progDesc "Drop dependency",
+      [ Opts.progDesc "Drop dependency",
         Opts.headerDoc $
           Just $
             Opts.vcat
@@ -737,8 +730,7 @@ parseCmdVersion =
     $ mconcat desc
   where
     desc =
-      [ Opts.fullDesc,
-        Opts.progDesc "Print version"
+      [ Opts.progDesc "Print version"
       ]
 
 -------------------------------------------------------------------------------
