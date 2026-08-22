@@ -17,7 +17,6 @@ import qualified Data.Text.Encoding as T
 import Data.Text.Extended
 import qualified Network.HTTP.Simple as HTTP
 import System.Environment (lookupEnv)
-import System.Exit (exitFailure)
 import System.IO.Unsafe (unsafePerformIO)
 import Text.Read (readMaybe)
 import UnliftIO
@@ -57,8 +56,7 @@ githubRepo owner repo = do
 -- | TODO: Error instead of T.Text?
 abortCouldNotFetchGitHubRepo :: T.Text -> (T.Text, T.Text) -> IO a
 abortCouldNotFetchGitHubRepo e (T.unpack -> owner, T.unpack -> repo) = do
-  putStrLn $ unlines [line1, line2, T.unpack line3]
-  exitFailure
+  abort $ T.pack $ unlines [line1, line2, T.unpack line3]
   where
     line1 = "WARNING: Could not read from GitHub repo: " <> owner <> "/" <> repo
     line2 =
