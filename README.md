@@ -282,7 +282,8 @@ Usage: niv update [PACKAGE] [ATTRIBUTES]
   Update dependencies
 
 Available options:
-  PACKAGE                  Matches a single package by exact name; otherwise matches all packages names starting with this prefix.
+  PACKAGE                  Matches a single package by exact name; otherwise
+                           matches all packages names starting with this prefix.
   -h,--help                Show this help text
 
 ATTRIBUTES
@@ -391,7 +392,8 @@ Available options:
 Usage: niv show [PACKAGE]
 
 Available options:
-  PACKAGE                  Matches a single package by exact name; otherwise matches all packages names starting with this prefix.
+  PACKAGE                  Matches a single package by exact name; otherwise
+                           matches all packages names starting with this prefix.
   -h,--help                Show this help text
 ```
 

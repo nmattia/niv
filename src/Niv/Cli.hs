@@ -375,7 +375,7 @@ showPackage (PackageName pname) (PackageSpec spec) = do
 newtype PackagePattern = PackagePattern {unPackagePattern :: T.Text}
 
 parsePackagePattern :: Opts.Parser PackagePattern
-parsePackagePattern = PackagePattern <$> Opts.argument Opts.str (Opts.metavar "PACKAGE" <> Opts.helpDoc (Just "Matches a single package by exact name; otherwise matches all packages names starting with this prefix."))
+parsePackagePattern = PackagePattern <$> Opts.argument Opts.str (Opts.metavar "PACKAGE" <> Opts.help "Matches a single package by exact name; otherwise matches all packages names starting with this prefix.")
 
 -- | filter out packages based on a pattern
 filterPackages :: Sources -> Maybe PackagePattern -> Sources
