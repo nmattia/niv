@@ -281,6 +281,10 @@ Usage: niv update [PACKAGE] [ATTRIBUTES]
 
   Update dependencies
 
+Available options:
+  PACKAGE                  Matches a single package by exact name; otherwise matches all packages names starting with this prefix.
+  -h,--help                Show this help text
+
 ATTRIBUTES
   -a,--attribute KEY=VAL   Set the package spec attribute <KEY> to <VAL>, where
                            <VAL> may be JSON.
@@ -296,9 +300,6 @@ ATTRIBUTES
   -T,--type TYPE           The type of the URL target. The value can be either
                            'file' or 'tarball'. If not set, the value is
                            inferred from the suffix of the URL.
-
-Available options:
-  -h,--help                Show this help text
 ```
 
 #### Rename
@@ -390,6 +391,7 @@ Available options:
 Usage: niv show [PACKAGE]
 
 Available options:
+  PACKAGE                  Matches a single package by exact name; otherwise matches all packages names starting with this prefix.
   -h,--help                Show this help text
 ```
 
