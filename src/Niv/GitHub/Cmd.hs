@@ -37,21 +37,23 @@ githubCmd =
 
 -- parse a github shortcut of the form "owner/repo"
 parseAddShortcutGitHub :: T.Text -> Maybe (PackageName, PackageSpec)
-parseAddShortcutGitHub str = second PackageSpec <$>
-  -- parses a string "owner/repo" into package name (repo) and spec (owner +
-  -- repo)
-  case T.span (/= '/') str of
-    ( owner@(T.null -> False),
-      T.uncons -> Just ('/', repo@(T.null -> False))
-      ) ->
-        Just
-          ( PackageName repo,
-            KM.fromList ["owner" .= owner, "repo" .= repo]
-          )
-    -- XXX: this should be "Nothing" but for the time being we keep
-    -- backwards compatibility with "niv add foo" adding "foo" as a
-    -- package name.
-    _ -> Just (PackageName str, KM.empty)
+parseAddShortcutGitHub str =
+  second PackageSpec
+    <$>
+    -- parses a string "owner/repo" into package name (repo) and spec (owner +
+    -- repo)
+    case T.span (/= '/') str of
+      ( owner@(T.null -> False),
+        T.uncons -> Just ('/', repo@(T.null -> False))
+        ) ->
+          Just
+            ( PackageName repo,
+              KM.fromList ["owner" .= owner, "repo" .= repo]
+            )
+      -- XXX: this should be "Nothing" but for the time being we keep
+      -- backwards compatibility with "niv add foo" adding "foo" as a
+      -- package name.
+      _ -> Just (PackageName str, KM.empty)
 
 -- | The IO (real) github update
 githubUpdate' :: Update () ()

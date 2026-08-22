@@ -29,7 +29,6 @@ gitCmd =
       name = "git",
       extraLogs = gitExtraLogs,
       acceptsCmd = \(unPackageSpec -> spec) -> KM.lookup "type" spec == Just "git"
-
     }
 
 gitExtraLogs :: Attrs -> [T.Text]
@@ -37,26 +36,28 @@ gitExtraLogs attrs = noteRef <> warnRefBranch <> warnRefTag
   where
     noteRef =
       textIf (HMS.member "ref" attrs) $
-          "Your source contains a `ref` attribute. Make sure your sources.nix is up-to-date and consider using a `branch` or `tag` attribute."
+        "Your source contains a `ref` attribute. Make sure your sources.nix is up-to-date and consider using a `branch` or `tag` attribute."
     warnRefBranch =
       textIf (member "ref" && member "branch") $
-          "Your source contains both a `ref` and a `branch`. Niv will update the `branch` but the `ref` will be used by Nix to fetch the repo."
+        "Your source contains both a `ref` and a `branch`. Niv will update the `branch` but the `ref` will be used by Nix to fetch the repo."
     warnRefTag =
       textIf (member "ref" && member "tag") $
-          "Your source contains both a `ref` and a `tag`. The `ref` will be used by Nix to fetch the repo."
+        "Your source contains both a `ref` and a `tag`. The `ref` will be used by Nix to fetch the repo."
     member x = HMS.member x attrs
     textIf cond txt = [txt | cond]
 
 parseGitShortcut :: T.Text -> Maybe (PackageName, PackageSpec)
-parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) = second PackageSpec <$>
-  -- basic heuristics for figuring out if something is a git repo
-  if isGitURL
-    then case T.splitOn "/" txt of
-      [] -> Nothing
-      (last -> w) -> case T.stripSuffix ".git" w of
-        Nothing -> Just (PackageName w, KM.fromList [ "repo" .= txt', "type" .= Aeson.String "git" ])
-        Just w' -> Just (PackageName w', KM.fromList [ "repo" .= txt', "type" .= Aeson.String "git" ])
-    else Nothing
+parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) =
+  second PackageSpec
+    <$>
+    -- basic heuristics for figuring out if something is a git repo
+    if isGitURL
+      then case T.splitOn "/" txt of
+        [] -> Nothing
+        (last -> w) -> case T.stripSuffix ".git" w of
+          Nothing -> Just (PackageName w, KM.fromList ["repo" .= txt', "type" .= Aeson.String "git"])
+          Just w' -> Just (PackageName w', KM.fromList ["repo" .= txt', "type" .= Aeson.String "git"])
+      else Nothing
   where
     isGitURL =
       ".git"
@@ -65,7 +66,6 @@ parseGitShortcut txt'@(T.dropWhileEnd (== '/') -> txt) = second PackageSpec <$>
           `T.isPrefixOf` txt
         || "ssh://"
           `T.isPrefixOf` txt
-
 
 gitUpdate ::
   -- | latest rev

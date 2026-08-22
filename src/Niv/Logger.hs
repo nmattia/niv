@@ -66,12 +66,11 @@ note n = tell ([n], [])
 -- | Run a Job, getting back the result (or error) plus accumulated log.
 job :: (MonadUnliftIO io, MonadIO io) => T.Text -> Job io a -> io (Either () a)
 job name jb = bracket_ (liftIO ANSI.hideCursor) (liftIO ANSI.showCursor) $ do
-
   -- the "prefixes" that are shown in front of the job name
-  let  pending = " • "
-       success = tgreen " ✓ "
-       warning = tyellow " ✓ "
-       failure = tred " ⨯ "
+  let pending = " • "
+      success = tgreen " ✓ "
+      warning = tyellow " ✓ "
+      failure = tred " ⨯ "
 
   -- write a "prefix" and the name:
   -- " • foo"

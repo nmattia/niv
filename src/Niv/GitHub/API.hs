@@ -5,6 +5,7 @@
 
 module Niv.GitHub.API where
 
+import Control.Monad.Except (throwError)
 import qualified Data.Aeson as Aeson
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Char8 as BS8
@@ -17,10 +18,9 @@ import Data.Text.Extended
 import qualified Network.HTTP.Simple as HTTP
 import System.Environment (lookupEnv)
 import System.Exit (exitFailure)
-import UnliftIO
 import System.IO.Unsafe (unsafePerformIO)
 import Text.Read (readMaybe)
-import           Control.Monad.Except (throwError)
+import UnliftIO
 
 -- Bunch of GitHub helpers
 

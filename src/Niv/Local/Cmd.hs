@@ -27,9 +27,10 @@ localCmd =
     }
 
 parseLocalShortcut :: T.Text -> Maybe (PackageName, PackageSpec)
-parseLocalShortcut txt = second PackageSpec <$>
-  if T.isPrefixOf "./" txt || T.isPrefixOf "/" txt
-    then do
-      let n = last $ T.splitOn "/" txt
-      Just (PackageName n, KM.fromList [("path", Aeson.String txt), ("type", Aeson.String "local")])
-    else Nothing
+parseLocalShortcut txt =
+  second PackageSpec
+    <$> if T.isPrefixOf "./" txt || T.isPrefixOf "/" txt
+      then do
+        let n = last $ T.splitOn "/" txt
+        Just (PackageName n, KM.fromList [("path", Aeson.String txt), ("type", Aeson.String "local")])
+      else Nothing
