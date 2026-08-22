@@ -347,20 +347,19 @@ cmdAdd shortcut mPackageName mParsed = do
 parseCmdShow :: Opts.ParserInfo (NIO ())
 parseCmdShow =
   Opts.info
-    ((cmdShow <$> Opts.optional parsePackageName) <**> Opts.helper)
+    ((cmdShow <$> Opts.optional parsePackagePattern) <**> Opts.helper)
     Opts.fullDesc
 
--- TODO: nicer output
-cmdShow :: Maybe PackageName -> NIO ()
-cmdShow = \case
-  Just packageName -> do
-    sources <- unSources <$> readSources
-    case HMS.lookup packageName sources of
-      Just pspec -> showPackage packageName pspec
-      Nothing -> abortNoSuchPackage packageName
-  Nothing -> do
-    sources <- unSources <$> readSources
-    forWithKeyM_ sources showPackage
+cmdShow :: Maybe PackagePattern -> NIO ()
+cmdShow mPat = do
+  toShow <- readSources <&> \sources -> filterPackages sources mPat
+
+  when (HMS.null $ unSources toShow) $ do
+    case mPat of
+      Just (PackagePattern pat) -> abort $ "no package matching: " <> "'" <> pat <> "'"
+      Nothing -> abort "nothing to show"
+
+  forWithKeyM_ (unSources toShow) showPackage
 
 showPackage :: (MonadIO io) => PackageName -> PackageSpec -> io ()
 showPackage (PackageName pname) (PackageSpec spec) = do
