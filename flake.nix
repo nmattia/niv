@@ -169,6 +169,7 @@
       {
         packages = {
           inherit niv niv-sdist readme golden;
+          default = niv;
         };
 
         checks = import ./tests { inherit system pkgs niv; };
