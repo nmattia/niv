@@ -2,12 +2,13 @@
 
 [![Test](https://github.com/nmattia/niv/actions/workflows/test.yml/badge.svg)](https://github.com/nmattia/niv/actions/workflows/test.yml)
 
-Painless dependencies for [Nix] projects. Read more in the [Getting started](#getting-started) section below.
+Track and pin any external dependency in your Nix project (Nix or not).
 
 <p align="center">
-    <img src="./niv.svg">
+    <img src="./niv.gif">
 </p>
 
+Track and pin any external dependency in your Nix project, Nix or not.
 
 * [Install](#install)
 * [Build](#build)
@@ -22,12 +23,12 @@ Painless dependencies for [Nix] projects. Read more in the [Getting started](#ge
 $ nix-env -iA nixpkgs.niv
 ```
 
-Alternatively, run the following command to install the development version:
+Alternatively, you can run the development version with this command:
 
 ``` bash
-$ nix-env -iA niv -f https://github.com/nmattia/niv/tarball/master \
-    --substituters https://niv.cachix.org \
-    --trusted-public-keys niv.cachix.org-1:X32PCg2e/zAm3/uD1ScqW2z/K0LtDyNV7RdaxIuLgQM=
+$ nix run github:nmattia/niv#niv \
+    --substituters https://niv.cachix.org --trusted-public-keys niv.cachix.org-1:X32PCg2e/zAm3/uD1ScqW2z/K0LtDyNV7RdaxIuLgQM= \
+    -- --help
 ```
 
 ## Build
