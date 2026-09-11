@@ -1,7 +1,7 @@
 cabal-version:      2.2
 
 name:               niv
-version:            0.2.22
+version:            0.3.0
 synopsis:           Easy dependency management for Nix projects
 description:        Easy dependency management for Nix projects.
 category:           Development

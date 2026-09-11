@@ -79,7 +79,7 @@
             }:
             mkDerivation {
               pname = "niv";
-              version = "0.2.22";
+              version = "0.3.0";
               src = niv-source;
               isLibrary = true;
               isExecutable = true;

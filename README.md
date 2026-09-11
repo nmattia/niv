@@ -8,7 +8,7 @@ Track and pin any external dependency in your Nix project (Nix or not).
     <img src="./niv.gif">
 </p>
 
-Augment flakes or replace them. Read more in the [Getting started](#getting-started) section below.
+Track and pin any external dependency in your Nix project, Nix or not.
 
 * [Install](#install)
 * [Build](#build)
@@ -212,7 +212,7 @@ $ niv update ghc -v 8.6.2
 ```
 niv - dependency manager for Nix projects
 
-version: 0.2.22
+version: 0.3.0
 
 Usage: niv [-s|--sources-file FILE] [--no-colors] COMMAND
 

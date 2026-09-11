@@ -1,14 +1,39 @@
 # Changelog
 
-
-## [Unreleased]
+## [0.3.0] 2026-09-11
 
 ### Added
-* New `version` command: `niv version`
-* Add command (update type) filter and error out if none match
+* New `version` command: `niv version` (#428)
+* New `rename` command to rename a package, e.g. `niv rename old new` (#440)
+* Package pattern matching: `update` and `show` now fall back to prefix
+  matching when no package matches exactly (#442, #444)
+* Recognize more tarball extensions when inferring the source type (#385)
+* `niv init` now prints an informational message when using the cached
+  nixpkgs (#402)
+
+### Changed
+* Streamlined the `add` and `update` package shortcuts (#441):
+  * `niv add` takes a single `PACKAGE` plus optional `--name` and grouped
+    attributes; shortcuts are expanded by trying all registered commands
+    instead of dedicated `git`/`github`/`local` add subcommands
+  * `niv update` can target a single package and apply attribute overrides,
+    and now errors on duplicate attributes
+* `niv modify` no longer takes `--name`; use the new `rename` command (#440)
+* `niv show` now prints the JSON encoding of non-string attribute values
+  instead of `<barabajagal>` (#446 area / "Show JSON encoding" commit)
+* The command/update-type list is now built dynamically, so `add` filters
+  by update type and errors out when none match (#432)
+* Update the default nixpkgs to a rolling release (#369)
+* Fix spacing in error output (#413)
+* Documentation: FAQ submodule notes, cpp example, nixos wiki links,
+  package pattern docs, README refresh (#393, #394, #399, #447, #448)
 
 ### Fixed
-* Prevent unsafe jobStack IORef creation from being inlined
+* Prevent unsafe `jobStack` IORef creation from being inlined (#431)
+
+### Removed
+* The `--name` option on `niv modify` (replaced by the `rename` command) (#440)
+
 
 ## [0.2.22] 2023-03-12
 
